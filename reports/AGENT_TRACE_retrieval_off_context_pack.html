@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mini Coding Agent Trace</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; color: #1f2937; }
+    h1 { margin-bottom: 4px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { border: 1px solid #d1d5db; border-radius: 6px; padding: 10px; background: #f9fafb; }
+    .metric strong { display: block; font-size: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border: 1px solid #d1d5db; padding: 8px; vertical-align: top; }
+    th { background: #f3f4f6; text-align: left; }
+    code, pre { font-family: Consolas, monospace; }
+    pre { white-space: pre-wrap; margin: 0; max-height: 240px; overflow: auto; }
+    .ok { color: #166534; font-weight: bold; }
+    .fail { color: #991b1b; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Mini Coding Agent Trace</h1>
+  <p>Generated: 2026-07-06T17:08:49</p>
+  <p>Trace: <code>artifacts\agent_retrieval_context_task_runs\compare_retrieval\retrieval-off\agent\context_pack_retrieval.jsonl</code></p>
+  <section class="summary">
+    <div class="metric"><span>Events</span><strong>48</strong></div>
+    <div class="metric"><span>Tool calls</span><strong>23</strong></div>
+    <div class="metric"><span>Failed tools</span><strong>5</strong></div>
+    <div class="metric"><span>Parse errors</span><strong>0</strong></div>
+  </section>
+  <p>Event breakdown: agent_end: 1, agent_max_turns_context: 1, agent_response: 12, agent_retry_plan_injected: 4, agent_start: 1, eval_agent_answer: 1, eval_agent_verifier_end: 1, eval_agent_verifier_start: 1, session_start: 1, todo_quality: 1, todo_state: 1, tool_call: 23</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Timestamp</th>
+        <th>Event</th>
+        <th>Tool</th>
+        <th>Status</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>2026-07-06T09:06:18.436577+00:00</td><td>session_start</td><td></td><td></td><td><pre>{
+  &quot;workspace&quot;: &quot;D:\\-\\hello-agent\\mini-coding-agent-harness\\artifacts\\agent_retrieval_context_task_runs\\compare_retrieval\\retrieval-off\\workspaces\\context_pack_retrieval&quot;,
+  &quot;eval_task&quot;: &quot;context_pack_retrieval&quot;,
+  &quot;eval_mode&quot;: &quot;agent&quot;,
+  &quot;memory_enabled&quot;: true,
+  &quot;context_enabled&quot;: true,
+  &quot;retrieval_enabled&quot;: false,
+  &quot;allow_write&quot;: true
+}</pre></td></tr>
+      <tr><td>2</td><td>2026-07-06T09:06:18.442579+00:00</td><td>tool_call</td><td>list_memories</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;list_memories&quot;,
+  &quot;args&quot;: {
+    &quot;query&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet; no file edits are needed.&quot;,
+    &quot;limit&quot;: 5
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;- `skills\\tool-implementation-verification-workflow.md` (score 19): Tool Implementation Verification Workflow&quot;,
+  &quot;metadata&quot;: {
+    &quot;count&quot;: 1,
+    &quot;total_matches&quot;: 1,
+    &quot;query&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet; no file edits are needed.&quot;,
+    &quot;memories&quot;: [
+      {
+        &quot;name&quot;: &quot;Tool Implementation Verification Workflow&quot;,
+        &quot;path&quot;: &quot;skills\\tool-implementation-verification-workflow.md&quot;,
+        &quot;score&quot;: 19
+      }
+    ]
+  }
+}</pre></td></tr>
+      <tr><td>3</td><td>2026-07-06T09:06:18.462676+00:00</td><td>agent_start</td><td></td><td></td><td><pre>{
+  &quot;prompt&quot;: &quot;Evaluation task `context_pack_retrieval`: Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet; no file edits are needed.\n\nMemory support is enabled. Review the available workflow memories if they are relevant.\nAvailable memories:\n- `skills\\tool-implementation-verification-workflow.md` (score 19): Tool Implementation Verification Workflow\n\nContext compaction is enabled; use compact_context if the trace becomes long or you need a state summary.\n\nRetrieval support is disabled for this evaluation run; use grep, list_python_files, and read_file directly.\n\nInspect the workspace, make the minimal code or documentation change needed, run the relevant verification tool, and finish with the files changed and result.&quot;,
+  &quot;model&quot;: &quot;deepseek-chat&quot;
+}</pre></td></tr>
+      <tr><td>4</td><td>2026-07-06T09:06:28.989634+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 0,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 1780,
+    &quot;output_tokens&quot;: 142
+  }
+}</pre></td></tr>
+      <tr><td>5</td><td>2026-07-06T09:06:28.990636+00:00</td><td>todo_quality</td><td></td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;ok&quot;: false,
+  &quot;issues&quot;: [
+    &quot;todo_0_missing_action_verb&quot;,
+    &quot;todo_1_missing_action_verb&quot;,
+    &quot;todo_2_missing_action_verb&quot;
+  ],
+  &quot;count&quot;: 4,
+  &quot;initial_plan&quot;: true
+}</pre></td></tr>
+      <tr><td>6</td><td>2026-07-06T09:06:28.991636+00:00</td><td>tool_call</td><td>todo_write</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;todo_write&quot;,
+  &quot;args&quot;: {
+    &quot;todos&quot;: [
+      {
+        &quot;task&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+        &quot;status&quot;: &quot;in_progress&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Find context_pack implementation and usage&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Summarize findings&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      }
+    ]
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;Updated 4 todo(s)&quot;,
+  &quot;metadata&quot;: {
+    &quot;todos&quot;: [
+      {
+        &quot;task&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+        &quot;status&quot;: &quot;in_progress&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Find context_pack implementation and usage&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      },
+      {
+        &quot;task&quot;: &quot;Summarize findings&quot;,
+        &quot;status&quot;: &quot;pending&quot;
+      }
+    ],
+    &quot;quality&quot;: {
+      &quot;ok&quot;: false,
+      &quot;issues&quot;: [
+        &quot;todo_0_missing_action_verb&quot;,
+        &quot;todo_1_missing_action_verb&quot;,
+        &quot;todo_2_missing_action_verb&quot;
+      ],
+      &quot;count&quot;: 4,
+      &quot;initial_plan&quot;: true
+    }
+  }
+}</pre></td></tr>
+      <tr><td>7</td><td>2026-07-06T09:06:28.991636+00:00</td><td>todo_state</td><td></td><td></td><td><pre>{
+  &quot;todos&quot;: [
+    {
+      &quot;task&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+      &quot;status&quot;: &quot;in_progress&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Find context_pack implementation and usage&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Summarize findings&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    }
+  ]
+}</pre></td></tr>
+      <tr><td>8</td><td>2026-07-06T09:06:39.126796+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 1,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 1926,
+    &quot;output_tokens&quot;: 61
+  }
+}</pre></td></tr>
+      <tr><td>9</td><td>2026-07-06T09:06:39.128300+00:00</td><td>tool_call</td><td>list_python_files</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;list_python_files&quot;,
+  &quot;args&quot;: {},
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;billing\\invoice.py\nnotifications.py&quot;,
+  &quot;metadata&quot;: {
+    &quot;count&quot;: 2
+  }
+}</pre></td></tr>
+      <tr><td>10</td><td>2026-07-06T09:06:39.131301+00:00</td><td>tool_call</td><td>grep</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;grep&quot;,
+  &quot;args&quot;: {
+    &quot;pattern&quot;: &quot;context_pack&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;(no matches)&quot;,
+  &quot;metadata&quot;: {}
+}</pre></td></tr>
+      <tr><td>11</td><td>2026-07-06T09:06:49.445648+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 2,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2017,
+    &quot;output_tokens&quot;: 79
+  }
+}</pre></td></tr>
+      <tr><td>12</td><td>2026-07-06T09:06:49.446650+00:00</td><td>tool_call</td><td>read_file</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;read_file&quot;,
+  &quot;args&quot;: {
+    &quot;path&quot;: &quot;billing/invoice.py&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;class InvoiceCalculator:\n    def invoice_total(self, items):\n        subtotal = sum(item.price for item in items)\n        return round(subtotal, 2)\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;path&quot;: &quot;D:\\-\\hello-agent\\mini-coding-agent-harness\\artifacts\\agent_retrieval_context_task_runs\\compare_retrieval\\retrieval-off\\workspaces\\context_pack_retrieval\\billing\\invoice.py&quot;,
+    &quot;chars&quot;: 148,
+    &quot;lines&quot;: 4,
+    &quot;returned_lines&quot;: 4,
+    &quot;line_limit&quot;: null,
+    &quot;max_chars&quot;: 12000,
+    &quot;start_line&quot;: null,
+    &quot;end_line&quot;: null,
+    &quot;cache_hit&quot;: false
+  }
+}</pre></td></tr>
+      <tr><td>13</td><td>2026-07-06T09:06:49.448651+00:00</td><td>tool_call</td><td>read_file</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;read_file&quot;,
+  &quot;args&quot;: {
+    &quot;path&quot;: &quot;notifications.py&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;def send_email(address, body):\n    return {&#x27;address&#x27;: address, &#x27;body&#x27;: body}\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;path&quot;: &quot;D:\\-\\hello-agent\\mini-coding-agent-harness\\artifacts\\agent_retrieval_context_task_runs\\compare_retrieval\\retrieval-off\\workspaces\\context_pack_retrieval\\notifications.py&quot;,
+    &quot;chars&quot;: 77,
+    &quot;lines&quot;: 2,
+    &quot;returned_lines&quot;: 2,
+    &quot;line_limit&quot;: null,
+    &quot;max_chars&quot;: 12000,
+    &quot;start_line&quot;: null,
+    &quot;end_line&quot;: null,
+    &quot;cache_hit&quot;: false
+  }
+}</pre></td></tr>
+      <tr><td>14</td><td>2026-07-06T09:06:59.357319+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 3,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2168,
+    &quot;output_tokens&quot;: 62
+  }
+}</pre></td></tr>
+      <tr><td>15</td><td>2026-07-06T09:06:59.360322+00:00</td><td>tool_call</td><td>grep</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;grep&quot;,
+  &quot;args&quot;: {
+    &quot;pattern&quot;: &quot;context_pack&quot;,
+    &quot;glob&quot;: &quot;*.py&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;(no matches)&quot;,
+  &quot;metadata&quot;: {}
+}</pre></td></tr>
+      <tr><td>16</td><td>2026-07-06T09:07:09.490839+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 4,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2244,
+    &quot;output_tokens&quot;: 52
+  }
+}</pre></td></tr>
+      <tr><td>17</td><td>2026-07-06T09:07:09.494842+00:00</td><td>tool_call</td><td>grep</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;grep&quot;,
+  &quot;args&quot;: {
+    &quot;pattern&quot;: &quot;context.pack\\|context_pack\\|ContextPack&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;(no matches)&quot;,
+  &quot;metadata&quot;: {}
+}</pre></td></tr>
+      <tr><td>18</td><td>2026-07-06T09:07:20.331827+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 5,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2310,
+    &quot;output_tokens&quot;: 152
+  }
+}</pre></td></tr>
+      <tr><td>19</td><td>2026-07-06T09:07:20.333830+00:00</td><td>tool_call</td><td>shell</td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;tool&quot;: &quot;shell&quot;,
+  &quot;args&quot;: {
+    &quot;command&quot;: &quot;find . -type f -name \&quot;*.py\&quot; -o -name \&quot;*.txt\&quot; -o -name \&quot;*.md\&quot; -o -name \&quot;*.cfg\&quot; -o -name \&quot;*.ini\&quot; -o -name \&quot;*.toml\&quot; -o -name \&quot;*.yaml\&quot; -o -name \&quot;*.yml\&quot; -o -name \&quot;*.json\&quot; 2&gt;/dev/null&quot;
+  },
+  &quot;risk&quot;: &quot;shell&quot;,
+  &quot;permission&quot;: &quot;blocked_shell_operator&quot;,
+  &quot;ok&quot;: false,
+  &quot;output&quot;: &quot;Blocked by permission policy: blocked_shell_operator&quot;
+}</pre></td></tr>
+      <tr><td>20</td><td>2026-07-06T09:07:20.344831+00:00</td><td>tool_call</td><td>retry_plan</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;retry_plan&quot;,
+  &quot;args&quot;: {
+    &quot;max_items&quot;: 3
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Retry Plan\n\n- Failed tool calls: 1\n- Trace parse errors: 0\n- Planned steps: 1\n\n## Ordered Steps\n\n1. `shell` failed as `permission_block`. Next use `shell`: Remove shell operators such as pipes or redirection, then use one simple allowlisted command.\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;failure_count&quot;: 1,
+    &quot;parse_errors&quot;: 0,
+    &quot;steps&quot;: [
+      {
+        &quot;index&quot;: 1,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Remove shell operators such as pipes or redirection, then use one simple allowlisted command.&quot;
+      }
+    ]
+  }
+}</pre></td></tr>
+      <tr><td>21</td><td>2026-07-06T09:07:20.345832+00:00</td><td>agent_retry_plan_injected</td><td></td><td></td><td><pre>{
+  &quot;failed_tool&quot;: &quot;shell&quot;
+}</pre></td></tr>
+      <tr><td>22</td><td>2026-07-06T09:07:30.308955+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 6,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2559,
+    &quot;output_tokens&quot;: 52
+  }
+}</pre></td></tr>
+      <tr><td>23</td><td>2026-07-06T09:07:30.309955+00:00</td><td>tool_call</td><td>shell</td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;tool&quot;: &quot;shell&quot;,
+  &quot;args&quot;: {
+    &quot;command&quot;: &quot;find . -type f -name \&quot;*.py\&quot;&quot;
+  },
+  &quot;risk&quot;: &quot;shell&quot;,
+  &quot;permission&quot;: &quot;blocked_shell_not_allowlisted&quot;,
+  &quot;ok&quot;: false,
+  &quot;output&quot;: &quot;Blocked by permission policy: blocked_shell_not_allowlisted&quot;
+}</pre></td></tr>
+      <tr><td>24</td><td>2026-07-06T09:07:30.319958+00:00</td><td>tool_call</td><td>retry_plan</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;retry_plan&quot;,
+  &quot;args&quot;: {
+    &quot;max_items&quot;: 3
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Retry Plan\n\n- Failed tool calls: 2\n- Trace parse errors: 0\n- Planned steps: 2\n\n## Ordered Steps\n\n1. `shell` failed as `permission_block`. Next use `shell`: Remove shell operators such as pipes or redirection, then use one simple allowlisted command.\n2. `shell` failed as `permission_block`. Next use `shell`: Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;failure_count&quot;: 2,
+    &quot;parse_errors&quot;: 0,
+    &quot;steps&quot;: [
+      {
+        &quot;index&quot;: 1,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Remove shell operators such as pipes or redirection, then use one simple allowlisted command.&quot;
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.&quot;
+      }
+    ]
+  }
+}</pre></td></tr>
+      <tr><td>25</td><td>2026-07-06T09:07:30.320957+00:00</td><td>agent_retry_plan_injected</td><td></td><td></td><td><pre>{
+  &quot;failed_tool&quot;: &quot;shell&quot;
+}</pre></td></tr>
+      <tr><td>26</td><td>2026-07-06T09:07:40.347003+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 7,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2747,
+    &quot;output_tokens&quot;: 29
+  }
+}</pre></td></tr>
+      <tr><td>27</td><td>2026-07-06T09:07:40.348007+00:00</td><td>tool_call</td><td>permission_policy</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;permission_policy&quot;,
+  &quot;args&quot;: {},
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Permission Policy\n\n- Workspace root: D:\\-\\hello-agent\\mini-coding-agent-harness\\artifacts\\agent_retrieval_context_task_runs\\compare_retrieval\\retrieval-off\\workspaces\\context_pack_retrieval\n- Write access: enabled\n- File paths are resolved inside the workspace; path escape attempts are blocked.\n- `delete_file` requires `confirm=true` and refuses directories.\n- Shell commands are tokenized with `shlex`, executed with `shell=False`, and shell operators are blocked.\n- Allowed shell executables: cat, dir, echo, findstr, get-childitem, ls, pwd, py, py.exe, pytest, pytest.exe, python, python.exe, type\n- Read-only Git subcommands: branch, diff, log, ls-files, rev-parse, show, status\n- Force flags and mutating Git subcommands are blocked.\n- This is a harness permission policy, not an OS-level sandbox.&quot;,
+  &quot;metadata&quot;: {
+    &quot;workspace&quot;: &quot;D:\\-\\hello-agent\\mini-coding-agent-harness\\artifacts\\agent_retrieval_context_task_runs\\compare_retrieval\\retrieval-off\\workspaces\\context_pack_retrieval&quot;,
+    &quot;allow_write&quot;: true,
+    &quot;write_tools&quot;: [
+      &quot;write_file&quot;,
+      &quot;edit_file&quot;,
+      &quot;delete_file&quot;,
+      &quot;save_memory&quot;
+    ],
+    &quot;delete_requires_confirmation&quot;: true,
+    &quot;path_scope&quot;: &quot;workspace_only&quot;,
+    &quot;shell_false&quot;: true,
+    &quot;shell_operator_markers&quot;: [
+      &quot;&amp;&amp;&quot;,
+      &quot;||&quot;,
+      &quot;;&quot;,
+      &quot;|&quot;,
+      &quot;&gt;&quot;,
+      &quot;&lt;&quot;,
+      &quot;\n&quot;,
+      &quot;\r&quot;
+    ],
+    &quot;allowed_shell_commands&quot;: [
+      &quot;cat&quot;,
+      &quot;dir&quot;,
+      &quot;echo&quot;,
+      &quot;findstr&quot;,
+      &quot;get-childitem&quot;,
+      &quot;ls&quot;,
+      &quot;pwd&quot;,
+      &quot;py&quot;,
+      &quot;py.exe&quot;,
+      &quot;pytest&quot;,
+      &quot;pytest.exe&quot;,
+      &quot;python&quot;,
+      &quot;python.exe&quot;,
+      &quot;type&quot;
+    ],
+    &quot;read_only_git_subcommands&quot;: [
+      &quot;branch&quot;,
+      &quot;diff&quot;,
+      &quot;log&quot;,
+      &quot;ls-files&quot;,
+      &quot;rev-parse&quot;,
+      &quot;show&quot;,
+      &quot;status&quot;
+    ],
+    &quot;os_sandbox&quot;: false
+  }
+}</pre></td></tr>
+      <tr><td>28</td><td>2026-07-06T09:07:50.404430+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 8,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 2997,
+    &quot;output_tokens&quot;: 48
+  }
+}</pre></td></tr>
+      <tr><td>29</td><td>2026-07-06T09:07:50.406823+00:00</td><td>tool_call</td><td>shell</td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;tool&quot;: &quot;shell&quot;,
+  &quot;args&quot;: {
+    &quot;command&quot;: &quot;dir /s /b *.py&quot;
+  },
+  &quot;risk&quot;: &quot;shell&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: false,
+  &quot;output&quot;: &quot;Path not found: *.py&quot;,
+  &quot;metadata&quot;: {
+    &quot;argv&quot;: [
+      &quot;dir&quot;,
+      &quot;/s&quot;,
+      &quot;/b&quot;,
+      &quot;*.py&quot;
+    ],
+    &quot;shell&quot;: false,
+    &quot;builtin&quot;: &quot;list_directory&quot;
+  }
+}</pre></td></tr>
+      <tr><td>30</td><td>2026-07-06T09:07:50.422828+00:00</td><td>tool_call</td><td>retry_plan</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;retry_plan&quot;,
+  &quot;args&quot;: {
+    &quot;max_items&quot;: 3
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Retry Plan\n\n- Failed tool calls: 3\n- Trace parse errors: 0\n- Planned steps: 3\n\n## Ordered Steps\n\n1. `shell` failed as `permission_block`. Next use `shell`: Remove shell operators such as pipes or redirection, then use one simple allowlisted command.\n2. `shell` failed as `permission_block`. Next use `shell`: Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.\n3. `shell` failed as `unknown_failure`. Next use `read_file`: Read the failed tool output, inspect the relevant file or command, then retry with a smaller step.\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;failure_count&quot;: 3,
+    &quot;parse_errors&quot;: 0,
+    &quot;steps&quot;: [
+      {
+        &quot;index&quot;: 1,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Remove shell operators such as pipes or redirection, then use one simple allowlisted command.&quot;
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.&quot;
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;unknown_failure&quot;,
+        &quot;suggested_tool&quot;: &quot;read_file&quot;,
+        &quot;detail&quot;: &quot;Read the failed tool output, inspect the relevant file or command, then retry with a smaller step.&quot;
+      }
+    ]
+  }
+}</pre></td></tr>
+      <tr><td>31</td><td>2026-07-06T09:07:50.423829+00:00</td><td>agent_retry_plan_injected</td><td></td><td></td><td><pre>{
+  &quot;failed_tool&quot;: &quot;shell&quot;
+}</pre></td></tr>
+      <tr><td>32</td><td>2026-07-06T09:08:00.448447+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 9,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 3213,
+    &quot;output_tokens&quot;: 48
+  }
+}</pre></td></tr>
+      <tr><td>33</td><td>2026-07-06T09:08:00.450449+00:00</td><td>tool_call</td><td>shell</td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;tool&quot;: &quot;shell&quot;,
+  &quot;args&quot;: {
+    &quot;command&quot;: &quot;dir /s /B *.py&quot;
+  },
+  &quot;risk&quot;: &quot;shell&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: false,
+  &quot;output&quot;: &quot;Path not found: *.py&quot;,
+  &quot;metadata&quot;: {
+    &quot;argv&quot;: [
+      &quot;dir&quot;,
+      &quot;/s&quot;,
+      &quot;/B&quot;,
+      &quot;*.py&quot;
+    ],
+    &quot;shell&quot;: false,
+    &quot;builtin&quot;: &quot;list_directory&quot;
+  }
+}</pre></td></tr>
+      <tr><td>34</td><td>2026-07-06T09:08:00.466506+00:00</td><td>tool_call</td><td>retry_plan</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;retry_plan&quot;,
+  &quot;args&quot;: {
+    &quot;max_items&quot;: 3
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Retry Plan\n\n- Failed tool calls: 4\n- Trace parse errors: 0\n- Planned steps: 3\n\n## Ordered Steps\n\n1. `shell` failed as `permission_block`. Next use `shell`: Remove shell operators such as pipes or redirection, then use one simple allowlisted command.\n2. `shell` failed as `permission_block`. Next use `shell`: Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.\n3. `shell` failed as `unknown_failure`. Next use `read_file`: Read the failed tool output, inspect the relevant file or command, then retry with a smaller step.\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;failure_count&quot;: 4,
+    &quot;parse_errors&quot;: 0,
+    &quot;steps&quot;: [
+      {
+        &quot;index&quot;: 1,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Remove shell operators such as pipes or redirection, then use one simple allowlisted command.&quot;
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;permission_block&quot;,
+        &quot;suggested_tool&quot;: &quot;shell&quot;,
+        &quot;detail&quot;: &quot;Use a dedicated tool or a simple allowlisted read/verification command instead of this shell command.&quot;
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;source_tool&quot;: &quot;shell&quot;,
+        &quot;category&quot;: &quot;unknown_failure&quot;,
+        &quot;suggested_tool&quot;: &quot;read_file&quot;,
+        &quot;detail&quot;: &quot;Read the failed tool output, inspect the relevant file or command, then retry with a smaller step.&quot;
+      }
+    ]
+  }
+}</pre></td></tr>
+      <tr><td>35</td><td>2026-07-06T09:08:00.466506+00:00</td><td>agent_retry_plan_injected</td><td></td><td></td><td><pre>{
+  &quot;failed_tool&quot;: &quot;shell&quot;
+}</pre></td></tr>
+      <tr><td>36</td><td>2026-07-06T09:08:11.216013+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 10,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 3429,
+    &quot;output_tokens&quot;: 161
+  }
+}</pre></td></tr>
+      <tr><td>37</td><td>2026-07-06T09:08:11.219015+00:00</td><td>tool_call</td><td>grep</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;grep&quot;,
+  &quot;args&quot;: {
+    &quot;pattern&quot;: &quot;context&quot;,
+    &quot;glob&quot;: &quot;*.py&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;(no matches)&quot;,
+  &quot;metadata&quot;: {}
+}</pre></td></tr>
+      <tr><td>38</td><td>2026-07-06T09:08:11.223016+00:00</td><td>tool_call</td><td>grep</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;grep&quot;,
+  &quot;args&quot;: {
+    &quot;pattern&quot;: &quot;invoice&quot;,
+    &quot;glob&quot;: &quot;*.py&quot;
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;billing\\invoice.py:1: class InvoiceCalculator:\nbilling\\invoice.py:2: def invoice_total(self, items):&quot;,
+  &quot;metadata&quot;: {}
+}</pre></td></tr>
+      <tr><td>39</td><td>2026-07-06T09:08:21.970033+00:00</td><td>agent_response</td><td></td><td></td><td><pre>{
+  &quot;turn&quot;: 11,
+  &quot;stop_reason&quot;: &quot;tool_use&quot;,
+  &quot;usage&quot;: {
+    &quot;input_tokens&quot;: 3638,
+    &quot;output_tokens&quot;: 27
+  }
+}</pre></td></tr>
+      <tr><td>40</td><td>2026-07-06T09:08:21.981031+00:00</td><td>tool_call</td><td>compact_context</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;compact_context&quot;,
+  &quot;args&quot;: {},
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Context Summary\n\n- Trace events: 39\n- Tool calls: 19\n- Current goal: Understand the workspace structure and find billing/invoice.py\n- Next step: Understand the workspace structure and find billing/invoice.py\n- Trace parse errors: 0\n\n## Tool Calls\n\n- `grep`: 5\n- `list_memories`: 1\n- `list_python_files`: 1\n- `permission_policy`: 1\n- `read_file`: 2\n- `retry_plan`: 4\n- `shell`: 4\n- `todo_write`: 1\n\n## Files Read\n\n- `billing\\invoice.py`\n- `notifications.py`\n\n## Files Changed\n\n- None recorded.\n\n## Key Errors\n\n- shell: Blocked by permission policy: blocked_shell_operator\n- shell: Blocked by permission policy: blocked_shell_not_allowlisted\n- shell: Path not found: *.py\n- shell: Path not found: *.py\n\n## Latest Todos\n\n- [-] Understand the workspace structure and find billing/invoice.py\n- [ ] Find context_pack implementation and usage\n- [ ] Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet\n- [ ] Summarize findings\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;event_count&quot;: 39,
+    &quot;tool_call_count&quot;: 19,
+    &quot;tool_counts&quot;: {
+      &quot;list_memories&quot;: 1,
+      &quot;todo_write&quot;: 1,
+      &quot;list_python_files&quot;: 1,
+      &quot;grep&quot;: 5,
+      &quot;read_file&quot;: 2,
+      &quot;shell&quot;: 4,
+      &quot;retry_plan&quot;: 4,
+      &quot;permission_policy&quot;: 1
+    },
+    &quot;files_read&quot;: [
+      &quot;billing\\invoice.py&quot;,
+      &quot;notifications.py&quot;
+    ],
+    &quot;files_changed&quot;: [],
+    &quot;failure_count&quot;: 4,
+    &quot;parse_errors&quot;: 0,
+    &quot;current_goal&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+    &quot;next_step&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;
+  }
+}</pre></td></tr>
+      <tr><td>41</td><td>2026-07-06T09:08:21.991033+00:00</td><td>tool_call</td><td>compact_context</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;compact_context&quot;,
+  &quot;args&quot;: {
+    &quot;max_items&quot;: 10
+  },
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Context Summary\n\n- Trace events: 40\n- Tool calls: 20\n- Current goal: Understand the workspace structure and find billing/invoice.py\n- Next step: Understand the workspace structure and find billing/invoice.py\n- Trace parse errors: 0\n\n## Tool Calls\n\n- `compact_context`: 1\n- `grep`: 5\n- `list_memories`: 1\n- `list_python_files`: 1\n- `permission_policy`: 1\n- `read_file`: 2\n- `retry_plan`: 4\n- `shell`: 4\n- `todo_write`: 1\n\n## Files Read\n\n- `billing\\invoice.py`\n- `notifications.py`\n\n## Files Changed\n\n- None recorded.\n\n## Key Errors\n\n- shell: Blocked by permission policy: blocked_shell_operator\n- shell: Blocked by permission policy: blocked_shell_not_allowlisted\n- shell: Path not found: *.py\n- shell: Path not found: *.py\n\n## Latest Todos\n\n- [-] Understand the workspace structure and find billing/invoice.py\n- [ ] Find context_pack implementation and usage\n- [ ] Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet\n- [ ] Summarize findings\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;event_count&quot;: 40,
+    &quot;tool_call_count&quot;: 20,
+    &quot;tool_counts&quot;: {
+      &quot;list_memories&quot;: 1,
+      &quot;todo_write&quot;: 1,
+      &quot;list_python_files&quot;: 1,
+      &quot;grep&quot;: 5,
+      &quot;read_file&quot;: 2,
+      &quot;shell&quot;: 4,
+      &quot;retry_plan&quot;: 4,
+      &quot;permission_policy&quot;: 1,
+      &quot;compact_context&quot;: 1
+    },
+    &quot;files_read&quot;: [
+      &quot;billing\\invoice.py&quot;,
+      &quot;notifications.py&quot;
+    ],
+    &quot;files_changed&quot;: [],
+    &quot;failure_count&quot;: 4,
+    &quot;parse_errors&quot;: 0,
+    &quot;current_goal&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+    &quot;next_step&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;
+  }
+}</pre></td></tr>
+      <tr><td>42</td><td>2026-07-06T09:08:21.991033+00:00</td><td>agent_max_turns_context</td><td></td><td></td><td><pre>{
+  &quot;chars&quot;: 988
+}</pre></td></tr>
+      <tr><td>43</td><td>2026-07-06T09:08:21.992033+00:00</td><td>agent_end</td><td></td><td></td><td><pre>{
+  &quot;todos&quot;: [
+    {
+      &quot;task&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+      &quot;status&quot;: &quot;in_progress&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Find context_pack implementation and usage&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    },
+    {
+      &quot;task&quot;: &quot;Summarize findings&quot;,
+      &quot;status&quot;: &quot;pending&quot;
+    }
+  ],
+  &quot;stopped&quot;: &quot;max_turns&quot;
+}</pre></td></tr>
+      <tr><td>44</td><td>2026-07-06T09:08:21.992033+00:00</td><td>eval_agent_answer</td><td></td><td></td><td><pre>{
+  &quot;task&quot;: &quot;context_pack_retrieval&quot;,
+  &quot;answer&quot;: &quot;Stopped: max_turns reached.\n\nContext summary:\n# Context Summary\n\n- Trace events: 40\n- Tool calls: 20\n- Current goal: Understand the workspace structure and find billing/invoice.py\n- Next step: Understand the workspace structure and find billing/invoice.py\n- Trace parse errors: 0\n\n## Tool Calls\n\n- `compact_context`: 1\n- `grep`: 5\n- `list_memories`: 1\n- `list_python_files`: 1\n- `permission_policy`: 1\n- `read_file`: 2\n- `retry_plan`: 4\n- `shell`: 4\n- `todo_write`: 1\n\n## Files Read\n\n- `billing\\invoice.py`\n- `notifications.py`\n\n## Files Changed\n\n- None recorded.\n\n## Key Errors\n\n- shell: Blocked by permission policy: blocked_shell_operator\n- shell: Blocked by permission policy: blocked_shell_not_allowlisted\n- shell: Path not found: *.py\n- shell: Path not found: *.py\n\n## Latest Todos\n\n- [-] Understand the workspace structure and find billing/invoice.py\n- [ ] Find context_pack implementation and usage\n- [ ] Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet\n- [ ] Summarize findings\n&quot;
+}</pre></td></tr>
+      <tr><td>45</td><td>2026-07-06T09:08:21.993033+00:00</td><td>eval_agent_verifier_start</td><td></td><td></td><td><pre>{
+  &quot;task&quot;: &quot;context_pack_retrieval&quot;
+}</pre></td></tr>
+      <tr><td>46</td><td>2026-07-06T09:08:22.003035+00:00</td><td>tool_call</td><td>compact_context</td><td><span class="ok">ok</span></td><td><pre>{
+  &quot;tool&quot;: &quot;compact_context&quot;,
+  &quot;args&quot;: {},
+  &quot;risk&quot;: &quot;read&quot;,
+  &quot;permission&quot;: &quot;allow&quot;,
+  &quot;ok&quot;: true,
+  &quot;output&quot;: &quot;# Context Summary\n\n- Trace events: 45\n- Tool calls: 21\n- Current goal: Understand the workspace structure and find billing/invoice.py\n- Next step: Understand the workspace structure and find billing/invoice.py\n- Trace parse errors: 0\n\n## Tool Calls\n\n- `compact_context`: 2\n- `grep`: 5\n- `list_memories`: 1\n- `list_python_files`: 1\n- `permission_policy`: 1\n- `read_file`: 2\n- `retry_plan`: 4\n- `shell`: 4\n- `todo_write`: 1\n\n## Files Read\n\n- `billing\\invoice.py`\n- `notifications.py`\n\n## Files Changed\n\n- None recorded.\n\n## Key Errors\n\n- shell: Blocked by permission policy: blocked_shell_operator\n- shell: Blocked by permission policy: blocked_shell_not_allowlisted\n- shell: Path not found: *.py\n- shell: Path not found: *.py\n\n## Latest Todos\n\n- [-] Understand the workspace structure and find billing/invoice.py\n- [ ] Find context_pack implementation and usage\n- [ ] Use context_pack with query &#x27;invoice total rounding&#x27; to retrieve the billing/invoice.py snippet\n- [ ] Summarize findings\n&quot;,
+  &quot;metadata&quot;: {
+    &quot;event_count&quot;: 45,
+    &quot;tool_call_count&quot;: 21,
+    &quot;tool_counts&quot;: {
+      &quot;list_memories&quot;: 1,
+      &quot;todo_write&quot;: 1,
+      &quot;list_python_files&quot;: 1,
+      &quot;grep&quot;: 5,
+      &quot;read_file&quot;: 2,
+      &quot;shell&quot;: 4,
+      &quot;retry_plan&quot;: 4,
+      &quot;permission_policy&quot;: 1,
+      &quot;compact_context&quot;: 2
+    },
+    &quot;files_read&quot;: [
+      &quot;billing\\invoice.py&quot;,
+      &quot;notifications.py&quot;
+    ],
+    &quot;files_changed&quot;: [],
+    &quot;failure_count&quot;: 4,
+    &quot;parse_errors&quot;: 0,
+    &quot;current_goal&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;,
+    &quot;next_step&quot;: &quot;Understand the workspace structure and find billing/invoice.py&quot;
+  }
+}</pre></td></tr>
+      <tr><td>47</td><td>2026-07-06T09:08:22.003035+00:00</td><td>tool_call</td><td>context_pack</td><td><span class="fail">failed</span></td><td><pre>{
+  &quot;tool&quot;: &quot;context_pack&quot;,
+  &quot;args&quot;: {
+    &quot;query&quot;: &quot;invoice total rounding&quot;,
+    &quot;glob&quot;: &quot;*.py&quot;,
+    &quot;limit&quot;: 1,
+    &quot;window&quot;: 1
+  },
+  &quot;ok&quot;: false,
+  &quot;output&quot;: &quot;Unknown tool: context_pack&quot;
+}</pre></td></tr>
+      <tr><td>48</td><td>2026-07-06T09:08:22.004036+00:00</td><td>eval_agent_verifier_end</td><td></td><td></td><td><pre>{
+  &quot;task&quot;: &quot;context_pack_retrieval&quot;,
+  &quot;success&quot;: false
+}</pre></td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
