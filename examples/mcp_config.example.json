@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "mini-coding-agent-harness": {
+      "command": "python",
+      "args": [
+        "/absolute/path/to/mini-coding-agent-harness/main.py",
+        "--workspace",
+        "/absolute/path/to/mini-coding-agent-harness",
+        "--trace",
+        "/absolute/path/to/mini-coding-agent-harness/artifacts/mcp_client_trace.jsonl",
+        "mcp-server"
+      ]
+    },
+    "mini-coding-agent-harness-write": {
+      "command": "python",
+      "args": [
+        "/absolute/path/to/mini-coding-agent-harness/main.py",
+        "--workspace",
+        "/absolute/path/to/mini-coding-agent-harness",
+        "--trace",
+        "/absolute/path/to/mini-coding-agent-harness/artifacts/mcp_client_trace.jsonl",
+        "--allow-write",
+        "mcp-server"
+      ]
+    }
+  }
+}
