@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+.pytest_cache/
+eval_runs/
+artifacts/
+trace.jsonl
+*_trace.jsonl
+REVIEW.md
+TRACE.html
+EVAL.json
+COMPARE.json
+handoff.md
