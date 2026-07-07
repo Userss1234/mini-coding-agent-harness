@@ -1,0 +1,2 @@
+"""Mini Coding Agent Harness."""
+
