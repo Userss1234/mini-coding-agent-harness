@@ -318,8 +318,3 @@ git diff -- .
 4. 为 shell execution 增加可选 OS 级沙箱。
 5. 跟踪自动注入 retry_plan 是否能提升 `eval --mode agent` 成功率并降低工具调用次数。
 
-## 简历表述
-
-当前诚实版本：
-
-> Built a Mini Coding Agent Harness for repository maintenance with a tool registry, MCP stdio server for tools/resources/prompts, injectable model loop, allowlisted Shell/Git permission checks with no-shell execution, machine-readable permission policy reporting, confirmed file deletion, line-range file reading, query-ranked context-pack retrieval, file/test tools, todo planning, JSONL execution tracing, static HTML trace reports, retry/backoff, automatic retry-plan feedback, max-turn context compaction, query-ranked workflow memory, error recovery, CI validation, and a 31-task deterministic code-maintenance benchmark covering agent-loop simulation, Python bug fixes, test generation, config edits, import fixes, CLI validation, parsing edge cases, security redaction, dependency pinning, multi-file and package-structured contract fixes, and documentation updates.
