@@ -317,9 +317,3 @@ After the initial baseline commit, future tool changes and generated report chan
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.
 5. Track whether injected retry plans improve `eval --mode agent` success rate and tool-call count.
-
-## Resume Framing
-
-Current honest wording:
-
-> Built a Mini Coding Agent Harness for repository maintenance with a tool registry, MCP stdio server for tools/resources/prompts, injectable model loop, allowlisted Shell/Git permission checks with no-shell execution, machine-readable permission policy reporting, confirmed file deletion, line-range file reading, query-ranked context-pack retrieval, file/test tools, todo planning, JSONL execution tracing, static HTML trace reports, retry/backoff, automatic retry-plan feedback, max-turn context compaction, query-ranked workflow memory, error recovery, CI validation, and a 31-task deterministic code-maintenance benchmark covering agent-loop simulation, Python bug fixes, test generation, config edits, import fixes, CLI validation, parsing edge cases, security redaction, dependency pinning, multi-file and package-structured contract fixes, and documentation updates.
