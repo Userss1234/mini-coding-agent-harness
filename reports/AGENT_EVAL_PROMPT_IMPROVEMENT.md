@@ -1,16 +1,10 @@
-# Agent Eval Prompt Improvement Report
-
-Generated from the committed 20-task DeepSeek `deepseek-chat` agent-mode evaluation reports.
+# Eval Analysis Report
 
 ## Summary
 
-The expanded 20-task real-agent evaluation initially passed 18/20 tasks. Trace review showed that the two failed tasks did not expose missing tool capabilities; they exposed weak agent-eval guidance. The model spent too many turns on broad shell/Git exploration or wrote documentation that was plausible but did not satisfy the verifier.
+This report compares two machine-readable evaluation reports and highlights behavior changes in the agent run.
 
-The harness was updated with an explicit `build_agent_eval_prompt(...)` workflow contract and a more precise README task description. After rerunning the same 20-task set, the report passed 20/20.
-
-## Metric Comparison
-
-| Metric | Before prompt contract | After prompt contract |
+| Metric | Before | After |
 |---|---:|---:|
 | Passed | 18/20 | 20/20 |
 | Success rate | 90.00% | 100.00% |
@@ -25,45 +19,47 @@ The harness was updated with an explicit `build_agent_eval_prompt(...)` workflow
 | git_diff calls | 6 | 2 |
 | edit_file/write_file calls | 19 | 23 |
 
+## Tool-Call Delta
+
+| Tool | Before | After | Delta |
+|---|---:|---:|---:|
+| `compact_context` | 8 | 4 | -4 |
+| `context_pack` | 15 | 10 | -5 |
+| `edit_file` | 18 | 21 | +3 |
+| `git_diff` | 6 | 2 | -4 |
+| `grep` | 4 | 8 | +4 |
+| `list_memories` | 26 | 29 | +3 |
+| `list_python_files` | 15 | 15 | +0 |
+| `permission_policy` | 2 | 1 | -1 |
+| `read_file` | 55 | 49 | -6 |
+| `read_memory` | 7 | 8 | +1 |
+| `retry_plan` | 7 | 20 | +13 |
+| `run_py_compile` | 6 | 3 | -3 |
+| `run_tests` | 20 | 31 | +11 |
+| `shell` | 20 | 11 | -9 |
+| `todo_write` | 71 | 92 | +21 |
+| `write_file` | 1 | 2 | +1 |
+
 ## Failed Tasks Before
 
-| Task | Category | Tool Calls | Failed Tool Calls | Trace |
-|---|---|---:|---:|---|
-| `python_add_tests` | code_maintenance | 15 | 1 | `artifacts\agent_eval_20_runs\agent\python_add_tests.jsonl` |
-| `readme_update` | documentation | 21 | 1 | `artifacts\agent_eval_20_runs\agent\readme_update.jsonl` |
+| Task | Category | Tool Calls | Failed Tool Calls | Patterns | Trace |
+|---|---|---:|---:|---|---|
+| `python_add_tests` | code_maintenance | 15 | 1 | `max_turns`, `no_file_change`, `verification_failed`, `over_exploration`, `tool_failures` | `artifacts\agent_eval_20_runs\agent\python_add_tests.jsonl` |
+| `readme_update` | documentation | 21 | 1 | `max_turns`, `no_file_change`, `verification_failed`, `over_exploration`, `tool_failures` | `artifacts\agent_eval_20_runs\agent\readme_update.jsonl` |
 
-Failed tasks after the prompt-contract change: none.
+## Failed Tasks After
 
-## Failure Modes Observed
+No failed tasks.
 
-- `python_add_tests`: the model inspected `string_utils.py` but spent most turns exploring the workspace with shell/grep and reached `max_turns` before writing `tests/test_string_utils.py`.
-- `readme_update`: the model used shell/Git history exploration and did not make the verifier-required README change in the first 20-task run. In an intermediate rerun, it edited README but wrote broad skill usage text instead of concrete pytest usage text.
+## Failure Pattern Legend
 
-## Change Made
-
-Implemented a dedicated agent-eval prompt contract in `harness/evaluation.py`:
-
-- Start every eval task with `todo_write`.
-- Prefer `read_file`, `grep`, `context_pack`, `write_file`, `edit_file`, and `run_tests` for fixture tasks.
-- Avoid broad shell or Git exploration unless file tools are insufficient.
-- For change tasks, make the first file change by turn 6 unless a tool failure blocks the edit.
-- Verify code tasks with `run_tests`; verify documentation tasks by rereading the changed document.
-- Add task-specific guidance for add-tests and README tasks.
-
-The README fixture task description was also tightened from generic usage text to concrete pytest usage text.
+- `max_turns`: the trace ended because the agent hit the turn budget.
+- `no_file_change`: no successful `edit_file` or `write_file` call was observed.
+- `over_exploration`: shell/Git exploration dominated before the repair.
+- `verification_failed`: the task verifier reported failure or tests failed after attempted work.
+- `tool_failures`: one or more tool calls failed during the task.
+- `trace_unavailable`: the JSON report references a trace that was not available locally.
 
 ## Interpretation
 
-This is an agent-engineering improvement, not a benchmark shortcut. The model still performs the repairs with tools, but the harness now gives a clearer operating contract that reduces unproductive exploration and makes the evaluation target less ambiguous.
-
-The result demonstrates the intended engineering loop:
-
-```text
-trace review -> failure-mode classification -> harness prompt contract -> rerun eval -> metric comparison
-```
-
-## Current Evidence
-
-- Before report: commit `9022517`, `reports/AGENT_EVAL_20_TASKS.json`, 18/20.
-- After report: current `reports/AGENT_EVAL_20_TASKS.json`, 20/20.
-- Current CI still validates unit tests, compile checks, scripted benchmark, trace report rendering, and MCP smoke.
+Use this report to connect benchmark movement to agent behavior, not only pass rate. A useful improvement should explain which tool patterns changed and which failure modes disappeared.

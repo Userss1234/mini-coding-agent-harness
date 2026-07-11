@@ -5,6 +5,7 @@ from pathlib import Path
 
 from harness.agent import run_agent
 from harness.demo import run_demo
+from harness.eval_analysis import analyze_eval_reports
 from harness.evaluation import run_evaluation
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
@@ -70,6 +71,18 @@ def cmd_eval(args) -> None:
     )
     print(report)
     print(f"Evaluation written to {Path(args.output).resolve()}")
+
+
+def cmd_analyze_eval(args) -> None:
+    report = analyze_eval_reports(
+        before_path=Path(args.before),
+        after_path=Path(args.after),
+        output_path=Path(args.output) if args.output else None,
+        trace_root=Path(args.trace_root) if args.trace_root else Path(args.workspace),
+    )
+    print(report)
+    if args.output:
+        print(f"Eval analysis written to {Path(args.output).resolve()}")
 
 
 def cmd_trace_report(args) -> None:
@@ -199,6 +212,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run retrieval-on and retrieval-off configurations using the selected memory/context settings",
     )
     eval_cmd.set_defaults(func=cmd_eval)
+
+    analyze_eval = sub.add_parser("analyze-eval", help="Compare two JSON evaluation reports and summarize agent behavior changes")
+    analyze_eval.add_argument("--before", required=True, help="Baseline JSON evaluation report path")
+    analyze_eval.add_argument("--after", required=True, help="New JSON evaluation report path")
+    analyze_eval.add_argument("--output", help="Optional Markdown analysis report path")
+    analyze_eval.add_argument("--trace-root", help="Root used to resolve relative per-task trace paths")
+    analyze_eval.set_defaults(func=cmd_analyze_eval)
 
     return parser
 
