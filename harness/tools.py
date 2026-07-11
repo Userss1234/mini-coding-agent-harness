@@ -5,8 +5,10 @@ import difflib
 import fnmatch
 import importlib.util
 import json
+import os
 from pathlib import Path
 import py_compile
+import shutil
 import shlex
 import sys
 import subprocess
@@ -278,6 +280,15 @@ def _resolve_pytest_target(workspace: Path, target: str | None) -> str:
 
 def _has_pytest_files(path: Path) -> bool:
     return any(path.rglob("test_*.py")) or any(path.rglob("*_test.py"))
+
+
+def _clear_pycache_dirs(workspace: Path) -> int:
+    removed = 0
+    for path in workspace.rglob("__pycache__"):
+        if path.is_dir() and path.resolve().is_relative_to(workspace):
+            shutil.rmtree(path)
+            removed += 1
+    return removed
 
 
 def _shell_list_directory(workspace: Path, tokens: list[str]) -> ToolResult:
@@ -976,10 +987,16 @@ def build_registry(
         resolved_target = _resolve_pytest_target(workspace, target)
         if resolved_target:
             command.append(resolved_target)
+        cleared_pycache_dirs = _clear_pycache_dirs(workspace)
+        env = os.environ.copy()
+        existing_pythonpath = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = str(workspace) if not existing_pythonpath else os.pathsep.join([str(workspace), existing_pythonpath])
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
         try:
             completed = subprocess.run(
                 command,
                 cwd=workspace,
+                env=env,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -999,6 +1016,7 @@ def build_registry(
                     "timed_out": True,
                     "command": " ".join(command),
                     "target": resolved_target,
+                    "cleared_pycache_dirs": cleared_pycache_dirs,
                 },
             )
         duration = time.perf_counter() - started
@@ -1013,6 +1031,7 @@ def build_registry(
                 "timed_out": False,
                 "command": " ".join(command),
                 "target": resolved_target,
+                "cleared_pycache_dirs": cleared_pycache_dirs,
             },
         )
 

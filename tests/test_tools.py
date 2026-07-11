@@ -202,6 +202,44 @@ def test_run_tests_executes_pytest_in_workspace(tmp_path: Path) -> None:
     assert result.metadata["target"] == "tests"
 
 
+def test_run_tests_adds_workspace_to_pythonpath_for_test_imports(tmp_path: Path) -> None:
+    (tmp_path / "calculator.py").write_text(
+        "def add(a, b):\n    return a + b\n",
+        encoding="utf-8",
+    )
+    test_dir = tmp_path / "tests"
+    test_dir.mkdir()
+    (test_dir / "test_calculator.py").write_text(
+        "from calculator import add\n\n"
+        "def test_add():\n"
+        "    assert add(2, 3) == 5\n",
+        encoding="utf-8",
+    )
+    registry = make_registry(tmp_path)
+
+    result = registry.call("run_tests", timeout=30)
+
+    assert result.ok
+    assert "1 passed" in result.output
+
+
+def test_run_tests_clears_pycache_before_pytest(tmp_path: Path) -> None:
+    pycache = tmp_path / "__pycache__"
+    pycache.mkdir()
+    (pycache / "sample.cpython-310.pyc").write_bytes(b"stale")
+    (tmp_path / "test_sample.py").write_text(
+        "def test_sample():\n    assert True\n",
+        encoding="utf-8",
+    )
+    registry = make_registry(tmp_path)
+
+    result = registry.call("run_tests", timeout=30)
+
+    assert result.ok
+    assert result.metadata["cleared_pycache_dirs"] == 1
+    assert not pycache.exists()
+
+
 def test_run_tests_auto_target_allows_root_level_pytest_files(tmp_path: Path) -> None:
     (tmp_path / "tests").mkdir()
     (tmp_path / "test_sample.py").write_text(
