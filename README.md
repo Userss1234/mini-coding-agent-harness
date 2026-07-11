@@ -8,6 +8,29 @@ Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
 License: [MIT](LICENSE)
 
+## Quick Start
+
+```powershell
+python -m pip install -r requirements.txt
+python -m pytest
+python main.py eval --mode scripted
+python main.py demo --task python_bugfix
+```
+
+For a model-backed smoke run, copy `.env.example` to `.env`, set a DeepSeek/OpenAI-compatible or Anthropic-compatible API key, then run:
+
+```powershell
+python main.py eval --mode agent --task python_bugfix --task python_add_tests --task multi_file_service_fix
+```
+
+## Project Snapshot
+
+- **Scripted benchmark:** 31 deterministic repository-maintenance tasks, 31/31 passing in the committed snapshot.
+- **Real-agent eval:** DeepSeek `deepseek-chat` report over 10 representative tasks, 10/10 passing.
+- **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
+- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
+- **Reports:** Start with [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+
 ## What It Does
 
 The harness supports repository-maintenance workflows such as:
