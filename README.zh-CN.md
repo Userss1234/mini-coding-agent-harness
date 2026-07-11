@@ -26,10 +26,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## 项目快照
 
 - **Scripted benchmark：**31 个确定性代码仓库维护任务，当前提交快照 31/31 通过。
-- **真实 Agent eval：**DeepSeek `deepseek-chat` 运行 10 个代表任务，10/10 通过。
+- **真实 Agent eval：**DeepSeek `deepseek-chat` 运行 10 个代表任务，10/10 通过；扩展 20 任务评估 18/20 通过。
 - **Ablation：**已提交 2 任务 memory/context 对比，以及 `context_pack_retrieval` 的 retrieval-on/off 对比。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md)、[`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md) 和 [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)、[`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md)、[`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md) 和 [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md)。
 
 ## 项目能做什么
 

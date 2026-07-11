@@ -26,10 +26,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Scripted benchmark:** 31 deterministic repository-maintenance tasks, 31/31 passing in the committed snapshot.
-- **Real-agent eval:** DeepSeek `deepseek-chat` report over 10 representative tasks, 10/10 passing.
+- **Real-agent eval:** DeepSeek `deepseek-chat` report over 10 representative tasks, 10/10 passing; expanded 20-task run, 18/20 passing.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
 
 ## What It Does
 
