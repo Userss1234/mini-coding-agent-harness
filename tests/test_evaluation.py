@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.evaluation import _agent_eval_max_turns, run_evaluation
+from harness.evaluation import EvalTask, _agent_eval_max_turns, build_agent_eval_prompt, run_evaluation
 
 
 def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
@@ -163,6 +163,39 @@ def test_agent_eval_max_turns_reads_environment(monkeypatch) -> None:
 
     monkeypatch.setenv("AGENT_EVAL_MAX_TURNS", "0")
     assert _agent_eval_max_turns() == 1
+
+
+def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
+    task = EvalTask(
+        "python_add_tests",
+        "code_maintenance",
+        "Add missing pytest coverage for an existing Python helper.",
+        lambda registry: True,
+    )
+
+    prompt = build_agent_eval_prompt(task, "Support details.")
+
+    assert "Start with `todo_write`" in prompt
+    assert "Avoid broad shell or Git exploration" in prompt
+    assert "make the first file change by turn 6" in prompt
+    assert "create a focused `tests/test_*.py` file" in prompt
+    assert "Support details." in prompt
+
+
+def test_build_agent_eval_prompt_guides_readme_tasks_to_readme() -> None:
+    task = EvalTask(
+        "readme_update",
+        "documentation",
+        "Update a README placeholder with concrete pytest usage text.",
+        lambda registry: True,
+    )
+
+    prompt = build_agent_eval_prompt(task, "Support details.")
+
+    assert "read `README.md` directly" in prompt
+    assert "do not inspect Git history" in prompt
+    assert "concrete executable command" in prompt
+    assert "reread the changed document" in prompt
 
 
 def test_pytest_ignores_generated_artifacts() -> None:

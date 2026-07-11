@@ -435,7 +435,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "readme_update",
             "documentation",
-            "Update a README placeholder with concrete usage text.",
+            "Update a README placeholder with concrete pytest usage text.",
             run_readme_update_task,
             setup_readme_update_fixture,
             verify_readme_update_task,
@@ -598,12 +598,7 @@ def run_agent_eval_task(
         retrieval_enabled,
         memory_query=task.description,
     )
-    prompt = (
-        f"Evaluation task `{task.task_id}`: {task.description}\n\n"
-        f"{support_prompt}\n\n"
-        "Inspect the workspace, make the minimal code or documentation change needed, "
-        "run the relevant verification tool, and finish with the files changed and result."
-    )
+    prompt = build_agent_eval_prompt(task, support_prompt)
     answer = run_agent(prompt, registry, max_turns=_agent_eval_max_turns())
     registry.trace.log("eval_agent_answer", task=task.task_id, answer=answer)
     if answer.startswith("Error:"):
@@ -614,6 +609,47 @@ def run_agent_eval_task(
     verified = bool(task.verifier(registry))
     registry.trace.log("eval_agent_verifier_end", task=task.task_id, success=verified)
     return verified
+
+
+def build_agent_eval_prompt(task: EvalTask, support_prompt: str) -> str:
+    """Build a constrained prompt for real model eval runs.
+
+    The contract is intentionally operational: real models often spend too many
+    turns on shell/git exploration when a small fixture only needs read/edit/test.
+    """
+    task_hints = []
+    if "add_tests" in task.task_id:
+        task_hints.append(
+            "For add-tests tasks, an empty `tests/` directory usually means coverage is missing; "
+            "read the helper module, then create a focused `tests/test_*.py` file with `write_file`."
+        )
+    if "readme" in task.task_id or task.category == "documentation":
+        task_hints.append(
+            "For README/documentation tasks, read `README.md` directly and update it with `edit_file`; "
+            "use a concrete executable command when the task asks for usage text, and do not inspect Git history."
+        )
+    if task.category in {"code_maintenance", "configuration", "multi_file", "security"}:
+        task_hints.append(
+            "For code/config/security tasks, use `run_tests` early to reproduce the issue, "
+            "then read the smallest relevant source file(s), edit, and rerun tests."
+        )
+    task_hint_text = "\n".join(f"- {hint}" for hint in task_hints)
+    if not task_hint_text:
+        task_hint_text = "- Use the task description to choose the narrowest useful tool path."
+
+    return (
+        f"Evaluation task `{task.task_id}`: {task.description}\n\n"
+        f"{support_prompt}\n\n"
+        "Agent-eval workflow contract:\n"
+        "1. Start with `todo_write` and keep the todo list current.\n"
+        "2. Prefer `read_file`, `grep`, `context_pack`, `write_file`, `edit_file`, and `run_tests` for fixture tasks.\n"
+        "3. Avoid broad shell or Git exploration. Use `shell`/`git` only for a targeted check after file tools are insufficient.\n"
+        "4. For change tasks, make the first file change by turn 6 unless a prior tool failure blocks the edit.\n"
+        "5. Verify with `run_tests` for code tasks, or reread the changed document for documentation tasks.\n"
+        "6. Finish with the files changed and verification result.\n\n"
+        "Task-specific guidance:\n"
+        f"{task_hint_text}"
+    )
 
 
 def _agent_eval_max_turns() -> int:
