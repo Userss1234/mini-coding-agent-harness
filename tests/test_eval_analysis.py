@@ -3,7 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harness.eval_analysis import analyze_eval_reports, build_eval_history, build_eval_history_report, classify_failure
+from harness.eval_analysis import (
+    analyze_eval_reports,
+    build_eval_history,
+    build_eval_history_report,
+    build_failure_dashboard,
+    build_failure_dashboard_report,
+    classify_failure,
+)
 
 
 def test_analyze_eval_reports_compares_metrics_and_failure_patterns(tmp_path: Path) -> None:
@@ -162,6 +169,66 @@ def test_build_eval_history_loads_labeled_paths_and_writes_output(tmp_path: Path
     assert "after" in report
     assert "1/2" in report
     assert "2/2" in report
+    assert output_path.read_text(encoding="utf-8") == report
+
+
+def test_build_failure_dashboard_report_aggregates_patterns(tmp_path: Path) -> None:
+    trace_path = tmp_path / "traces" / "readme_update.jsonl"
+    trace_path.parent.mkdir(parents=True)
+    trace_path.write_text(
+        json.dumps({
+            "event": "agent_end",
+            "data": {"stopped": "max_turns"},
+        }) + "\n"
+        + json.dumps({
+            "event": "eval_agent_verifier_end",
+            "data": {"success": False},
+        }) + "\n",
+        encoding="utf-8",
+    )
+    before = _history_report(
+        passed=1,
+        task_count=2,
+        shell_calls=5,
+        failed_tasks=["readme_update"],
+    )
+    before["tasks"][1].update({
+        "category": "documentation",
+        "tool_calls": 7,
+        "failed_tool_calls": 1,
+        "tool_counts": {"shell": 5, "edit_file": 0, "write_file": 0, "run_tests": 0},
+        "trace_path": "traces/readme_update.jsonl",
+    })
+    after = _history_report(passed=2, task_count=2, failed_tasks=[])
+
+    report = build_failure_dashboard_report([
+        {"label": "baseline", "path": "before.json", "report": before},
+        {"label": "current", "path": "after.json", "report": after},
+    ], trace_root=tmp_path)
+
+    assert "# Eval Failure Dashboard" in report
+    assert "| `max_turns` | the trace ended because the agent hit the turn budget | 1 | 0 |" in report
+    assert "| `no_file_change` | no successful edit_file or write_file call was observed | 1 | 0 |" in report
+    assert "| baseline | `readme_update` | documentation | 7 | 1 |" in report
+    assert "Resolved failures: **`readme_update`**" in report
+    assert "Introduced failures: **none**" in report
+
+
+def test_build_failure_dashboard_loads_labeled_paths_and_writes_output(tmp_path: Path) -> None:
+    before_path = tmp_path / "before.json"
+    after_path = tmp_path / "after.json"
+    output_path = tmp_path / "failures.md"
+    before_path.write_text(json.dumps(_history_report(passed=1, task_count=2, failed_tasks=["python_add_tests"])), encoding="utf-8")
+    after_path.write_text(json.dumps(_history_report(passed=2, task_count=2, failed_tasks=[])), encoding="utf-8")
+
+    report = build_failure_dashboard([
+        f"before={before_path}",
+        f"after={after_path}",
+    ], output_path=output_path, trace_root=tmp_path)
+
+    assert "before" in report
+    assert "after" in report
+    assert "`trace_unavailable`" in report
     assert output_path.read_text(encoding="utf-8") == report
 
 

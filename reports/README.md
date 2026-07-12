@@ -20,6 +20,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `AGENT_EVAL_20_TASKS.json`: machine-readable JSON copy of the expanded 20-task agent-mode evaluation report.
 - `AGENT_EVAL_PROMPT_IMPROVEMENT.md`: `analyze-eval` generated comparison of the 18/20 run and the prompt-contract improvement that reached 20/20.
 - `EVAL_HISTORY.md`: `eval-history` generated trend report comparing eval metrics and task outcomes across runs.
+- `FAILURE_MODES.md`: `eval-failures` generated dashboard aggregating failed tasks by failure mode.
 - `AGENT_COMPARE_2_TASKS.md`: memory/context ablation report over 2 representative agent-mode tasks.
 - `AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`: retrieval-on/off ablation report for `context_pack_retrieval`.
 - `AGENT_TRACE_python_add_tests.html`: sample trace for a real agent task that adds pytest coverage.

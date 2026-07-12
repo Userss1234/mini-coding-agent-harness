@@ -134,6 +134,7 @@ python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 ```
 
 Local demo flow:
@@ -198,6 +199,7 @@ Eval analysis example:
 ```powershell
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 ```
 
 ## Reports
@@ -212,6 +214,7 @@ python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_T
 - `reports/AGENT_EVAL.md` is a committed DeepSeek `deepseek-chat` report over 10 representative agent-mode tasks.
 - `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md` is generated with `python main.py analyze-eval` to compare two JSON eval reports and classify failed-task patterns.
 - `reports/EVAL_HISTORY.md` is generated with `python main.py eval-history` to track eval metrics and task outcome changes across runs.
+- `reports/FAILURE_MODES.md` is generated with `python main.py eval-failures` to aggregate failed tasks by failure mode.
 - `reports/AGENT_COMPARE_2_TASKS.md` is a committed memory/context ablation report over 2 representative agent-mode tasks.
 - `reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md` is a committed retrieval-on/off ablation report for the `context_pack_retrieval` task.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.

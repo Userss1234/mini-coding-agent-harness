@@ -17,6 +17,15 @@ KEY_TOOL_COUNTS = [
     "write_file",
 ]
 
+FAILURE_PATTERN_DESCRIPTIONS = {
+    "max_turns": "the trace ended because the agent hit the turn budget",
+    "no_file_change": "no successful edit_file or write_file call was observed",
+    "over_exploration": "shell/Git exploration dominated before the repair",
+    "verification_failed": "the verifier reported failure or tests failed after attempted work",
+    "tool_failures": "one or more tool calls failed during the task",
+    "trace_unavailable": "the JSON report references a trace that was not available locally",
+}
+
 
 def analyze_eval_reports(
     before_path: Path,
@@ -40,6 +49,19 @@ def build_eval_history(
 ) -> str:
     runs = [_load_history_run(spec) for spec in run_specs]
     report = build_eval_history_report(runs)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+    return report
+
+
+def build_failure_dashboard(
+    run_specs: Sequence[str],
+    output_path: Path | None = None,
+    trace_root: Path | None = None,
+) -> str:
+    runs = [_load_history_run(spec) for spec in run_specs]
+    report = build_failure_dashboard_report(runs, trace_root=trace_root)
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(report, encoding="utf-8")
@@ -170,6 +192,136 @@ This report tracks evaluation runs over time so benchmark changes can be discuss
 
 Use this history report to explain whether a harness change improved success rate, reduced exploratory tool use, changed verification behavior, or raised model cost. Keep claims tied to the rows above.
 """
+
+
+def build_failure_dashboard_report(
+    runs: Sequence[Mapping[str, Any]],
+    trace_root: Path | None = None,
+) -> str:
+    if not runs:
+        raise ValueError("At least one eval run is required.")
+
+    root = (trace_root or Path.cwd()).resolve()
+    failures_by_run = [_failure_records_for_run(run, root) for run in runs]
+    pattern_rows = _failure_pattern_count_rows(runs, failures_by_run)
+    detail_rows = _failure_detail_rows(failures_by_run)
+    resolved_rows = _failure_resolution_rows(runs)
+    first_failed = len(_failed_task_names(runs[0]["report"]))
+    latest_failed = len(_failed_task_names(runs[-1]["report"]))
+    total_failed = sum(len(items) for items in failures_by_run)
+    unique_patterns = sorted({pattern for items in failures_by_run for item in items for pattern in item["patterns"]})
+
+    return f"""# Eval Failure Dashboard
+
+## Summary
+
+This report aggregates failed eval tasks by failure mode so agent behavior can be debugged across runs.
+
+- Runs analyzed: **{len(runs)}**
+- Failed tasks in first run: **{first_failed}**
+- Failed tasks in latest run: **{latest_failed}**
+- Failed task observations: **{total_failed}**
+- Failure patterns observed: **{', '.join(f'`{item}`' for item in unique_patterns) if unique_patterns else 'none'}**
+
+## Failure Pattern Counts
+
+| Pattern | Meaning | {_failure_run_headers(runs)} |
+|---|---|{_failure_count_alignments(runs)}|
+{pattern_rows}
+
+## Failed Task Details
+
+{detail_rows}
+
+## First-To-Latest Failure Movement
+
+{resolved_rows}
+
+## Interpretation
+
+Use this dashboard to decide whether the next harness change should reduce exploration, force earlier file edits, improve verification, or raise the turn budget. A useful change should move tasks out of these buckets, not only improve a single aggregate score.
+"""
+
+
+def _failure_records_for_run(run: Mapping[str, Any], trace_root: Path) -> list[dict[str, Any]]:
+    records = []
+    for task in run["report"].get("tasks", []):
+        if task.get("success"):
+            continue
+        records.append({
+            "run": run["label"],
+            "task_id": str(task.get("task_id", "unknown")),
+            "category": str(task.get("category", "unknown")),
+            "tool_calls": int(task.get("tool_calls", 0) or 0),
+            "failed_tool_calls": int(task.get("failed_tool_calls", 0) or 0),
+            "patterns": classify_failure(task, trace_root),
+            "trace": _display_path(Path(str(task.get("trace_path", "")))) if task.get("trace_path") else "",
+        })
+    return records
+
+
+def _failure_run_headers(runs: Sequence[Mapping[str, Any]]) -> str:
+    return " | ".join(str(run["label"]) for run in runs)
+
+
+def _failure_count_alignments(runs: Sequence[Mapping[str, Any]]) -> str:
+    return "|".join("---:" for _ in runs)
+
+
+def _failure_pattern_count_rows(
+    runs: Sequence[Mapping[str, Any]],
+    failures_by_run: Sequence[Sequence[Mapping[str, Any]]],
+) -> str:
+    patterns = sorted(set(FAILURE_PATTERN_DESCRIPTIONS) | {pattern for failures in failures_by_run for item in failures for pattern in item["patterns"]})
+    rows = []
+    for pattern in patterns:
+        counts = []
+        for failures in failures_by_run:
+            count = sum(1 for item in failures if pattern in item["patterns"])
+            counts.append(str(count))
+        rows.append(f"| `{pattern}` | {FAILURE_PATTERN_DESCRIPTIONS.get(pattern, 'unclassified failure pattern')} | {' | '.join(counts)} |")
+    return "\n".join(rows)
+
+
+def _failure_detail_rows(failures_by_run: Sequence[Sequence[Mapping[str, Any]]]) -> str:
+    records = [item for failures in failures_by_run for item in failures]
+    if not records:
+        return "No failed tasks in the selected runs."
+    rows = [
+        "| Run | Task | Category | Tool Calls | Failed Tool Calls | Patterns | Trace |",
+        "|---|---|---|---:|---:|---|---|",
+    ]
+    for item in records:
+        patterns = ", ".join(f"`{pattern}`" for pattern in item["patterns"]) or "`unknown`"
+        rows.append(
+            "| {run} | `{task}` | {category} | {tool_calls} | {failed_tool_calls} | {patterns} | `{trace}` |".format(
+                run=item["run"],
+                task=item["task_id"],
+                category=item["category"],
+                tool_calls=item["tool_calls"],
+                failed_tool_calls=item["failed_tool_calls"],
+                patterns=patterns,
+                trace=item["trace"],
+            )
+        )
+    return "\n".join(rows)
+
+
+def _failure_resolution_rows(runs: Sequence[Mapping[str, Any]]) -> str:
+    first_failed = set(_failed_task_names(runs[0]["report"]))
+    latest_failed = set(_failed_task_names(runs[-1]["report"]))
+    resolved = sorted(first_failed - latest_failed)
+    introduced = sorted(latest_failed - first_failed)
+    persistent = sorted(first_failed & latest_failed)
+    return "\n".join([
+        f"- Resolved failures: **{_task_list_text(resolved)}**",
+        f"- Introduced failures: **{_task_list_text(introduced)}**",
+        f"- Persistent failures: **{_task_list_text(persistent)}**",
+    ])
+
+
+def _task_list_text(items: Sequence[str]) -> str:
+    return ", ".join(f"`{item}`" for item in items) if items else "none"
 
 
 def _load_history_run(spec: str) -> dict[str, Any]:
