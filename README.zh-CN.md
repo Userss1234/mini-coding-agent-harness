@@ -241,7 +241,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 当前支持的 MCP 方法包括：`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`、`resources/list`、`resources/read`、`resources/templates/list`、`prompts/list` 和 `prompts/get`。`MCP.md` 里有消息示例和边界说明。
 
-server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
+server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history` 和 `harness://reports/failure-modes`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
 
 如果要接入支持 MCP 的客户端，可以复制 `examples/mcp_config.example.json`，把 `/absolute/path/to/mini-coding-agent-harness` 替换成本地项目绝对路径。
 

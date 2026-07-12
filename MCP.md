@@ -57,7 +57,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
-`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, `reports/AGENT_EVAL.md`, and the demo report. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, `reports/AGENT_EVAL.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, and the demo report. Arbitrary file reads should use the permission-checked `read_file` tool instead.
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
@@ -86,7 +86,15 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 ```
 
 ```json
-{"jsonrpc":"2.0","id":6,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
+{"jsonrpc":"2.0","id":6,"method":"resources/read","params":{"uri":"harness://reports/eval-history"}}
+```
+
+```json
+{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"harness://reports/failure-modes"}}
+```
+
+```json
+{"jsonrpc":"2.0","id":8,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
 ```
 
 ## Boundaries

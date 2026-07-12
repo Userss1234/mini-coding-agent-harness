@@ -241,7 +241,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history` and `harness://reports/failure-modes`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 

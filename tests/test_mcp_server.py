@@ -93,6 +93,34 @@ def test_mcp_resources_list_and_read_whitelisted_docs(tmp_path: Path) -> None:
     }]
 
 
+def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> None:
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    (reports / "EVAL_HISTORY.md").write_text("# Eval History Report\n", encoding="utf-8")
+    (reports / "FAILURE_MODES.md").write_text("# Eval Failure Dashboard\n", encoding="utf-8")
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    listed = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "resources/list"})
+    resources = {item["uri"]: item for item in listed["result"]["resources"]}
+    history = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "resources/read",
+        "params": {"uri": "harness://reports/eval-history"},
+    })
+    failures = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "resources/read",
+        "params": {"uri": "harness://reports/failure-modes"},
+    })
+
+    assert resources["harness://reports/eval-history"]["name"] == "EVAL_HISTORY"
+    assert resources["harness://reports/failure-modes"]["name"] == "FAILURE_MODES"
+    assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
+    assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
+
+
 def test_mcp_resources_reject_unknown_uri(tmp_path: Path) -> None:
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
