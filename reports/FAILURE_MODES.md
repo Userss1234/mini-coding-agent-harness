@@ -4,7 +4,7 @@
 
 This report aggregates failed eval tasks by failure mode so agent behavior can be debugged across runs.
 
-- Runs analyzed: **2**
+- Runs analyzed: **3**
 - Failed tasks in first run: **2**
 - Failed tasks in latest run: **0**
 - Failed task observations: **2**
@@ -12,14 +12,14 @@ This report aggregates failed eval tasks by failure mode so agent behavior can b
 
 ## Failure Pattern Counts
 
-| Pattern | Meaning | before-prompt-contract | after-prompt-contract |
-|---|---|---:|---:|
-| `max_turns` | the trace ended because the agent hit the turn budget | 2 | 0 |
-| `no_file_change` | no successful edit_file or write_file call was observed | 2 | 0 |
-| `over_exploration` | shell/Git exploration dominated before the repair | 2 | 0 |
-| `tool_failures` | one or more tool calls failed during the task | 2 | 0 |
-| `trace_unavailable` | the JSON report references a trace that was not available locally | 0 | 0 |
-| `verification_failed` | the verifier reported failure or tests failed after attempted work | 2 | 0 |
+| Pattern | Meaning | before-prompt-contract | after-prompt-contract | full-36-task |
+|---|---|---:|---:|---:|
+| `max_turns` | the trace ended because the agent hit the turn budget | 2 | 0 | 0 |
+| `no_file_change` | no successful edit_file or write_file call was observed | 2 | 0 | 0 |
+| `over_exploration` | shell/Git exploration dominated before the repair | 2 | 0 | 0 |
+| `tool_failures` | one or more tool calls failed during the task | 2 | 0 | 0 |
+| `trace_unavailable` | the JSON report references a trace that was not available locally | 0 | 0 | 0 |
+| `verification_failed` | the verifier reported failure or tests failed after attempted work | 2 | 0 | 0 |
 
 ## Failed Task Details
 

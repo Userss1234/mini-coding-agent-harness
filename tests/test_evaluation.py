@@ -206,7 +206,38 @@ def test_build_agent_eval_prompt_guides_readme_tasks_to_readme() -> None:
     assert "read `README.md` directly" in prompt
     assert "do not inspect Git history" in prompt
     assert "concrete executable command" in prompt
+    assert "do not inspect tests, shell, Git, or memories" in prompt
+    assert "replace exactly `Usage: TODO` with `Usage: run python -m pytest.`" in prompt
     assert "reread the changed document" in prompt
+
+
+def test_build_agent_eval_prompt_guides_context_compaction_to_readme() -> None:
+    task = EvalTask(
+        "context_compaction",
+        "trace",
+        "Create todos, read README.md, and summarize the trace with compact_context.",
+        lambda registry: True,
+    )
+
+    prompt = build_agent_eval_prompt(task, "Support details.")
+
+    assert "call `todo_write`, then `read_file` on `README.md`, then `compact_context`" in prompt
+    assert "compacted summary mentions `README.md`" in prompt
+
+
+def test_build_agent_eval_prompt_guides_retry_plan_failure() -> None:
+    task = EvalTask(
+        "semantic_retry_plan",
+        "recovery",
+        "Trigger edit_file on sample.txt with old_text=\"old\" so the repeated text fails, then produce an ordered retry_plan.",
+        lambda registry: True,
+    )
+
+    prompt = build_agent_eval_prompt(task, "Support details.")
+
+    assert "call `edit_file` on `sample.txt` with `old_text=\"old\"` first" in prompt
+    assert "classified as `edit_match_failed`" in prompt
+    assert "Then call `retry_plan`" in prompt
 
 
 def test_pytest_ignores_generated_artifacts() -> None:

@@ -13,8 +13,8 @@ Run these commands when demonstrating the project locally:
 ```powershell
 python main.py demo --task python_bugfix
 python main.py eval --mode scripted
-python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
-python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -23,11 +23,11 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 1. Start with `reports/DEMO_python_bugfix.md`.
    Explain that the harness turns a maintenance task into a todo plan, tool calls, file edits, tests, and a final diff. The important point is that every action is recorded as evidence, not hidden inside a model response.
 
-2. Open `reports/AGENT_EVAL_20_TASKS.md`.
-   Explain that the project has a real model-backed evaluation path, not only scripted fixtures. The committed 20-task DeepSeek `deepseek-chat` run reached 20/20, and each task has tool-call counts, duration, token cost, and trace paths.
+2. Open `reports/AGENT_EVAL_36_TASKS.md`.
+   Explain that the project has a real model-backed evaluation path, not only scripted fixtures. The committed full-suite DeepSeek `deepseek-chat` run reached 36/36, and each task has tool-call counts, duration, token cost, and trace paths.
 
 3. Open `reports/EVAL_HISTORY.md`.
-   Explain the engineering loop: an earlier 20-task run passed 18/20, then trace review drove a prompt-contract improvement, and the rerun reached 20/20. Point to the success-rate change, tool-call mix, and task outcome changes.
+   Explain the engineering loop: an earlier 20-task run passed 18/20, trace review drove a prompt-contract improvement to 20/20, and the final full-suite run reached 36/36. Point to the success-rate change, tool-call mix, and task outcome changes.
 
 4. Open `reports/FAILURE_MODES.md`.
    Explain that the project does not stop at pass rate. It classifies failed tasks into patterns such as `max_turns`, `no_file_change`, `over_exploration`, `verification_failed`, and `tool_failures`, so the next harness change can be targeted.
@@ -47,13 +47,13 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ## Claims To Make
 
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
-- Added a 36-task deterministic benchmark and a 20-task real-agent evaluation artifact.
-- Improved a real-agent run from 18/20 to 20/20 using trace-backed failure analysis.
+- Added a 36-task deterministic benchmark and a full 36-task real-agent evaluation artifact.
+- Improved real-agent evaluation from an 18/20 baseline to 20/20, then validated the expanded 36-task run at 36/36 using trace-backed failure analysis.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid
 
 - Do not claim this is a full autonomous software engineer.
-- Do not claim broad benchmark superiority from the 20-task run.
+- Do not claim broad benchmark superiority from a single 36-task run.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
 - Do not claim OS-level sandboxing; the project implements harness-level permission controls.

@@ -16,9 +16,11 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 ## Real Agent Eval
 
-- `AGENT_EVAL.md`: latest DeepSeek `deepseek-chat` report over 10 representative agent-mode tasks.
+- `AGENT_EVAL.md`: earlier DeepSeek `deepseek-chat` report over 10 representative agent-mode tasks.
 - `AGENT_EVAL_10_TASKS.md`: named copy of the 10-task real-agent evaluation report.
 - `AGENT_EVAL_20_TASKS.md`: expanded 20-task DeepSeek `deepseek-chat` agent-mode evaluation report.
+- `AGENT_EVAL_36_TASKS.md`: full 36-task DeepSeek `deepseek-chat` agent-mode evaluation report, 36/36 passing.
+- `AGENT_EVAL_36_TASKS.json`: machine-readable JSON copy of the full 36-task agent-mode evaluation report.
 - `AGENT_EVAL_20_TASKS_BEFORE.json`: machine-readable JSON copy of the 18/20 baseline run before the prompt-contract improvement.
 - `AGENT_EVAL_20_TASKS.json`: machine-readable JSON copy of the expanded 20-task agent-mode evaluation report.
 - `AGENT_EVAL_PROMPT_IMPROVEMENT.md`: `analyze-eval` generated comparison of the 18/20 run and the prompt-contract improvement that reached 20/20.

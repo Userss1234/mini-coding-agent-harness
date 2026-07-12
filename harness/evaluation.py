@@ -350,7 +350,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "context_compaction",
             "trace",
-            "Create todos, read a file, and summarize the trace with compact_context.",
+            "Create todos, read README.md, and summarize the trace with compact_context.",
             run_context_compaction_task,
             verifier=verify_context_compaction_task,
         ),
@@ -437,7 +437,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "semantic_retry_plan",
             "recovery",
-            "Trigger an edit failure and produce an ordered retry plan.",
+            "Trigger edit_file on sample.txt with old_text=\"old\" so the repeated text fails, then produce an ordered retry_plan.",
             run_retry_plan_task,
             setup_error_recovery_fixture,
             verify_retry_plan_task,
@@ -476,7 +476,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "readme_update",
             "documentation",
-            "Update a README placeholder with concrete pytest usage text.",
+            "Replace README.md's `Usage: TODO` placeholder with concrete pytest usage text.",
             run_readme_update_task,
             setup_readme_update_fixture,
             verify_readme_update_task,
@@ -673,6 +673,22 @@ def build_agent_eval_prompt(task: EvalTask, support_prompt: str) -> str:
         task_hints.append(
             "For README/documentation tasks, read `README.md` directly and update it with `edit_file`; "
             "use a concrete executable command when the task asks for usage text, and do not inspect Git history."
+        )
+    if task.task_id == "context_compaction":
+        task_hints.append(
+            "For this trace task, call `todo_write`, then `read_file` on `README.md`, then `compact_context`; "
+            "finish after the compacted summary mentions `README.md`."
+        )
+    if task.task_id == "readme_update":
+        task_hints.append(
+            "For this documentation task, do not inspect tests, shell, Git, or memories after reading `README.md`; "
+            "replace exactly `Usage: TODO` with `Usage: run python -m pytest.` and reread `README.md`."
+        )
+    if task.task_id == "semantic_retry_plan":
+        task_hints.append(
+            "For this recovery task, call `edit_file` on `sample.txt` with `old_text=\"old\"` first; "
+            "the snippet appears more than once, so the failure should be classified as `edit_match_failed`. "
+            "Then call `retry_plan` and finish with the ordered plan."
         )
     if task.category in {"code_maintenance", "configuration", "multi_file", "security"}:
         task_hints.append(

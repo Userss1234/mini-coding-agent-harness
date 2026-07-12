@@ -26,10 +26,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Scripted benchmark:** 36 deterministic repository-maintenance tasks, 36/36 passing in the committed snapshot.
-- **Real-agent eval:** DeepSeek `deepseek-chat` report over 10 representative tasks, 10/10 passing; expanded 20-task run, 20/20 passing.
+- **Real-agent eval:** DeepSeek `deepseek-chat` report over the full 36-task benchmark, 36/36 passing with memory, context compaction, and retrieval enabled.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
 
 ## Portfolio Walkthrough
 
@@ -38,8 +38,8 @@ Use this route when demonstrating the project in an interview:
 ```powershell
 python main.py demo --task python_bugfix
 python main.py eval --mode scripted
-python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
-python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -48,8 +48,9 @@ Show these committed artifacts while explaining the system:
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md): 2-3 minute interview talk track.
 - [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md): evidence-backed resume bullet options.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
-- [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): 20-task model-backed coding-agent evaluation result.
-- [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing the 18/20 to 20/20 improvement.
+- [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
+- [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): earlier 20-task model-backed coding-agent evaluation result.
+- [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing 18/20 to 20/20 to 36/36.
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md): failure-mode dashboard showing resolved agent failure patterns.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
@@ -162,8 +163,8 @@ python main.py eval --mode scripted --compare-retrieval --task syntax_check
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
-python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
-python main.py eval-failures --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 ```
 
 Local demo flow:
@@ -227,8 +228,8 @@ Eval analysis example:
 
 ```powershell
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
-python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
-python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 ```
 
 ## Reports
@@ -360,7 +361,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 36-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop now preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The scripted benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, and injected-client validation of retrieval preflight. A committed DeepSeek `deepseek-chat` report currently covers 10 representative agent-mode tasks with 10/10 passing, plus a 2-task memory/context ablation with all four configurations passing. A committed retrieval ablation on `context_pack_retrieval` shows retrieval-on passing with a real `context_pack` call and retrieval-off failing without the tool exposed. Full 36-task real API comparison data still needs larger runs and analysis before claiming broad autonomous benchmark performance.
+Current honest status: this is a 36-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, and injected-client validation of retrieval preflight. A committed DeepSeek `deepseek-chat` report now covers the full 36-task agent-mode benchmark with 36/36 passing, and the history/failure dashboards track the earlier 18/20 and 20/20 runs.
 
 ## Git Baseline
 
@@ -374,7 +375,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Current Limitations
 
-- The stable benchmark snapshot is scripted and includes an injected-client agent-loop smoke test with retrieval preflight; real API-backed model evaluation is supported and has a 10-task report, a 2-task memory/context ablation, and a focused retrieval-on/off ablation, but still needs full-suite comparison runs and broader retrieval tuning.
+- The committed real-agent report covers one DeepSeek `deepseek-chat` 36-task run; broader model/provider comparisons and repeated-run variance analysis are still future work.
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
@@ -385,8 +386,8 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Run and tune real API-backed `eval --mode agent` against the 36 tasks with retrieval preflight enabled, then compare it with scripted mode and retrieval-off runs.
+1. Add repeated-run variance tracking for the 36-task real-agent suite and compare DeepSeek/OpenAI/Anthropic-compatible clients.
 2. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
-3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
-4. Add optional OS-level sandboxing for shell execution.
-5. Track whether injected retry plans improve `eval --mode agent` success rate and tool-call count.
+3. Add retrieval-off and memory/context ablations for the full 36-task agent suite.
+4. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
+5. Add optional OS-level sandboxing for shell execution.
