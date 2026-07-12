@@ -312,7 +312,7 @@ Task coverage:
 - Retrieve-then-read evidence pack loading
 - Sensitive-path filtering for RAG indexing/search
 - MCP `rag_search` smoke validation
-- Static HTML trace report generation
+- Static HTML trace report generation with permission decision and blocked-call summaries
 - Error recovery
 - Semantic retry planning
 - Workflow memory listing

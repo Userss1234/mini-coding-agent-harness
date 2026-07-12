@@ -44,6 +44,7 @@ def render_trace_html(
 ) -> str:
     event_counts = Counter(str(item.get("event", "unknown")) for item in events)
     tool_events = [item for item in events if item.get("event") == "tool_call"]
+    permission_audit = summarize_permission_events(tool_events)
     failed_tools = [
         item
         for item in tool_events
@@ -57,6 +58,9 @@ def render_trace_html(
         f"{escape(name)}: {count}"
         for name, count in sorted(event_counts.items())
     ) or "none"
+    permission_breakdown = _format_counter_inline(permission_audit["decisions"])
+    risk_breakdown = _format_counter_inline(permission_audit["risks"])
+    blocked_rows = _blocked_permission_rows(permission_audit["blocked_calls"])
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -86,8 +90,28 @@ def render_trace_html(
     <div class="metric"><span>Tool calls</span><strong>{len(tool_events)}</strong></div>
     <div class="metric"><span>Failed tools</span><strong>{len(failed_tools)}</strong></div>
     <div class="metric"><span>Parse errors</span><strong>{parse_errors}</strong></div>
+    <div class="metric"><span>Allowed calls</span><strong>{permission_audit["allowed_count"]}</strong></div>
+    <div class="metric"><span>Blocked calls</span><strong>{permission_audit["blocked_count"]}</strong></div>
+    <div class="metric"><span>Failed after allow</span><strong>{permission_audit["failed_after_allow_count"]}</strong></div>
   </section>
   <p>Event breakdown: {event_breakdown}</p>
+  <p>Permission decisions: {permission_breakdown}</p>
+  <p>Risk classes: {risk_breakdown}</p>
+  <h2>Blocked Permission Calls</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Risk</th>
+        <th>Permission</th>
+        <th>Output</th>
+      </tr>
+    </thead>
+    <tbody>
+{blocked_rows}
+    </tbody>
+  </table>
+  <h2>Events</h2>
   <table>
     <thead>
       <tr>
@@ -106,6 +130,47 @@ def render_trace_html(
 </body>
 </html>
 """
+
+
+def summarize_permission_events(tool_events: list[dict[str, Any]]) -> dict[str, Any]:
+    decisions: Counter[str] = Counter()
+    risks: Counter[str] = Counter()
+    blocked_calls: list[dict[str, str]] = []
+    allowed_count = 0
+    blocked_count = 0
+    failed_after_allow_count = 0
+
+    for event in tool_events:
+        data = event.get("data", {})
+        if not isinstance(data, dict):
+            continue
+        permission = str(data.get("permission", "missing_permission"))
+        risk = str(data.get("risk", "unknown"))
+        ok = bool(data.get("ok", False))
+        decisions[permission] += 1
+        risks[risk] += 1
+        if permission == "allow":
+            allowed_count += 1
+            if not ok:
+                failed_after_allow_count += 1
+            continue
+        blocked_count += 1
+        first_line = str(data.get("output", "")).splitlines()[0] if data.get("output") else ""
+        blocked_calls.append({
+            "tool": str(data.get("tool", "unknown")),
+            "risk": risk,
+            "permission": permission,
+            "output": first_line,
+        })
+
+    return {
+        "allowed_count": allowed_count,
+        "blocked_count": blocked_count,
+        "failed_after_allow_count": failed_after_allow_count,
+        "decisions": dict(decisions),
+        "risks": dict(risks),
+        "blocked_calls": blocked_calls,
+    }
 
 
 def _event_row(index: int, event: dict[str, Any]) -> str:
@@ -130,4 +195,27 @@ def _event_row(index: int, event: dict[str, Any]) -> str:
         f"<td>{status}</td>"
         f"<td><pre>{escape(data_json)}</pre></td>"
         "</tr>"
+    )
+
+
+def _format_counter_inline(items: dict[str, int]) -> str:
+    if not items:
+        return "none"
+    return ", ".join(
+        f"{escape(name)}: {count}"
+        for name, count in sorted(items.items())
+    )
+
+
+def _blocked_permission_rows(blocked_calls: list[dict[str, str]]) -> str:
+    if not blocked_calls:
+        return '      <tr><td colspan="4">No blocked calls recorded.</td></tr>'
+    return "\n".join(
+        "      <tr>"
+        f"<td>{escape(item['tool'])}</td>"
+        f"<td>{escape(item['risk'])}</td>"
+        f"<td>{escape(item['permission'])}</td>"
+        f"<td>{escape(item['output'])}</td>"
+        "</tr>"
+        for item in blocked_calls
     )
