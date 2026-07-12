@@ -374,6 +374,32 @@ def test_permission_policy_reports_shell_git_and_sandbox_boundaries(tmp_path: Pa
     assert result.metadata["path_scope"] == "workspace_only"
 
 
+def test_audit_permissions_summarizes_trace_decisions(tmp_path: Path) -> None:
+    target = tmp_path / "sample.txt"
+    target.write_text("hello\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+    registry.call("read_file", path="sample.txt")
+    registry.call("shell", command="git push origin main")
+    registry.call("shell", command="echo hello > out.txt")
+
+    result = registry.call("audit_permissions")
+
+    assert result.ok
+    assert "Permission Audit" in result.output
+    assert result.metadata["tool_call_count"] == 3
+    assert result.metadata["allowed_count"] == 1
+    assert result.metadata["blocked_count"] == 2
+    assert result.metadata["failed_after_allow_count"] == 0
+    assert result.metadata["decisions"]["allow"] == 1
+    assert result.metadata["decisions"]["blocked_git_not_allowlisted"] == 1
+    assert result.metadata["decisions"]["blocked_shell_operator"] == 1
+    assert result.metadata["risks"]["read"] == 1
+    assert result.metadata["risks"]["shell"] == 2
+    assert result.metadata["blocked_calls"][0]["tool"] == "shell"
+    assert "blocked_git_not_allowlisted" in result.output
+    assert not (tmp_path / "out.txt").exists()
+
+
 def test_compact_context_summarizes_trace_state(tmp_path: Path) -> None:
     target = tmp_path / "sample.txt"
     target.write_text("before\n", encoding="utf-8")

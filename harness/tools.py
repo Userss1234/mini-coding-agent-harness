@@ -1063,6 +1063,83 @@ def build_registry(
         ]
         return ToolResult(True, "\n".join(lines), metadata)
 
+    def audit_permissions(max_items: int = 20) -> ToolResult:
+        trace_path = registry.trace.path
+        if not trace_path.exists():
+            return ToolResult(False, f"Trace file not found: {trace_path}")
+
+        decisions: dict[str, int] = {}
+        risks: dict[str, int] = {}
+        blocked_calls: list[dict[str, str]] = []
+        tool_call_count = 0
+        allowed_count = 0
+        blocked_count = 0
+        failed_after_allow_count = 0
+        parse_errors = 0
+
+        for line in trace_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                parse_errors += 1
+                continue
+            if event.get("event") != "tool_call":
+                continue
+            data = event.get("data", {})
+            if not isinstance(data, dict):
+                continue
+
+            tool_call_count += 1
+            tool_name = str(data.get("tool", "unknown"))
+            permission = str(data.get("permission", "missing_permission"))
+            risk = str(data.get("risk", "unknown"))
+            ok = bool(data.get("ok", False))
+            decisions[permission] = decisions.get(permission, 0) + 1
+            risks[risk] = risks.get(risk, 0) + 1
+
+            if permission == "allow":
+                allowed_count += 1
+                if not ok:
+                    failed_after_allow_count += 1
+                continue
+
+            blocked_count += 1
+            if len(blocked_calls) < max(int(max_items), 0):
+                first_line = str(data.get("output", "")).splitlines()[0] if data.get("output") else ""
+                blocked_calls.append({
+                    "tool": tool_name,
+                    "permission": permission,
+                    "risk": risk,
+                    "error": first_line,
+                })
+
+        output = _format_permission_audit(
+            tool_call_count=tool_call_count,
+            allowed_count=allowed_count,
+            blocked_count=blocked_count,
+            failed_after_allow_count=failed_after_allow_count,
+            parse_errors=parse_errors,
+            decisions=decisions,
+            risks=risks,
+            blocked_calls=blocked_calls,
+        )
+        return ToolResult(
+            True,
+            output,
+            {
+                "tool_call_count": tool_call_count,
+                "allowed_count": allowed_count,
+                "blocked_count": blocked_count,
+                "failed_after_allow_count": failed_after_allow_count,
+                "parse_errors": parse_errors,
+                "decisions": decisions,
+                "risks": risks,
+                "blocked_calls": blocked_calls,
+            },
+        )
+
     def shell(command: str, timeout: int = 60) -> ToolResult:
         tokens = parse_shell_tokens(command)
         if not tokens:
@@ -1301,6 +1378,12 @@ def build_registry(
         "Explain the current workspace, write, shell, and Git permission boundaries.",
         {"type": "object", "properties": {}},
         permission_policy,
+    ))
+    registry.register(Tool(
+        "audit_permissions",
+        "Summarize permission decisions from trace.jsonl, including allowed calls, blocked calls, risks, and failed allowed calls.",
+        {"type": "object", "properties": {"max_items": {"type": "integer"}}},
+        audit_permissions,
     ))
     registry.register(Tool(
         "shell",
@@ -1972,4 +2055,57 @@ def _format_retry_plan(
 ## Ordered Steps
 
 {rows}
+"""
+
+
+def _format_permission_audit(
+    tool_call_count: int,
+    allowed_count: int,
+    blocked_count: int,
+    failed_after_allow_count: int,
+    parse_errors: int,
+    decisions: dict[str, int],
+    risks: dict[str, int],
+    blocked_calls: list[dict[str, str]],
+) -> str:
+    decision_rows = "\n".join(
+        f"- `{name}`: {count}"
+        for name, count in sorted(decisions.items())
+    ) or "- No permission decisions recorded."
+    risk_rows = "\n".join(
+        f"- `{name}`: {count}"
+        for name, count in sorted(risks.items())
+    ) or "- No tool risks recorded."
+    if blocked_calls:
+        blocked_rows = "\n".join(
+            "- `{tool}` ({risk}) -> `{permission}`: {error}".format(
+                tool=item["tool"],
+                risk=item["risk"],
+                permission=item["permission"],
+                error=item["error"] or "(no output)",
+            )
+            for item in blocked_calls
+        )
+    else:
+        blocked_rows = "- No blocked calls recorded."
+
+    return f"""# Permission Audit
+
+- Tool calls: {tool_call_count}
+- Allowed calls: {allowed_count}
+- Blocked calls: {blocked_count}
+- Failed after allow: {failed_after_allow_count}
+- Trace parse errors: {parse_errors}
+
+## Permission Decisions
+
+{decision_rows}
+
+## Risk Classes
+
+{risk_rows}
+
+## Blocked Calls
+
+{blocked_rows}
 """

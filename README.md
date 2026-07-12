@@ -130,6 +130,7 @@ When retrieval tools are enabled, `harness.agent.run_agent()` performs a retriev
 | `delete_file` | Delete one file only with explicit confirmation; directories are refused. |
 | `grep` | Search files by substring. |
 | `permission_policy` | Report write, shell, Git, and sandbox permission boundaries. |
+| `audit_permissions` | Summarize trace permission decisions, blocked calls, risk classes, and failed allowed calls. |
 | `shell` | Run allowlisted commands with `shell=False`, blocking operators, force flags, and mutating Git commands. |
 | `run_py_compile` | Check Python syntax. |
 | `run_tests` | Run pytest, defaulting to `tests/` only when it contains pytest files, otherwise the workspace root. |
