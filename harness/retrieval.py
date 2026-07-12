@@ -319,6 +319,44 @@ def format_retrieval_explanation(result: dict[str, Any]) -> str:
     )
 
 
+def format_retrieved_context(result: dict[str, Any]) -> str:
+    reads = result.get("reads") or []
+    query = result.get("query") or ""
+    if not reads:
+        return f"# Retrieved Context\n\n- Query: {query}\n- Reads: 0\n\n(no readable context)"
+
+    sections = []
+    for item in reads:
+        args = item.get("read_file_args") or {}
+        if item.get("ok"):
+            sections.append(
+                "## Step {step}: `{path}` lines {start}-{end}\n\n"
+                "```text\n{text}\n```".format(
+                    step=item.get("step"),
+                    path=args.get("path"),
+                    start=args.get("start_line"),
+                    end=args.get("end_line"),
+                    text=item.get("text", ""),
+                )
+            )
+        else:
+            sections.append(
+                "## Step {step}: `{path}` lines {start}-{end}\n\n"
+                "Read failed: {error}".format(
+                    step=item.get("step"),
+                    path=args.get("path"),
+                    start=args.get("start_line"),
+                    end=args.get("end_line"),
+                    error=item.get("error", "unknown error"),
+                )
+            )
+    return "# Retrieved Context\n\n- Query: {query}\n- Reads: {count}\n- Retrieval: local chunk lexical scoring\n\n{sections}\n".format(
+        query=query,
+        count=len(reads),
+        sections="\n\n".join(sections),
+    )
+
+
 def _chunk_file(path: str, text: str, chunk_lines: int, overlap: int) -> list[RetrievalChunk]:
     lines = text.splitlines()
     if not lines:

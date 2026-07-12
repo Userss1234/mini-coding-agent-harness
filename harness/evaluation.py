@@ -394,6 +394,14 @@ def default_tasks() -> list[EvalTask]:
             run_rag_read_plan_generation_task,
         ),
         EvalTask(
+            "rag_retrieve_then_read",
+            "retrieval",
+            "Use retrieve_then_read to load a ranked evidence pack from RAG read-plan output.",
+            run_rag_retrieve_then_read_task,
+            setup_rag_retrieve_then_read_fixture,
+            run_rag_retrieve_then_read_task,
+        ),
+        EvalTask(
             "mcp_rag_search_smoke",
             "retrieval",
             "Call rag_search through the MCP tools/call protocol and validate structured results.",
@@ -929,6 +937,43 @@ def run_rag_read_plan_generation_task(registry: ToolRegistry) -> bool:
         and read_args.get("start_line") == 1
         and int(read_args.get("end_line", 0)) >= 4
         and 'read_file(path="billing_service.py"' in result.output
+    )
+
+
+def setup_rag_retrieve_then_read_fixture(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "orders.py").write_text(
+        "def order_total(lines):\n"
+        "    subtotal = sum(line.price for line in lines)\n"
+        "    return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+    (workspace / "docs.md").write_text(
+        "Order total documentation mentions rounding but not the implementation.\n",
+        encoding="utf-8",
+    )
+
+
+def run_rag_retrieve_then_read_task(registry: ToolRegistry) -> bool:
+    result = registry.call(
+        "retrieve_then_read",
+        query="order total rounding",
+        glob="*.py,*.md",
+        limit=1,
+        chunk_lines=20,
+        read_window=1,
+    )
+    metadata = result.metadata or {}
+    reads = metadata.get("reads", [])
+    first = reads[0] if reads else {}
+    read_args = (first.get("read_file_args") or {}) if isinstance(first, dict) else {}
+    return (
+        result.ok
+        and metadata.get("count") == 1
+        and read_args.get("path") == "orders.py"
+        and "order_total" in result.output
+        and "return round(subtotal, 2)" in result.output
+        and bool(first.get("ok"))
     )
 
 

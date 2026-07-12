@@ -20,6 +20,7 @@ from .retrieval import (
     explain_retrieval_plan,
     format_index_summary,
     format_retrieval_explanation,
+    format_retrieved_context,
     format_search_results,
     search_workspace,
     tokenize_query,
@@ -666,6 +667,71 @@ def build_registry(
                 "read_plan": result["read_plan"],
                 "index": result["index"],
                 "retrieval": result["retrieval"],
+            },
+        )
+
+    def retrieve_then_read(
+        query: str,
+        glob: str = "*",
+        limit: int = 3,
+        chunk_lines: int = 80,
+        overlap: int = 10,
+        read_window: int = 20,
+        max_chars_per_read: int = 4000,
+        max_chars_per_chunk: int = 1200,
+    ) -> ToolResult:
+        query_text = str(query).strip()
+        if not query_text:
+            return ToolResult(False, "query must be non-empty")
+        tokens = tokenize_query(query_text)
+        if not tokens:
+            return ToolResult(False, "query must contain at least one searchable token")
+        plan_result = explain_retrieval_plan(
+            workspace,
+            query_text,
+            glob_pattern=str(glob or "*"),
+            limit=max(int(limit), 0),
+            chunk_lines=max(int(chunk_lines), 1),
+            overlap=max(int(overlap), 0),
+            read_window=max(int(read_window), 0),
+            max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
+        )
+        reads: list[dict[str, Any]] = []
+        for item in plan_result["read_plan"]:
+            args = item.get("read_file_args") or {}
+            read = read_file(
+                path=str(args.get("path", "")),
+                start_line=int(args.get("start_line", 1)),
+                end_line=int(args.get("end_line", args.get("start_line", 1))),
+                max_chars=max(int(max_chars_per_read), 120),
+            )
+            read_item = {
+                "step": item.get("step"),
+                "read_file_args": args,
+                "score": item.get("score", 0),
+                "ok": read.ok,
+            }
+            if read.ok:
+                read_item["text"] = read.output
+                read_item["metadata"] = read.metadata or {}
+            else:
+                read_item["error"] = read.output
+            reads.append(read_item)
+        result = dict(plan_result)
+        result["reads"] = reads
+        return ToolResult(
+            all(bool(item.get("ok")) for item in reads) if reads else True,
+            format_retrieved_context(result),
+            {
+                "query": query_text,
+                "tokens": tokens,
+                "glob": str(glob or "*"),
+                "count": len(reads),
+                "matches": plan_result["matches"],
+                "read_plan": plan_result["read_plan"],
+                "reads": reads,
+                "index": plan_result["index"],
+                "retrieval": plan_result["retrieval"],
             },
         )
 
@@ -1322,6 +1388,25 @@ def build_registry(
                 "required": ["query"],
             },
             rag_explain,
+        ))
+        registry.register(Tool(
+            "retrieve_then_read",
+            "Run local RAG, build a read_file plan, and return the retrieved line-range evidence pack.",
+            {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "glob": {"type": "string"},
+                    "limit": {"type": "integer"},
+                    "chunk_lines": {"type": "integer"},
+                    "overlap": {"type": "integer"},
+                    "read_window": {"type": "integer"},
+                    "max_chars_per_read": {"type": "integer"},
+                    "max_chars_per_chunk": {"type": "integer"},
+                },
+                "required": ["query"],
+            },
+            retrieve_then_read,
         ))
         registry.register(Tool(
             "context_pack",

@@ -490,6 +490,35 @@ def test_rag_explain_returns_read_file_plan(tmp_path: Path) -> None:
     assert result.metadata["matches"][0]["path"] == "billing_service.py"
 
 
+def test_retrieve_then_read_returns_evidence_pack(tmp_path: Path) -> None:
+    (tmp_path / "billing_service.py").write_text(
+        "class BillingService:\n"
+        "    def invoice_total(self, items):\n"
+        "        subtotal = sum(item.price for item in items)\n"
+        "        return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "notes.md").write_text("Invoice notes without executable code.\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+
+    result = registry.call(
+        "retrieve_then_read",
+        query="invoice total rounding",
+        glob="*.py,*.md",
+        limit=1,
+        chunk_lines=20,
+        read_window=1,
+    )
+
+    assert result.ok
+    assert "Retrieved Context" in result.output
+    assert "invoice_total" in result.output
+    assert result.metadata["count"] == 1
+    assert result.metadata["reads"][0]["ok"] is True
+    assert result.metadata["reads"][0]["read_file_args"]["path"] == "billing_service.py"
+    assert result.metadata["read_plan"][0]["read_file_args"]["path"] == "billing_service.py"
+
+
 def test_context_pack_skips_generated_and_hidden_paths(tmp_path: Path) -> None:
     (tmp_path / "service.py").write_text("def public_api():\n    return 'stable context'\n", encoding="utf-8")
     (tmp_path / "artifacts").mkdir()

@@ -362,7 +362,7 @@ def _list_prompts() -> list[dict[str, Any]]:
         {
             "name": "repo-rag-maintenance",
             "title": "Repo RAG Maintenance",
-            "description": "Use local retrieval planning first, then inspect exact files and perform a repository maintenance task.",
+            "description": "Use local retrieval loading first, then inspect exact files and perform a repository maintenance task.",
             "arguments": [
                 {"name": "task", "description": "The repository maintenance task to perform.", "required": True},
                 {"name": "query", "description": "Optional retrieval query; defaults to the task text.", "required": False},
@@ -426,8 +426,8 @@ def _build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None
                     "type": "text",
                     "text": (
                         "Use the available MCP tools to complete this repository maintenance task.\n"
-                        "First call `rag_explain` with the retrieval query below to identify likely files and a concrete read_file plan. "
-                        "Then call `read_file` with the planned path and line-range arguments before editing. "
+                        "First call `retrieve_then_read` with the retrieval query below to load likely file evidence and line ranges. "
+                        "Then call `read_file` only if you need a wider exact range before editing. "
                         "Use `todo_write` to track the plan, make the smallest safe change, run verification with `run_tests` or `run_py_compile`, "
                         "inspect `git_diff`, and finish with changed files plus evidence.\n\n"
                         f"Retrieval query: {query}\n"

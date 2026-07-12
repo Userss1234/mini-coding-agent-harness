@@ -28,11 +28,13 @@ def test_mcp_initialize_and_list_tools(tmp_path: Path) -> None:
     assert "index_workspace" in tools
     assert "rag_explain" in tools
     assert "rag_search" in tools
+    assert "retrieve_then_read" in tools
     assert "run_tests" in tools
     assert tools["read_file"]["inputSchema"]["required"] == ["path"]
     assert tools["context_pack"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_explain"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_search"]["inputSchema"]["required"] == ["query"]
+    assert tools["retrieve_then_read"]["inputSchema"]["required"] == ["query"]
     assert tools["read_file"]["annotations"]["readOnlyHint"] is True
     assert tools["write_file"]["annotations"]["destructiveHint"] is True
 
@@ -179,6 +181,27 @@ def test_mcp_exposes_rag_explain_read_plan(tmp_path: Path) -> None:
     assert "RAG Read Plan" in response["result"]["content"][0]["text"]
 
 
+def test_mcp_exposes_retrieve_then_read_evidence_pack(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "def invoice_total(items):\n"
+        "    return round(sum(item.price for item in items), 2)\n",
+        encoding="utf-8",
+    )
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    response = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": "retrieve_then_read", "arguments": {"query": "invoice total", "glob": "*.py", "limit": 1}},
+    })
+
+    metadata = response["result"]["structuredContent"]["metadata"]
+    assert response["result"]["isError"] is False
+    assert metadata["reads"][0]["read_file_args"]["path"] == "billing.py"
+    assert "invoice_total" in response["result"]["content"][0]["text"]
+
+
 def test_mcp_resources_reject_unknown_uri(tmp_path: Path) -> None:
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
@@ -323,7 +346,7 @@ def test_mcp_repo_rag_maintenance_prompt_requires_rag_first(tmp_path: Path) -> N
     })
 
     text = prompt["result"]["messages"][0]["content"]["text"]
-    assert "First call `rag_explain`" in text
+    assert "First call `retrieve_then_read`" in text
     assert "Retrieval query: invoice total rounding" in text
     assert "Task: Fix invoice rounding." in text
 

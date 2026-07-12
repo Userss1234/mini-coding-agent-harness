@@ -33,7 +33,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "Context compaction: **enabled**" in report
     assert "Context retrieval: **enabled**" in report
     assert "Categories: **agent_loop, code_maintenance, code_quality, configuration, documentation, memory, multi_file, recovery, retrieval, security, tests, trace**" in report
-    assert "Tasks: **35**" in report
+    assert "Tasks: **36**" in report
     assert "Success rate: **100.00%**" in report
     assert "Average tool calls:" in report
     assert "Input tokens: **0**" in report
@@ -49,6 +49,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "rag_symbol_retrieval" in report
     assert "rag_sensitive_path_filter" in report
     assert "rag_read_plan_generation" in report
+    assert "rag_retrieve_then_read" in report
     assert "mcp_rag_search_smoke" in report
     assert "trace_html_report" in report
     assert "agent_loop_simulation" in report
@@ -78,6 +79,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert (tmp_path / "eval_runs" / "rag_symbol_retrieval.jsonl").exists()
     assert (tmp_path / "eval_runs" / "rag_sensitive_path_filter.jsonl").exists()
     assert (tmp_path / "eval_runs" / "rag_read_plan_generation.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "rag_retrieve_then_read.jsonl").exists()
     assert (tmp_path / "eval_runs" / "mcp_rag_search_smoke.jsonl").exists()
     assert (tmp_path / "eval_runs" / "trace_html_report.jsonl").exists()
     assert (tmp_path / "eval_runs" / "agent_loop_simulation.jsonl").exists()
@@ -149,8 +151,8 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "item.get('quantity', 1)" in fixed_pricing.read_text(encoding="utf-8")
     assert copied_memory.exists()
     eval_json = json.loads((tmp_path / "EVAL.json").read_text(encoding="utf-8"))
-    assert eval_json["summary"]["task_count"] == 35
-    assert eval_json["summary"]["passed"] == 35
+    assert eval_json["summary"]["task_count"] == 36
+    assert eval_json["summary"]["passed"] == 36
     assert eval_json["summary"]["retrieval_enabled"] is True
     assert "tool_counts" in eval_json["summary"]
     assert eval_json["tasks"][0]["task_id"] == "syntax_check"
