@@ -6,6 +6,7 @@ import sys
 from typing import Any, TextIO
 from urllib.parse import unquote
 
+from .retrieval import build_workspace_index, format_index_summary
 from .tools import ToolRegistry, build_registry, safe_path
 from .trace import TraceLogger
 
@@ -91,7 +92,7 @@ class MCPToolServer:
         }
 
     def _list_resources(self) -> list[dict[str, Any]]:
-        return [
+        resources = [
             {
                 "uri": item["uri"],
                 "name": item["name"],
@@ -100,6 +101,13 @@ class MCPToolServer:
             }
             for item in self.resources
         ]
+        resources.append({
+            "uri": "harness://rag/index-summary",
+            "name": "RAG_INDEX_SUMMARY",
+            "description": "Dynamic summary of the safe local workspace retrieval index.",
+            "mimeType": TEXT_MIME,
+        })
+        return resources
 
     def _read_resource_response(self, message_id: Any, params: Any) -> dict[str, Any]:
         if not isinstance(params, dict):
@@ -107,6 +115,15 @@ class MCPToolServer:
         uri = params.get("uri")
         if not isinstance(uri, str) or not uri:
             return _error_response(message_id, ERROR_INVALID_PARAMS, "resources/read params.uri must be a string.")
+        if uri == "harness://rag/index-summary":
+            index = build_workspace_index(self.registry.workspace)
+            return _response(message_id, {
+                "contents": [{
+                    "uri": uri,
+                    "mimeType": TEXT_MIME,
+                    "text": format_index_summary(index),
+                }]
+            })
         resource = next((item for item in self.resources if item["uri"] == uri), None)
         if resource is not None:
             path = resource["path"]
@@ -342,6 +359,15 @@ def _list_prompts() -> list[dict[str, Any]]:
                 {"name": "report_uri", "description": "Optional MCP resource URI to analyze instead of the default eval report set.", "required": False}
             ],
         },
+        {
+            "name": "repo-rag-maintenance",
+            "title": "Repo RAG Maintenance",
+            "description": "Use local retrieval first, then inspect exact files and perform a repository maintenance task.",
+            "arguments": [
+                {"name": "task", "description": "The repository maintenance task to perform.", "required": True},
+                {"name": "query", "description": "Optional retrieval query; defaults to the task text.", "required": False},
+            ],
+        },
     ]
 
 
@@ -381,6 +407,31 @@ def _build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None
                         "Summarize pass rate, trend movement, tool-call cost, failure categories, "
                         "resolved and remaining risks, and the next evaluation step. "
                         "Tie each claim to the report source that supports it."
+                    ),
+                },
+            }],
+        }
+    if name == "repo-rag-maintenance":
+        task = str(arguments.get("task") or "").strip()
+        query = str(arguments.get("query") or task).strip()
+        if not task:
+            task = "Inspect the repository, identify the smallest safe change, run verification, and summarize evidence."
+        if not query:
+            query = task
+        return {
+            "description": "Repository maintenance prompt that requires local RAG before exact file reads.",
+            "messages": [{
+                "role": "user",
+                "content": {
+                    "type": "text",
+                    "text": (
+                        "Use the available MCP tools to complete this repository maintenance task.\n"
+                        "First call `rag_search` with the retrieval query below to identify likely files and line ranges. "
+                        "Then call `read_file` on exact files or line ranges before editing. "
+                        "Use `todo_write` to track the plan, make the smallest safe change, run verification with `run_tests` or `run_py_compile`, "
+                        "inspect `git_diff`, and finish with changed files plus evidence.\n\n"
+                        f"Retrieval query: {query}\n"
+                        f"Task: {task}"
                     ),
                 },
             }],

@@ -112,7 +112,9 @@ harness.trace.TraceLogger
 | `todo_write` | 创建/更新任务计划，并记录 todo 质量元数据。 |
 | `list_python_files` | 列出 Python 文件，忽略缓存和评估工作区。 |
 | `read_file` | 读取工作区文件，支持指定行区间、行数/字符数限制和读缓存元数据。 |
-| `context_pack` | 按任务 query 检索相关工作区片段，返回路径、行号和评分。 |
+| `index_workspace` | 构建安全的本地检索索引摘要，统计工作区文本 chunk。 |
+| `rag_search` | 使用本地 chunk lexical retrieval 检索代码和文档，返回路径、行号和评分。 |
+| `context_pack` | 复用同一套本地检索层，按任务 query 返回相关工作区片段。 |
 | `write_file` | 写文件，并记录 diff 元数据。 |
 | `edit_file` | 替换只出现一次的精确文本块。 |
 | `delete_file` | 只有显式确认时才删除单个文件；拒绝删除目录。 |

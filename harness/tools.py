@@ -15,6 +15,7 @@ import subprocess
 import time
 from typing import Any, Callable
 
+from .retrieval import build_workspace_index, format_index_summary, format_search_results, search_workspace, tokenize_query
 from .trace import TraceLogger, preview
 
 
@@ -542,18 +543,20 @@ def build_registry(
         query_text = str(query).strip()
         if not query_text:
             return ToolResult(False, "query must be non-empty")
-        tokens = _memory_query_tokens(query_text)
+        tokens = tokenize_query(query_text)
         if not tokens:
             return ToolResult(False, "query must contain at least one searchable token")
 
-        matches = _build_context_matches(
+        result = search_workspace(
             workspace=workspace,
-            query_tokens=tokens,
+            query=query_text,
             glob_pattern=str(glob or "*"),
             limit=max(int(limit), 0),
-            max_chars_per_file=max(int(max_chars_per_file), 120),
-            window=max(int(window), 0),
+            chunk_lines=max((max(int(window), 0) * 2) + 1, 1),
+            overlap=0,
+            max_chars_per_chunk=max(int(max_chars_per_file), 120),
         )
+        matches = result["matches"]
         output = _format_context_pack(query_text, matches)
         return ToolResult(
             True,
@@ -564,7 +567,57 @@ def build_registry(
                 "glob": str(glob or "*"),
                 "count": len(matches),
                 "matches": matches,
-                "retrieval": "lexical_path_and_line_scoring",
+                "index": result["index"],
+                "retrieval": "local_chunk_lexical_scoring",
+            },
+        )
+
+    def index_workspace(glob: str = "*", chunk_lines: int = 80, overlap: int = 10) -> ToolResult:
+        index = build_workspace_index(
+            workspace,
+            glob_pattern=str(glob or "*"),
+            chunk_lines=max(int(chunk_lines), 1),
+            overlap=max(int(overlap), 0),
+        )
+        metadata = index.metadata()
+        metadata["glob"] = str(glob or "*")
+        metadata["retrieval"] = "local_chunk_lexical_scoring"
+        return ToolResult(True, format_index_summary(index), metadata)
+
+    def rag_search(
+        query: str,
+        glob: str = "*",
+        limit: int = 5,
+        chunk_lines: int = 80,
+        overlap: int = 10,
+        max_chars_per_chunk: int = 1200,
+    ) -> ToolResult:
+        query_text = str(query).strip()
+        if not query_text:
+            return ToolResult(False, "query must be non-empty")
+        tokens = tokenize_query(query_text)
+        if not tokens:
+            return ToolResult(False, "query must contain at least one searchable token")
+        result = search_workspace(
+            workspace,
+            query_text,
+            glob_pattern=str(glob or "*"),
+            limit=max(int(limit), 0),
+            chunk_lines=max(int(chunk_lines), 1),
+            overlap=max(int(overlap), 0),
+            max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
+        )
+        return ToolResult(
+            True,
+            format_search_results(result),
+            {
+                "query": query_text,
+                "tokens": tokens,
+                "glob": str(glob or "*"),
+                "count": len(result["matches"]),
+                "matches": result["matches"],
+                "index": result["index"],
+                "retrieval": result["retrieval"],
             },
         )
 
@@ -1175,8 +1228,38 @@ def build_registry(
     ))
     if enable_context_pack:
         registry.register(Tool(
+            "index_workspace",
+            "Build a safe local retrieval index summary for workspace text chunks.",
+            {
+                "type": "object",
+                "properties": {
+                    "glob": {"type": "string"},
+                    "chunk_lines": {"type": "integer"},
+                    "overlap": {"type": "integer"},
+                },
+            },
+            index_workspace,
+        ))
+        registry.register(Tool(
+            "rag_search",
+            "Search workspace code and docs using local chunked lexical retrieval with path and line metadata.",
+            {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "glob": {"type": "string"},
+                    "limit": {"type": "integer"},
+                    "chunk_lines": {"type": "integer"},
+                    "overlap": {"type": "integer"},
+                    "max_chars_per_chunk": {"type": "integer"},
+                },
+                "required": ["query"],
+            },
+            rag_search,
+        ))
+        registry.register(Tool(
             "context_pack",
-            "Retrieve the most relevant workspace file snippets for a task query using lexical path and line scoring.",
+            "Retrieve the most relevant workspace file snippets for a task query using local chunked lexical retrieval.",
             {
                 "type": "object",
                 "properties": {

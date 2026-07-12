@@ -428,6 +428,44 @@ def test_context_pack_retrieves_ranked_file_snippets(tmp_path: Path) -> None:
     assert "Retrieval: lexical path and line scoring" in result.output
 
 
+def test_index_workspace_reports_retrieval_stats(tmp_path: Path) -> None:
+    (tmp_path / "service.py").write_text("def public_api():\n    return 'stable context'\n", encoding="utf-8")
+    (tmp_path / ".env").write_text("SECRET_CONTEXT=hidden\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+
+    result = registry.call("index_workspace", glob="*.py", chunk_lines=20)
+
+    assert result.ok
+    assert "Workspace Retrieval Index" in result.output
+    assert "Files indexed: 1" in result.output
+    assert result.metadata["files_indexed"] == 1
+    assert result.metadata["chunks_indexed"] == 1
+    assert ".env" in result.metadata["ignored_names"]
+    assert result.metadata["retrieval"] == "local_chunk_lexical_scoring"
+
+
+def test_rag_search_returns_ranked_chunks_and_metadata(tmp_path: Path) -> None:
+    (tmp_path / "billing_service.py").write_text(
+        "class BillingService:\n"
+        "    def invoice_total(self, items):\n"
+        "        subtotal = sum(item.price for item in items)\n"
+        "        return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "shipping.py").write_text("def shipping_total(items):\n    return 0\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+
+    result = registry.call("rag_search", query="invoice total rounding", glob="*.py", limit=1, chunk_lines=20)
+
+    assert result.ok
+    assert "RAG Search" in result.output
+    assert result.metadata["count"] == 1
+    assert result.metadata["matches"][0]["path"] == "billing_service.py"
+    assert result.metadata["matches"][0]["start_line"] == 1
+    assert "invoice_total" in result.output
+    assert result.metadata["retrieval"] == "local_chunk_lexical_scoring"
+
+
 def test_context_pack_skips_generated_and_hidden_paths(tmp_path: Path) -> None:
     (tmp_path / "service.py").write_text("def public_api():\n    return 'stable context'\n", encoding="utf-8")
     (tmp_path / "artifacts").mkdir()

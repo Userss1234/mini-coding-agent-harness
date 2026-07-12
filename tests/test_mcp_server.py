@@ -25,9 +25,12 @@ def test_mcp_initialize_and_list_tools(tmp_path: Path) -> None:
     tools = {item["name"]: item for item in listed["result"]["tools"]}
     assert "read_file" in tools
     assert "context_pack" in tools
+    assert "index_workspace" in tools
+    assert "rag_search" in tools
     assert "run_tests" in tools
     assert tools["read_file"]["inputSchema"]["required"] == ["path"]
     assert tools["context_pack"]["inputSchema"]["required"] == ["query"]
+    assert tools["rag_search"]["inputSchema"]["required"] == ["query"]
     assert tools["read_file"]["annotations"]["readOnlyHint"] is True
     assert tools["write_file"]["annotations"]["destructiveHint"] is True
 
@@ -121,6 +124,38 @@ def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> 
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
 
 
+def test_mcp_exposes_rag_search_and_index_summary(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "def invoice_total(items):\n"
+        "    return round(sum(item.price for item in items), 2)\n",
+        encoding="utf-8",
+    )
+    (tmp_path / ".env").write_text("SECRET=value\n", encoding="utf-8")
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    resources = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "resources/list"})
+    search = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {"name": "rag_search", "arguments": {"query": "invoice total", "glob": "*.py", "limit": 1}},
+    })
+    summary = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "resources/read",
+        "params": {"uri": "harness://rag/index-summary"},
+    })
+
+    resource_uris = {item["uri"] for item in resources["result"]["resources"]}
+    assert "harness://rag/index-summary" in resource_uris
+    assert search["result"]["isError"] is False
+    assert search["result"]["structuredContent"]["metadata"]["matches"][0]["path"] == "billing.py"
+    assert "invoice_total" in search["result"]["content"][0]["text"]
+    assert "Workspace Retrieval Index" in summary["result"]["contents"][0]["text"]
+    assert "SECRET" not in summary["result"]["contents"][0]["text"]
+
+
 def test_mcp_resources_reject_unknown_uri(tmp_path: Path) -> None:
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
@@ -209,6 +244,7 @@ def test_mcp_prompts_list_and_get_prompt(tmp_path: Path) -> None:
     text = prompt["result"]["messages"][0]["content"]["text"]
     assert "code-maintenance-task" in names
     assert "eval-analysis" in names
+    assert "repo-rag-maintenance" in names
     assert "todo_write" in text
     assert "Fix failing calculator tests." in text
 
@@ -248,6 +284,25 @@ def test_mcp_eval_analysis_prompt_allows_single_report_override(tmp_path: Path) 
     assert "harness://reports/eval-history" in text
     assert "harness://reports/agent-eval" not in text
     assert "harness://reports/failure-modes" not in text
+
+
+def test_mcp_repo_rag_maintenance_prompt_requires_rag_first(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    prompt = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "prompts/get",
+        "params": {
+            "name": "repo-rag-maintenance",
+            "arguments": {"task": "Fix invoice rounding.", "query": "invoice total rounding"},
+        },
+    })
+
+    text = prompt["result"]["messages"][0]["content"]["text"]
+    assert "First call `rag_search`" in text
+    assert "Retrieval query: invoice total rounding" in text
+    assert "Task: Fix invoice rounding." in text
 
 
 def test_mcp_stdio_writes_jsonrpc_responses(tmp_path: Path) -> None:

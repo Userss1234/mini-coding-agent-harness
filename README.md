@@ -112,7 +112,9 @@ The model-facing tools are registered in `harness/tools.py`. Each tool returns a
 | `todo_write` | Create/update a task plan and record todo quality metadata. |
 | `list_python_files` | List Python files while ignoring caches and evaluation workspaces. |
 | `read_file` | Read workspace files with optional line ranges, line/character limits, and read-cache metadata. |
-| `context_pack` | Retrieve task-relevant workspace snippets with lexical path and line scoring. |
+| `index_workspace` | Build a safe local retrieval index summary for workspace text chunks. |
+| `rag_search` | Search code and docs using local chunked lexical retrieval with path and line metadata. |
+| `context_pack` | Retrieve task-relevant workspace snippets using the same local retrieval layer. |
 | `write_file` | Write files and record diff metadata. |
 | `edit_file` | Replace an exact text block that appears exactly once. |
 | `delete_file` | Delete one file only with explicit confirmation; directories are refused. |
@@ -341,14 +343,14 @@ memory-on_context-off
 memory-off_context-off
 ```
 
-Use `--retrieval on|off` to expose or hide `context_pack` during evaluation. This supports retrieval ablation without changing the rest of the harness.
+Use `--retrieval on|off` to expose or hide retrieval tools such as `context_pack`, `rag_search`, and `index_workspace` during evaluation. This supports retrieval ablation without changing the rest of the harness.
 
 Use `--compare-retrieval` to generate a two-row retrieval-on/retrieval-off comparison report under the same memory/context settings.
 Comparison reports include average `context_pack` and `read_file` calls so retrieval changes can be inspected beyond pass rate.
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 31-task deterministic benchmark with query-ranked context retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. A committed DeepSeek `deepseek-chat` report currently covers 10 representative agent-mode tasks with 10/10 passing, plus a 2-task memory/context ablation with all four configurations passing. A committed retrieval ablation on `context_pack_retrieval` shows retrieval-on passing with a real `context_pack` call and retrieval-off failing without the tool exposed. Full 31-task real API comparison data still needs larger runs and analysis before claiming broad autonomous benchmark performance.
+Current honest status: this is a 31-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths, and ranks chunks with local lexical scoring rather than embeddings. A committed DeepSeek `deepseek-chat` report currently covers 10 representative agent-mode tasks with 10/10 passing, plus a 2-task memory/context ablation with all four configurations passing. A committed retrieval ablation on `context_pack_retrieval` shows retrieval-on passing with a real `context_pack` call and retrieval-off failing without the tool exposed. Full 31-task real API comparison data still needs larger runs and analysis before claiming broad autonomous benchmark performance.
 
 ## Git Baseline
 
@@ -363,6 +365,7 @@ After the initial baseline commit, future tool changes and generated report chan
 ## Current Limitations
 
 - The stable benchmark snapshot is scripted and includes an injected-client agent-loop smoke test; real API-backed model evaluation is supported and has a 10-task report, a 2-task memory/context ablation, and a focused retrieval-on/off ablation, but still needs full-suite comparison runs and broader retrieval tuning.
+- Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
 - Retry/backoff handles transient model/API and non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
