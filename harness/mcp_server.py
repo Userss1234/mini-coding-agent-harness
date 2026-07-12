@@ -19,6 +19,12 @@ ERROR_METHOD_NOT_FOUND = -32601
 ERROR_INVALID_PARAMS = -32602
 ERROR_INTERNAL = -32603
 
+DEFAULT_EVAL_ANALYSIS_URIS = [
+    "harness://reports/agent-eval",
+    "harness://reports/eval-history",
+    "harness://reports/failure-modes",
+]
+
 
 class MCPToolServer:
     def __init__(self, registry: ToolRegistry):
@@ -331,9 +337,9 @@ def _list_prompts() -> list[dict[str, Any]]:
         {
             "name": "eval-analysis",
             "title": "Evaluation Analysis",
-            "description": "Analyze benchmark or agent-eval results and summarize risks.",
+            "description": "Analyze benchmark, trend, and failure-mode reports and summarize risks.",
             "arguments": [
-                {"name": "report_uri", "description": "Optional MCP resource URI for the report.", "required": False}
+                {"name": "report_uri", "description": "Optional MCP resource URI to analyze instead of the default eval report set.", "required": False}
             ],
         },
     ]
@@ -361,7 +367,9 @@ def _build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None
             }],
         }
     if name == "eval-analysis":
-        report_uri = str(arguments.get("report_uri") or "harness://reports/agent-eval").strip()
+        requested_uri = str(arguments.get("report_uri") or "").strip()
+        report_uris = [requested_uri] if requested_uri else DEFAULT_EVAL_ANALYSIS_URIS
+        uri_list = ", ".join(f"`{uri}`" for uri in report_uris)
         return {
             "description": "Evaluation report analysis prompt.",
             "messages": [{
@@ -369,8 +377,10 @@ def _build_prompt(name: str, arguments: dict[str, Any]) -> dict[str, Any] | None
                 "content": {
                     "type": "text",
                     "text": (
-                        f"Read MCP resource `{report_uri}` if available, then summarize pass rate, "
-                        "tool-call cost, failure categories, residual risks, and the next evaluation step."
+                        f"Read these MCP resources if available: {uri_list}.\n"
+                        "Summarize pass rate, trend movement, tool-call cost, failure categories, "
+                        "resolved and remaining risks, and the next evaluation step. "
+                        "Tie each claim to the report source that supports it."
                     ),
                 },
             }],

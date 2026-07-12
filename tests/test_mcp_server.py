@@ -213,6 +213,43 @@ def test_mcp_prompts_list_and_get_prompt(tmp_path: Path) -> None:
     assert "Fix failing calculator tests." in text
 
 
+def test_mcp_eval_analysis_prompt_reads_default_eval_report_set(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    prompt = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "prompts/get",
+        "params": {"name": "eval-analysis", "arguments": {}},
+    })
+
+    text = prompt["result"]["messages"][0]["content"]["text"]
+    assert "harness://reports/agent-eval" in text
+    assert "harness://reports/eval-history" in text
+    assert "harness://reports/failure-modes" in text
+    assert "trend movement" in text
+    assert "Tie each claim" in text
+
+
+def test_mcp_eval_analysis_prompt_allows_single_report_override(tmp_path: Path) -> None:
+    server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
+
+    prompt = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "prompts/get",
+        "params": {
+            "name": "eval-analysis",
+            "arguments": {"report_uri": "harness://reports/eval-history"},
+        },
+    })
+
+    text = prompt["result"]["messages"][0]["content"]["text"]
+    assert "harness://reports/eval-history" in text
+    assert "harness://reports/agent-eval" not in text
+    assert "harness://reports/failure-modes" not in text
+
+
 def test_mcp_stdio_writes_jsonrpc_responses(tmp_path: Path) -> None:
     (tmp_path / "sample.txt").write_text("hello\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
