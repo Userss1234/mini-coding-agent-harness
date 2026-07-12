@@ -45,6 +45,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 
 讲解时重点打开这些已提交产物：
 
+- [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md)：2-3 分钟面试讲解稿。
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md)：本地确定性 bugfix 的工具循环证据。
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)：20 任务真实模型 coding-agent 评估结果。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
@@ -231,6 +232,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `artifacts/AGENT_EVAL.md` 和 `artifacts/AGENT_EVAL.json` 可以由上面的小规模真实 agent smoke 命令生成。
 - `artifacts/AGENT_TRACE_<task>.html` 可以由任意单任务 agent trace 通过 `trace-report` 生成。
 - `reports/DEMO_python_bugfix.md` 和 `reports/DEMO_python_bugfix_TRACE.html` 是已提交的本地 demo 展示文件。
+- `reports/PORTFOLIO_WALKTHROUGH.md` 是一份短面试讲稿，把 demo、eval、失败分析和 MCP 报告串起来。
 - `reports/AGENT_EVAL.md` 是已提交的 DeepSeek `deepseek-chat` 真实 agent 报告，覆盖 10 个代表性 agent-mode 任务。
 - `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md` 可由 `python main.py analyze-eval` 生成，用于对比两份 JSON eval 报告并分类失败任务模式。
 - `reports/EVAL_HISTORY.md` 可由 `python main.py eval-history` 生成，用于跟踪多次 eval 的指标趋势和任务结果变化。

@@ -2,6 +2,8 @@
 
 This directory contains committed portfolio artifacts that can be reviewed without rerunning the model.
 
+- `PORTFOLIO_WALKTHROUGH.md`: short interview talk track tying the demo, eval, failure-analysis, and MCP artifacts together.
+
 ## Local Demo
 
 - `DEMO_python_bugfix.md`: deterministic local demo report for `python main.py demo --task python_bugfix`.
