@@ -4,7 +4,7 @@ Use this script to present the project in a 2-3 minute interview walkthrough.
 
 ## Opening
 
-This project is a lightweight coding-agent harness for repository maintenance. It is not a chatbot and not a thin LLM wrapper. The model decides the next action, while the harness provides tools, permission checks, task planning, context compaction, memory, error recovery, execution traces, and evaluation reports.
+This project is a lightweight coding-agent harness for repository maintenance. It is not a chatbot and not a thin LLM wrapper. The model decides the next action, while the harness provides retrieval preflight, tools, permission checks, task planning, context compaction, memory, error recovery, execution traces, and evaluation reports.
 
 ## Demo Route
 
@@ -39,13 +39,14 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
 - `harness/tools.py` owns the permission-checked tool registry for file, shell, Git, test, memory, and reporting tools.
+- `harness/agent.py` preloads `retrieve_then_read` evidence before the first model turn when retrieval tools are enabled.
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution.
 - `harness/eval_analysis.py` turns JSON eval reports into comparison, history, and failure-mode dashboards.
 - `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
 
 ## Claims To Make
 
-- Built a coding-agent infrastructure project with tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
+- Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
 - Added a 36-task deterministic benchmark and a 20-task real-agent evaluation artifact.
 - Improved a real-agent run from 18/20 to 20/20 using trace-backed failure analysis.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.

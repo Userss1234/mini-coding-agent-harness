@@ -214,6 +214,59 @@ def test_run_agent_supports_injected_client_tool_loop(tmp_path: Path) -> None:
     assert "evidence_check" in trace_text
 
 
+def test_run_agent_preloads_retrieve_then_read_evidence(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "def invoice_total(items):\n"
+        "    return round(sum(item.price for item in items), 2)\n",
+        encoding="utf-8",
+    )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse(
+            "end_turn",
+            [FakeBlock("text", text="Used retrieve_then_read evidence from billing.py.")],
+        )
+    ])
+
+    answer = run_agent("inspect invoice total rounding", registry, client=client, model="fake-model")
+
+    first_message = client.messages.calls[0]["messages"][0]["content"]
+    trace_text = trace.path.read_text(encoding="utf-8")
+    assert answer == "Used retrieve_then_read evidence from billing.py."
+    assert "Preloaded retrieval evidence from `retrieve_then_read`" in first_message
+    assert "invoice_total" in first_message
+    assert "billing.py" in first_message
+    assert "agent_retrieval_preflight" in trace_text
+
+
+def test_run_agent_can_disable_retrieval_preflight(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "def invoice_total(items):\n"
+        "    return round(sum(item.price for item in items), 2)\n",
+        encoding="utf-8",
+    )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse("end_turn", [FakeBlock("text", text="No preload used.")])
+    ])
+
+    answer = run_agent(
+        "inspect invoice total rounding",
+        registry,
+        client=client,
+        model="fake-model",
+        retrieval_preflight=False,
+    )
+
+    first_message = client.messages.calls[0]["messages"][0]["content"]
+    trace_text = trace.path.read_text(encoding="utf-8")
+    assert answer == "No preload used."
+    assert "Preloaded retrieval evidence" not in first_message
+    assert "agent_retrieval_preflight_skipped" in trace_text
+
+
 def test_run_agent_injects_retry_plan_after_failed_tool(tmp_path: Path) -> None:
     (tmp_path / "sample.txt").write_text("old old\n", encoding="utf-8")
     trace = TraceLogger(tmp_path / "trace.jsonl")

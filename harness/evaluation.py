@@ -55,6 +55,7 @@ class EvalRunSummary:
     passed: int
     success_rate: float
     average_tool_calls: float
+    average_retrieve_then_read_calls: float
     average_context_pack_calls: float
     average_read_file_calls: float
     average_duration: float
@@ -420,7 +421,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "agent_loop_simulation",
             "agent_loop",
-            "Run the model-driven agent loop with an injected fake model client.",
+            "Run the model-driven agent loop with an injected fake model client and retrieval preflight.",
             run_agent_loop_simulation_task,
             setup_agent_loop_simulation_fixture,
             run_agent_loop_simulation_task,
@@ -682,7 +683,7 @@ def build_agent_eval_prompt(task: EvalTask, support_prompt: str) -> str:
         f"{support_prompt}\n\n"
         "Agent-eval workflow contract:\n"
         "1. Start with `todo_write` and keep the todo list current.\n"
-        "2. Prefer `read_file`, `grep`, `context_pack`, `write_file`, `edit_file`, and `run_tests` for fixture tasks.\n"
+        "2. Prefer `retrieve_then_read`, `read_file`, `grep`, `context_pack`, `write_file`, `edit_file`, and `run_tests` for fixture tasks.\n"
         "3. Avoid broad shell or Git exploration. Use `shell`/`git` only for a targeted check after file tools are insufficient.\n"
         "4. For change tasks, make the first file change by turn 6 unless a prior tool failure blocks the edit.\n"
         "5. Verify with `run_tests` for code tasks, or reread the changed document for documentation tasks.\n"
@@ -722,8 +723,11 @@ def build_agent_support_prompt(
         parts.append("Context compaction is enabled; use compact_context if the trace becomes long or you need a state summary.")
     else:
         parts.append("Context compaction is disabled for this evaluation run; continue only from the current tool results.")
-    if retrieval_enabled and "context_pack" in registry.names():
-        parts.append("Retrieval support is enabled; use context_pack before broad file reads when the relevant files are not obvious.")
+    if retrieval_enabled and "retrieve_then_read" in registry.names():
+        parts.append(
+            "Retrieval support is enabled; the agent loop preloads a retrieve_then_read evidence pack before the first model turn. "
+            "Use that evidence before broad file reads, and call retrieve_then_read or context_pack again only when more retrieval context is needed."
+        )
     else:
         parts.append("Retrieval support is disabled for this evaluation run; use grep, list_python_files, and read_file directly.")
     return "\n\n".join(parts)
@@ -1103,10 +1107,12 @@ def run_agent_loop_simulation_task(registry: ToolRegistry) -> bool:
         client=client,
         model="fake-model",
     )
+    first_prompt = client.messages.calls[0]["messages"][0]["content"]
     return (
         answer == "Read README.md with read_file."
         and len(client.messages.calls) == 3
         and bool(registry.todos)
+        and "Preloaded retrieval evidence from `retrieve_then_read`" in first_prompt
     )
 
 
@@ -1942,6 +1948,7 @@ def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
             sum(item.tool_calls for item in results) / total
             if total else 0.0
         ),
+        average_retrieve_then_read_calls=(tool_counts.get("retrieve_then_read", 0) / total if total else 0.0),
         average_context_pack_calls=(tool_counts.get("context_pack", 0) / total if total else 0.0),
         average_read_file_calls=(tool_counts.get("read_file", 0) / total if total else 0.0),
         average_duration=(
@@ -2095,7 +2102,7 @@ def _format_tool_mix(tool_counts: dict[str, int], limit: int = 8) -> str:
 def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary]) -> str:
     generated = datetime.now().isoformat(timespec="seconds")
     rows = "\n".join(
-        "| {label} | {mode} | {memory} | {context} | {retrieval} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
+        "| {label} | {mode} | {memory} | {context} | {retrieval} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
             label=item.label,
             mode=item.mode,
             memory=_enabled_text(item.memory_enabled),
@@ -2105,6 +2112,7 @@ def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary
             total=item.task_count,
             success_rate=item.success_rate,
             tool_calls=item.average_tool_calls,
+            retrieve_then_read_calls=item.average_retrieve_then_read_calls,
             context_pack_calls=item.average_context_pack_calls,
             read_file_calls=item.average_read_file_calls,
             duration=item.average_duration,
@@ -2125,8 +2133,8 @@ Workspace: `{workspace}`
 
 This report compares selected evaluation configurations on the same task set. The Memory, Context Compaction, and Context Retrieval columns show which supports were enabled for each run.
 
-| Config | Mode | Memory | Context Compaction | Context Retrieval | Passed | Success Rate | Avg Tool Calls | Avg context_pack | Avg read_file | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Config | Mode | Memory | Context Compaction | Context Retrieval | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 {rows}
 
 ## Notes
@@ -2134,7 +2142,7 @@ This report compares selected evaluation configurations on the same task set. Th
 - In scripted mode these switches are reported for comparability, but task logic remains deterministic.
 - In agent mode memory changes the task prompt with available workflow memories.
 - In agent mode context compaction controls whether the run produces a compact trace summary before final verification.
-- In agent mode context retrieval controls whether `context_pack` is exposed to the model.
+- In agent mode context retrieval controls whether retrieval tools are exposed and whether the agent loop can preload `retrieve_then_read` evidence.
 - Cost is estimated from traced model usage with a configurable placeholder rate in the code.
 """
 

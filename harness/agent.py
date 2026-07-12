@@ -35,6 +35,7 @@ def run_agent(
     max_retries: int = 2,
     client: Any | None = None,
     model: str | None = None,
+    retrieval_preflight: bool = True,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
     if client is None:
@@ -49,11 +50,15 @@ def run_agent(
             return f"Error: {exc}"
         model = model or config.default_model
     model = model or os.getenv("MODEL_ID", "claude-3-5-sonnet-latest")
-    task_prompt = _with_planning_contract(prompt, registry)
     system_prompt = _build_system_prompt(registry)
-    messages: list[dict[str, Any]] = [{"role": "user", "content": task_prompt}]
     evidence_terms: set[str] = set()
     registry.trace.log("agent_start", prompt=prompt, model=model)
+    preflight = _run_retrieval_preflight(prompt, registry, enabled=retrieval_preflight)
+    task_prompt = _with_planning_contract(prompt, registry, preflight)
+    messages: list[dict[str, Any]] = [{"role": "user", "content": task_prompt}]
+    if preflight:
+        evidence_terms.add("retrieve_then_read")
+        evidence_terms.update(preflight.get("paths", []))
 
     for turn in range(max_turns):
         try:
@@ -100,6 +105,14 @@ def run_agent(
                     evidence_terms.add(str(path))
             if block.name == "context_pack":
                 evidence_terms.add("context_pack")
+            if block.name == "retrieve_then_read":
+                evidence_terms.add("retrieve_then_read")
+                if result.metadata:
+                    for item in result.metadata.get("reads", []):
+                        args = item.get("read_file_args") or {}
+                        path = args.get("path")
+                        if path:
+                            evidence_terms.add(str(path))
             if block.name == "list_python_files":
                 evidence_terms.add("list_python_files")
             if block.name == "run_py_compile":
@@ -132,21 +145,80 @@ def _text_from_blocks(blocks: list[Any]) -> str:
 
 def _build_system_prompt(registry: ToolRegistry) -> str:
     prompt = BASE_SYSTEM_PROMPT
+    if "retrieve_then_read" in registry.names():
+        prompt += "The harness may preload a retrieve_then_read evidence pack before the first model turn; use it as the starting context before broad search.\n"
     if "context_pack" in registry.names():
-        prompt += "When the relevant files are not obvious, use context_pack to retrieve likely file snippets before detailed reads.\n"
+        prompt += "When the preloaded evidence is insufficient, use retrieve_then_read or context_pack to retrieve likely file snippets before detailed reads.\n"
     return prompt
 
 
-def _with_planning_contract(prompt: str, registry: ToolRegistry) -> str:
+def _with_planning_contract(
+    prompt: str,
+    registry: ToolRegistry,
+    preflight: dict[str, Any] | None = None,
+) -> str:
     tool_guidance = ""
+    if "retrieve_then_read" in registry.names():
+        tool_guidance = "using the preloaded retrieve_then_read evidence before broad search, "
     if "context_pack" in registry.names():
-        tool_guidance = "using context_pack first when you need to find relevant files, and "
-    return (
+        tool_guidance += "using context_pack when you need more retrieval context, and "
+    text = (
         "Before doing repository work, call todo_write with a concise plan. "
         f"Then use tools to execute the plan, {tool_guidance}updating todo_write as steps complete. "
         "Finish with a brief evidence-backed summary.\n\n"
         f"Task: {prompt}"
     )
+    if preflight:
+        text += (
+            "\n\nPreloaded retrieval evidence from `retrieve_then_read`:\n"
+            f"{preflight['output']}"
+        )
+    return text
+
+
+def _run_retrieval_preflight(
+    prompt: str,
+    registry: ToolRegistry,
+    enabled: bool = True,
+) -> dict[str, Any] | None:
+    if not enabled or "retrieve_then_read" not in registry.names():
+        registry.trace.log(
+            "agent_retrieval_preflight_skipped",
+            enabled=enabled,
+            reason="disabled" if not enabled else "tool_unavailable",
+        )
+        return None
+
+    result = registry.call(
+        "retrieve_then_read",
+        query=prompt,
+        glob="*.py,*.md,*.txt,*.toml,*.json",
+        limit=3,
+        chunk_lines=80,
+        read_window=20,
+        max_chars_per_read=4000,
+    )
+    metadata = result.metadata or {}
+    paths = []
+    for item in metadata.get("reads", []):
+        args = item.get("read_file_args") or {}
+        path = args.get("path")
+        if path:
+            paths.append(str(path))
+    registry.trace.log(
+        "agent_retrieval_preflight",
+        ok=result.ok,
+        query=prompt,
+        read_count=len(paths),
+        paths=paths,
+    )
+    if not result.ok:
+        return None
+    return {
+        "ok": result.ok,
+        "output": result.output,
+        "paths": paths,
+    }
 
 
 def _check_answer_evidence(answer: str, evidence_terms: set[str]) -> dict[str, Any]:

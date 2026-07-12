@@ -186,6 +186,7 @@ def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
     prompt = build_agent_eval_prompt(task, "Support details.")
 
     assert "Start with `todo_write`" in prompt
+    assert "Prefer `retrieve_then_read`" in prompt
     assert "Avoid broad shell or Git exploration" in prompt
     assert "make the first file change by turn 6" in prompt
     assert "create a focused `tests/test_*.py` file" in prompt
@@ -320,6 +321,7 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert "Input Tokens" in report
     assert "Est. Cost" in report
     assert "Context Retrieval" in report
+    assert "Avg retrieve_then_read" in report
     assert "Avg context_pack" in report
     assert "Avg read_file" in report
     assert "disabled" in report
@@ -333,6 +335,7 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert len(compare_json["comparison"]) == 4
     assert compare_json["comparison"][0]["task_count"] == 1
     assert compare_json["comparison"][0]["retrieval_enabled"] is False
+    assert "average_retrieve_then_read_calls" in compare_json["comparison"][0]
     assert "average_context_pack_calls" in compare_json["comparison"][0]
     assert "tool_counts" in compare_json["comparison"][0]
 
@@ -351,6 +354,7 @@ def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
 
     assert "# Evaluation Comparison Report" in report
     assert "Context Retrieval" in report
+    assert "Avg retrieve_then_read" in report
     assert "Avg context_pack" in report
     assert "Avg read_file" in report
     assert "retrieval-on" in report
