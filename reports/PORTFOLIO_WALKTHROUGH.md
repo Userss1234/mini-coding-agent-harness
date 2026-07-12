@@ -15,6 +15,7 @@ python main.py demo --task python_bugfix
 python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -33,7 +34,10 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
    Explain that the project does not stop at pass rate. It classifies failed tasks into patterns such as `max_turns`, `no_file_change`, `over_exploration`, `verification_failed`, and `tool_failures`, so the next harness change can be targeted.
 
 5. Open `reports/MCP_SMOKE.md`.
-   Explain that the same harness is exposed through a minimal MCP stdio server. It lists tools, resources, and prompts, including report resources such as `harness://reports/eval-history` and `harness://reports/failure-modes`.
+   Explain that the same harness is exposed through a minimal MCP stdio server. It lists tools, resources, and prompts, including report resources such as `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`.
+
+6. Open `reports/EVAL_STABILITY.md`.
+   Explain that the current 36/36 result is a committed single-run baseline, and the next same-model run can be appended to quantify repeated-run variance without needing another provider API.
 
 ## Key Architecture Points
 
@@ -41,7 +45,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - `harness/tools.py` owns the permission-checked tool registry for file, shell, Git, test, memory, and reporting tools.
 - `harness/agent.py` preloads `retrieve_then_read` evidence before the first model turn when retrieval tools are enabled.
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution.
-- `harness/eval_analysis.py` turns JSON eval reports into comparison, history, and failure-mode dashboards.
+- `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, and stability dashboards.
 - `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
 
 ## Claims To Make
@@ -49,6 +53,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
 - Added a 36-task deterministic benchmark and a full 36-task real-agent evaluation artifact.
 - Improved real-agent evaluation from an 18/20 baseline to 20/20, then validated the expanded 36-task run at 36/36 using trace-backed failure analysis.
+- Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid

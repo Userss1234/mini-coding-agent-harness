@@ -7,8 +7,10 @@ from harness.eval_analysis import (
     analyze_eval_reports,
     build_eval_history,
     build_eval_history_report,
+    build_eval_stability_report,
     build_failure_dashboard,
     build_failure_dashboard_report,
+    build_stability_report,
     classify_failure,
 )
 
@@ -229,6 +231,48 @@ def test_build_failure_dashboard_loads_labeled_paths_and_writes_output(tmp_path:
     assert "before" in report
     assert "after" in report
     assert "`trace_unavailable`" in report
+    assert output_path.read_text(encoding="utf-8") == report
+
+
+def test_build_eval_stability_report_marks_single_run_baseline() -> None:
+    run = _history_report(passed=36, task_count=36, failed_tasks=[])
+
+    report = build_eval_stability_report([
+        {"label": "full-36-v1", "path": "run1.json", "report": run},
+    ])
+
+    assert "# Eval Stability Report" in report
+    assert "single-run baseline only" in report
+    assert "Common tasks across all runs: **2**" in report
+    assert "Unstable tasks: **none**" in report
+    assert "| `python_add_tests` | pass | 1 | 0 | 0 | `stable_pass` |" in report
+
+
+def test_build_eval_stability_report_marks_unstable_and_missing_tasks() -> None:
+    first = _history_report(passed=2, task_count=2, failed_tasks=[])
+    second = _history_report(passed=1, task_count=2, failed_tasks=["readme_update"])
+    second["tasks"].append({"task_id": "new_task", "success": True})
+
+    report = build_eval_stability_report([
+        {"label": "run1", "path": "run1.json", "report": first},
+        {"label": "run2", "path": "run2.json", "report": second},
+    ])
+
+    assert "repeated-run variance measured" in report
+    assert "Unstable tasks: **`new_task`, `readme_update`**" in report
+    assert "| `readme_update` | pass -> fail | 1 | 1 | 0 | `unstable` |" in report
+    assert "| `new_task` | missing -> pass | 1 | 0 | 1 | `incomplete` |" in report
+
+
+def test_build_stability_report_loads_labeled_paths_and_writes_output(tmp_path: Path) -> None:
+    run_path = tmp_path / "run.json"
+    output_path = tmp_path / "stability.md"
+    run_path.write_text(json.dumps(_history_report(passed=2, task_count=2, failed_tasks=[])), encoding="utf-8")
+
+    report = build_stability_report([f"full-36-v1={run_path}"], output_path=output_path)
+
+    assert "full-36-v1" in report
+    assert "2/2" in report
     assert output_path.read_text(encoding="utf-8") == report
 
 

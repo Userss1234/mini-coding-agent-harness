@@ -68,6 +68,18 @@ def build_failure_dashboard(
     return report
 
 
+def build_stability_report(
+    run_specs: Sequence[str],
+    output_path: Path | None = None,
+) -> str:
+    runs = [_load_history_run(spec) for spec in run_specs]
+    report = build_eval_stability_report(runs)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+    return report
+
+
 def build_eval_analysis_report(
     before: Mapping[str, Any],
     after: Mapping[str, Any],
@@ -143,6 +155,53 @@ This report compares two machine-readable evaluation reports and highlights beha
 ## Interpretation
 
 Use this report to connect benchmark movement to agent behavior, not only pass rate. A useful improvement should explain which tool patterns changed and which failure modes disappeared.
+"""
+
+
+def build_eval_stability_report(runs: Sequence[Mapping[str, Any]]) -> str:
+    if not runs:
+        raise ValueError("At least one eval run is required.")
+
+    run_rows = "\n".join(_stability_run_row(run) for run in runs)
+    task_rows, unstable_tasks, common_task_count = _task_stability_rows(runs)
+    success_values = [_float_or_zero(_summary(run["report"]).get("success_rate")) for run in runs]
+    tool_values = [_float_or_zero(_summary(run["report"]).get("average_tool_calls")) for run in runs]
+    duration_values = [_float_or_zero(_summary(run["report"]).get("average_duration")) for run in runs]
+    cost_values = [_float_or_zero(_summary(run["report"]).get("estimated_cost_usd")) for run in runs]
+    repeated_status = (
+        "single-run baseline only; repeat the same eval command to measure variance"
+        if len(runs) == 1
+        else "repeated-run variance measured across the selected reports"
+    )
+
+    return f"""# Eval Stability Report
+
+## Summary
+
+This report checks whether repeated evaluation runs stay stable across the same task set. Use it when only one model API is available and you need repeated-run evidence instead of cross-model comparison.
+
+- Runs analyzed: **{len(runs)}**
+- Repeated-run status: **{repeated_status}**
+- Common tasks across all runs: **{common_task_count}**
+- Unstable tasks: **{_task_list_text(unstable_tasks)}**
+- Success-rate range: **{_range_text(success_values, percent=True)}**
+- Average tool-call range: **{_range_text(tool_values)}**
+- Average duration range: **{_range_text(duration_values, suffix='s')}**
+- Estimated cost range: **{_money_range_text(cost_values)}**
+
+## Run Summary
+
+| Run | Source | Passed | Success Rate | Avg Tool Calls | Avg Duration | Est. Cost | Failed Tasks |
+|---|---|---:|---:|---:|---:|---:|---|
+{run_rows}
+
+## Task Stability
+
+{task_rows}
+
+## Interpretation
+
+For a resume or interview, one 36/36 run proves the full suite can pass end to end; two or more same-suite runs are stronger evidence because they show whether the result survives model randomness. When adding new runs, keep the same task set and model/provider settings unless the report is explicitly a comparison.
 """
 
 
@@ -461,6 +520,60 @@ def _history_tool_row(run: Mapping[str, Any]) -> str:
     )
 
 
+def _stability_run_row(run: Mapping[str, Any]) -> str:
+    report = run["report"]
+    summary = _summary(report)
+    failed_tasks = _failed_task_names(report)
+    return (
+        "| {label} | `{source}` | {passed} | {success_rate} | {avg_tools} | {duration} | {cost} | {failed_tasks} |"
+    ).format(
+        label=run["label"],
+        source=run["path"],
+        passed=_passed_text(summary),
+        success_rate=_percent(summary.get("success_rate")),
+        avg_tools=_number(summary.get("average_tool_calls")),
+        duration=_seconds(summary.get("average_duration")),
+        cost=_money(summary.get("estimated_cost_usd")),
+        failed_tasks=", ".join(f"`{task}`" for task in failed_tasks) if failed_tasks else "none",
+    )
+
+
+def _task_stability_rows(runs: Sequence[Mapping[str, Any]]) -> tuple[str, list[str], int]:
+    task_ids = sorted({
+        str(task.get("task_id"))
+        for run in runs
+        for task in run["report"].get("tasks", [])
+        if task.get("task_id")
+    })
+    common_task_count = sum(1 for task_id in task_ids if all(_task_status(run["report"], task_id) != "missing" for run in runs))
+    rows = [
+        "| Task | Statuses | Passes | Failures | Missing | Stability |",
+        "|---|---|---:|---:|---:|---|",
+    ]
+    unstable_tasks: list[str] = []
+    for task_id in task_ids:
+        statuses = [_task_status(run["report"], task_id) for run in runs]
+        pass_count = statuses.count("pass")
+        fail_count = statuses.count("fail")
+        missing_count = statuses.count("missing")
+        if missing_count:
+            stability = "incomplete"
+            unstable_tasks.append(task_id)
+        elif pass_count and fail_count:
+            stability = "unstable"
+            unstable_tasks.append(task_id)
+        elif fail_count:
+            stability = "stable_fail"
+        else:
+            stability = "stable_pass"
+        rows.append(
+            f"| `{task_id}` | {' -> '.join(statuses)} | {pass_count} | {fail_count} | {missing_count} | `{stability}` |"
+        )
+    if len(rows) == 2:
+        return "No task rows found in the selected reports.", [], 0
+    return "\n".join(rows), unstable_tasks, common_task_count
+
+
 def _task_outcome_change_rows(runs: Sequence[Mapping[str, Any]]) -> str:
     task_ids = sorted({
         str(task.get("task_id"))
@@ -505,6 +618,22 @@ def _float_or_zero(value: Any) -> float:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _range_text(values: Sequence[float], percent: bool = False, suffix: str = "") -> str:
+    if not values:
+        return "n/a"
+    low = min(values)
+    high = max(values)
+    if percent:
+        return f"{low:.2%} - {high:.2%}"
+    return f"{low:.2f}{suffix} - {high:.2f}{suffix}"
+
+
+def _money_range_text(values: Sequence[float]) -> str:
+    if not values:
+        return "$0.000000 - $0.000000"
+    return f"${min(values):.6f} - ${max(values):.6f}"
 
 
 def _failure_rows(tasks: list[Mapping[str, Any]], trace_root: Path) -> str:

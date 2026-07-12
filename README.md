@@ -40,6 +40,7 @@ python main.py demo --task python_bugfix
 python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -52,6 +53,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): earlier 20-task model-backed coding-agent evaluation result.
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing 18/20 to 20/20 to 36/36.
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md): failure-mode dashboard showing resolved agent failure patterns.
+- [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md): repeated-run stability baseline for the 36-task suite.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
 ## What It Does
@@ -165,6 +167,7 @@ python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
 ```
 
 Local demo flow:
@@ -230,6 +233,7 @@ Eval analysis example:
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
 ```
 
 ## Reports
@@ -246,6 +250,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md` is generated with `python main.py analyze-eval` to compare two JSON eval reports and classify failed-task patterns.
 - `reports/EVAL_HISTORY.md` is generated with `python main.py eval-history` to track eval metrics and task outcome changes across runs.
 - `reports/FAILURE_MODES.md` is generated with `python main.py eval-failures` to aggregate failed tasks by failure mode.
+- `reports/EVAL_STABILITY.md` is generated with `python main.py eval-stability` to measure repeated-run stability for same-suite agent reports.
 - `reports/AGENT_COMPARE_2_TASKS.md` is a committed memory/context ablation report over 2 representative agent-mode tasks.
 - `reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md` is a committed retrieval-on/off ablation report for the `context_pack_retrieval` task.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.
@@ -272,7 +277,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history` and `harness://reports/failure-modes`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 
@@ -375,7 +380,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Current Limitations
 
-- The committed real-agent report covers one DeepSeek `deepseek-chat` 36-task run; broader model/provider comparisons and repeated-run variance analysis are still future work.
+- The committed real-agent report covers one DeepSeek `deepseek-chat` 36-task run; `eval-stability` now records the single-run baseline, but a second same-suite run is still needed to measure real variance.
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
@@ -386,7 +391,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Add repeated-run variance tracking for the 36-task real-agent suite and compare DeepSeek/OpenAI/Anthropic-compatible clients.
+1. Add a second same-suite DeepSeek `deepseek-chat` 36-task run and append it to `reports/EVAL_STABILITY.md` to measure variance.
 2. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
 3. Add retrieval-off and memory/context ablations for the full 36-task agent suite.
 4. Add optional MCP HTTP/SSE transport and richer resource subscriptions.

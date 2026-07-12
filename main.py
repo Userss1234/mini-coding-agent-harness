@@ -5,7 +5,7 @@ from pathlib import Path
 
 from harness.agent import run_agent
 from harness.demo import run_demo
-from harness.eval_analysis import analyze_eval_reports, build_eval_history, build_failure_dashboard
+from harness.eval_analysis import analyze_eval_reports, build_eval_history, build_failure_dashboard, build_stability_report
 from harness.evaluation import run_evaluation
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
@@ -104,6 +104,16 @@ def cmd_eval_failures(args) -> None:
     print(report)
     if args.output:
         print(f"Eval failure dashboard written to {Path(args.output).resolve()}")
+
+
+def cmd_eval_stability(args) -> None:
+    report = build_stability_report(
+        run_specs=args.run,
+        output_path=Path(args.output) if args.output else None,
+    )
+    print(report)
+    if args.output:
+        print(f"Eval stability report written to {Path(args.output).resolve()}")
 
 
 def cmd_trace_report(args) -> None:
@@ -261,6 +271,16 @@ def build_parser() -> argparse.ArgumentParser:
     eval_failures.add_argument("--output", help="Optional Markdown failure dashboard path")
     eval_failures.add_argument("--trace-root", help="Root used to resolve relative per-task trace paths")
     eval_failures.set_defaults(func=cmd_eval_failures)
+
+    eval_stability = sub.add_parser("eval-stability", help="Measure repeated-run stability across JSON evaluation reports")
+    eval_stability.add_argument(
+        "--run",
+        action="append",
+        required=True,
+        help="Evaluation JSON input, either PATH or LABEL=PATH; repeat for each same-suite run",
+    )
+    eval_stability.add_argument("--output", help="Optional Markdown stability report path")
+    eval_stability.set_defaults(func=cmd_eval_stability)
 
     return parser
 

@@ -61,7 +61,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
-`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, and `harness://reports/failure-modes`; pass `report_uri` to analyze one specific report instead.
+`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`; pass `report_uri` to analyze one specific report instead.
 
 ## Example Messages
 
@@ -110,15 +110,19 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 ```
 
 ```json
-{"jsonrpc":"2.0","id":12,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
+{"jsonrpc":"2.0","id":12,"method":"resources/read","params":{"uri":"harness://reports/eval-stability"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":13,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+{"jsonrpc":"2.0","id":13,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":14,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
+{"jsonrpc":"2.0","id":14,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":15,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
 ```
 
 ## Boundaries

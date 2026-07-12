@@ -24,6 +24,7 @@ DEFAULT_EVAL_ANALYSIS_URIS = [
     "harness://reports/agent-eval",
     "harness://reports/eval-history",
     "harness://reports/failure-modes",
+    "harness://reports/eval-stability",
 ]
 
 
@@ -269,6 +270,7 @@ def _build_resource_catalog(workspace: Path) -> list[dict[str, Any]]:
         ("harness://reports/agent-eval", "AGENT_EVAL", "Latest committed real-agent evaluation report.", workspace / "reports" / "AGENT_EVAL.md"),
         ("harness://reports/eval-history", "EVAL_HISTORY", "Committed eval trend report across agent runs.", workspace / "reports" / "EVAL_HISTORY.md"),
         ("harness://reports/failure-modes", "FAILURE_MODES", "Committed failure-mode dashboard for agent eval runs.", workspace / "reports" / "FAILURE_MODES.md"),
+        ("harness://reports/eval-stability", "EVAL_STABILITY", "Committed repeated-run stability report for agent eval runs.", workspace / "reports" / "EVAL_STABILITY.md"),
         ("harness://reports/agent-compare", "AGENT_COMPARE_2_TASKS", "Committed memory/context ablation report.", workspace / "reports" / "AGENT_COMPARE_2_TASKS.md"),
         ("harness://reports/demo-python-bugfix", "DEMO_python_bugfix", "Committed deterministic local demo report.", workspace / "reports" / "DEMO_python_bugfix.md"),
     ]
