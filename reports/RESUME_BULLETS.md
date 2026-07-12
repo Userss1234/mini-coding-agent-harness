@@ -7,7 +7,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Implemented a lightweight Coding Agent Harness for repository maintenance, including an agent loop, permission-checked tool registry, todo planning, context compaction, workflow memory, semantic retry planning, execution traces, and static trace reports.
   Evidence: `README.md`, `reports/DEMO_python_bugfix.md`, `reports/DEMO_python_bugfix_TRACE.html`, `reports/MCP_SMOKE.md`.
 
-- Built a deterministic 34-task code-maintenance benchmark covering Python bug fixes, test generation, config updates, security checks, multi-file contract repairs, local RAG retrieval, memory ranking, and MCP smoke validation; integrated it into GitHub Actions CI.
+- Built a deterministic 35-task code-maintenance benchmark covering Python bug fixes, test generation, config updates, security checks, multi-file contract repairs, local RAG retrieval planning, memory ranking, and MCP smoke validation; integrated it into GitHub Actions CI.
   Evidence: `README.md`, `.github/workflows/ci.yml`, `reports/MCP_SMOKE.md`.
 
 - Ran and analyzed a 20-task DeepSeek `deepseek-chat` real-agent evaluation, improving pass rate from 18/20 to 20/20 through trace-backed prompt-contract changes while tracking tool calls, duration, token usage, cost, and failure patterns.
@@ -21,7 +21,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 
 ## Short Version
 
-- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, task planning, context compaction, workflow memory, error recovery, execution tracing, MCP resources/prompts, and a 34-task deterministic benchmark plus 20-task model-backed evaluation artifacts.
+- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, task planning, context compaction, workflow memory, error recovery, execution tracing, MCP resources/prompts, and a 35-task deterministic benchmark plus 20-task model-backed evaluation artifacts.
 
 ## Evidence Map
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harness.retrieval import build_workspace_index, search_workspace, tokenize_query
+from harness.retrieval import build_workspace_index, explain_retrieval_plan, search_workspace, tokenize_query
 
 
 def test_tokenize_query_keeps_searchable_terms() -> None:
@@ -64,3 +64,33 @@ def test_search_workspace_ranks_symbol_chunk_across_distractors(tmp_path: Path) 
     assert "invoice_total" in result["matches"][0]["snippet"]
     assert result["index"]["files_indexed"] == 3
     assert result["retrieval"] == "local_chunk_lexical_scoring"
+
+
+def test_explain_retrieval_plan_builds_read_file_arguments(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "class BillingService:\n"
+        "    def invoice_total(self, items):\n"
+        "        subtotal = sum(item.price for item in items)\n"
+        "        return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+
+    result = explain_retrieval_plan(
+        tmp_path,
+        "invoice total rounding",
+        glob_pattern="*.py",
+        limit=1,
+        chunk_lines=4,
+        read_window=2,
+    )
+
+    assert result["matches"][0]["path"] == "billing.py"
+    assert result["read_plan"] == [{
+        "step": 1,
+        "path": "billing.py",
+        "start_line": 1,
+        "end_line": 6,
+        "score": result["matches"][0]["score"],
+        "reason": "ranked match #1 for the retrieval query",
+        "read_file_args": {"path": "billing.py", "start_line": 1, "end_line": 6},
+    }]

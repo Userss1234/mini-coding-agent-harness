@@ -386,6 +386,14 @@ def default_tasks() -> list[EvalTask]:
             run_rag_sensitive_path_filter_task,
         ),
         EvalTask(
+            "rag_read_plan_generation",
+            "retrieval",
+            "Use rag_explain to convert retrieved chunks into concrete read_file path and line-range arguments.",
+            run_rag_read_plan_generation_task,
+            setup_rag_read_plan_generation_fixture,
+            run_rag_read_plan_generation_task,
+        ),
+        EvalTask(
             "mcp_rag_search_smoke",
             "retrieval",
             "Call rag_search through the MCP tools/call protocol and validate structured results.",
@@ -883,6 +891,44 @@ def run_rag_sensitive_path_filter_task(registry: ToolRegistry) -> bool:
         and all(not path.startswith("artifacts/") for path in paths)
         and "SECRET_CONTEXT" not in combined_output
         and "secret generated retrieval context" not in combined_output
+    )
+
+
+def setup_rag_read_plan_generation_fixture(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "billing_service.py").write_text(
+        "class BillingService:\n"
+        "    def invoice_total(self, items):\n"
+        "        subtotal = sum(item.price for item in items)\n"
+        "        return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+    (workspace / "billing_notes.md").write_text(
+        "Invoice wording notes that mention total and rounding, but do not contain executable code.\n",
+        encoding="utf-8",
+    )
+
+
+def run_rag_read_plan_generation_task(registry: ToolRegistry) -> bool:
+    result = registry.call(
+        "rag_explain",
+        query="invoice total rounding",
+        glob="*.py,*.md",
+        limit=1,
+        chunk_lines=20,
+        read_window=1,
+    )
+    metadata = result.metadata or {}
+    plan = metadata.get("read_plan", [])
+    first = plan[0] if plan else {}
+    read_args = first.get("read_file_args") or {}
+    return (
+        result.ok
+        and metadata.get("count") == 1
+        and read_args.get("path") == "billing_service.py"
+        and read_args.get("start_line") == 1
+        and int(read_args.get("end_line", 0)) >= 4
+        and 'read_file(path="billing_service.py"' in result.output
     )
 
 

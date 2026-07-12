@@ -190,6 +190,60 @@ def search_workspace(
     }
 
 
+def explain_retrieval_plan(
+    workspace: Path,
+    query: str,
+    *,
+    glob_pattern: str = "*",
+    limit: int = 5,
+    chunk_lines: int = 80,
+    overlap: int = 10,
+    read_window: int = 20,
+    max_chars_per_chunk: int = 1200,
+) -> dict[str, Any]:
+    result = search_workspace(
+        workspace,
+        query,
+        glob_pattern=glob_pattern,
+        limit=limit,
+        chunk_lines=chunk_lines,
+        overlap=overlap,
+        max_chars_per_chunk=max_chars_per_chunk,
+    )
+    plan = build_read_plan(result.get("matches") or [], read_window=max(int(read_window), 0))
+    result["read_plan"] = plan
+    return result
+
+
+def build_read_plan(matches: list[dict[str, Any]], *, read_window: int = 20) -> list[dict[str, Any]]:
+    plan: list[dict[str, Any]] = []
+    seen: set[tuple[str, int, int]] = set()
+    for index, item in enumerate(matches, start=1):
+        path = str(item.get("path", "")).strip()
+        if not path:
+            continue
+        start_line = max(int(item.get("start_line", 1)) - read_window, 1)
+        end_line = max(int(item.get("end_line", start_line)) + read_window, start_line)
+        key = (path, start_line, end_line)
+        if key in seen:
+            continue
+        seen.add(key)
+        plan.append({
+            "step": len(plan) + 1,
+            "path": path,
+            "start_line": start_line,
+            "end_line": end_line,
+            "score": item.get("score", 0),
+            "reason": f"ranked match #{index} for the retrieval query",
+            "read_file_args": {
+                "path": path,
+                "start_line": start_line,
+                "end_line": end_line,
+            },
+        })
+    return plan
+
+
 def format_index_summary(index: RetrievalIndex) -> str:
     return (
         "# Workspace Retrieval Index\n\n"
@@ -224,6 +278,44 @@ def format_search_results(result: dict[str, Any]) -> str:
         query=query,
         count=len(matches),
         sections="\n\n".join(sections),
+    )
+
+
+def format_retrieval_explanation(result: dict[str, Any]) -> str:
+    matches = result.get("matches") or []
+    plan = result.get("read_plan") or []
+    query = result.get("query") or ""
+    if not matches:
+        return f"# RAG Read Plan\n\n- Query: {query}\n- Matches: 0\n\n(no matching context)"
+
+    plan_rows = []
+    for item in plan:
+        args = item.get("read_file_args") or {}
+        plan_rows.append(
+            "{step}. `read_file(path=\"{path}\", start_line={start}, end_line={end})` - score {score}; {reason}.".format(
+                step=item.get("step"),
+                path=args.get("path"),
+                start=args.get("start_line"),
+                end=args.get("end_line"),
+                score=item.get("score"),
+                reason=item.get("reason"),
+            )
+        )
+    chunk_rows = []
+    for item in matches:
+        chunk_rows.append(
+            "- `{path}` lines {start_line}-{end_line}, score {score}".format(
+                path=item.get("path"),
+                start_line=item.get("start_line"),
+                end_line=item.get("end_line"),
+                score=item.get("score"),
+            )
+        )
+    return "# RAG Read Plan\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: local chunk lexical scoring\n\n## Read Plan\n\n{plan}\n\n## Matched Chunks\n\n{chunks}\n".format(
+        query=query,
+        count=len(matches),
+        plan="\n".join(plan_rows) or "(no read plan)",
+        chunks="\n".join(chunk_rows),
     )
 
 

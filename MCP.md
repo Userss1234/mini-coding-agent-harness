@@ -53,7 +53,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 - `prompts/list`
 - `prompts/get`
 
-`tools/list` maps registered harness tools to MCP tools. The schema comes from each local tool's `input_schema`. Retrieval tools such as `index_workspace`, `rag_search`, and `context_pack` are exposed through the same permission-checked path.
+`tools/list` maps registered harness tools to MCP tools. The schema comes from each local tool's `input_schema`. Retrieval tools such as `index_workspace`, `rag_search`, `rag_explain`, and `context_pack` are exposed through the same permission-checked path.
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
@@ -61,7 +61,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
-`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `rag_search` call before exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, and `harness://reports/failure-modes`; pass `report_uri` to analyze one specific report instead.
+`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `rag_explain` call before exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, and `harness://reports/failure-modes`; pass `report_uri` to analyze one specific report instead.
 
 ## Example Messages
 
@@ -86,31 +86,35 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 ```
 
 ```json
-{"jsonrpc":"2.0","id":6,"method":"resources/read","params":{"uri":"harness://rag/index-summary"}}
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"rag_explain","arguments":{"query":"pytest failing import fix","glob":"*.py,*.md","limit":3}}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"harness://reports/agent-eval"}}
+{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"harness://rag/index-summary"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":8,"method":"resources/read","params":{"uri":"harness://reports/eval-history"}}
+{"jsonrpc":"2.0","id":8,"method":"resources/read","params":{"uri":"harness://reports/agent-eval"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":9,"method":"resources/read","params":{"uri":"harness://reports/failure-modes"}}
+{"jsonrpc":"2.0","id":9,"method":"resources/read","params":{"uri":"harness://reports/eval-history"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":10,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
+{"jsonrpc":"2.0","id":10,"method":"resources/read","params":{"uri":"harness://reports/failure-modes"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":11,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+{"jsonrpc":"2.0","id":11,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":12,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
+{"jsonrpc":"2.0","id":12,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":13,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
 ```
 
 ## Boundaries
