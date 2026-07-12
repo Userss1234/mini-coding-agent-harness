@@ -48,6 +48,7 @@ Show these committed artifacts while explaining the system:
 
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md): 2-3 minute interview talk track.
 - [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md): evidence-backed resume bullet options.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): architecture diagrams and module boundaries.
 - [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md): source-backed interview questions and answers.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
 - [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
