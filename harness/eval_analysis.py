@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 import json
 from pathlib import Path
 from typing import Any
@@ -28,6 +28,18 @@ def analyze_eval_reports(
     after = _load_eval_json(after_path)
     root = (trace_root or Path.cwd()).resolve()
     report = build_eval_analysis_report(before, after, trace_root=root)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+    return report
+
+
+def build_eval_history(
+    run_specs: Sequence[str],
+    output_path: Path | None = None,
+) -> str:
+    runs = [_load_history_run(spec) for spec in run_specs]
+    report = build_eval_history_report(runs)
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(report, encoding="utf-8")
@@ -112,6 +124,82 @@ Use this report to connect benchmark movement to agent behavior, not only pass r
 """
 
 
+def build_eval_history_report(runs: Sequence[Mapping[str, Any]]) -> str:
+    if not runs:
+        raise ValueError("At least one eval run is required.")
+
+    trend_rows = "\n".join(_history_trend_row(run) for run in runs)
+    tool_rows = "\n".join(_history_tool_row(run) for run in runs)
+    task_rows = _task_outcome_change_rows(runs)
+    latest = runs[-1]
+    first = runs[0]
+    first_summary = _summary(first["report"])
+    latest_summary = _summary(latest["report"])
+    success_delta = _float_or_zero(latest_summary.get("success_rate")) - _float_or_zero(first_summary.get("success_rate"))
+    tool_delta = _float_or_zero(latest_summary.get("average_tool_calls")) - _float_or_zero(first_summary.get("average_tool_calls"))
+    cost_delta = _float_or_zero(latest_summary.get("estimated_cost_usd")) - _float_or_zero(first_summary.get("estimated_cost_usd"))
+
+    return f"""# Eval History Report
+
+## Summary
+
+This report tracks evaluation runs over time so benchmark changes can be discussed as an engineering trend, not a single snapshot.
+
+- Runs compared: **{len(runs)}**
+- Success-rate change: **{success_delta:+.2%}**
+- Average tool-call change: **{tool_delta:+.2f}**
+- Estimated cost change: **${cost_delta:+.6f}**
+
+## Run Trend
+
+| Run | Source | Mode | Memory | Context | Retrieval | Passed | Success Rate | Avg Tool Calls | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failed Tasks |
+|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+{trend_rows}
+
+## Key Tool Calls
+
+| Run | todo_write | run_tests | shell | git_diff | read_file | context_pack | edit/write |
+|---|---:|---:|---:|---:|---:|---:|---:|
+{tool_rows}
+
+## Task Outcome Changes
+
+{task_rows}
+
+## Interpretation
+
+Use this history report to explain whether a harness change improved success rate, reduced exploratory tool use, changed verification behavior, or raised model cost. Keep claims tied to the rows above.
+"""
+
+
+def _load_history_run(spec: str) -> dict[str, Any]:
+    label, path = _parse_history_spec(spec)
+    report = _load_eval_json(path)
+    summary = _summary(report)
+    return {
+        "label": label or str(summary.get("label") or path.stem),
+        "path": _display_path(path),
+        "report": report,
+    }
+
+
+def _parse_history_spec(spec: str) -> tuple[str | None, Path]:
+    if "=" not in spec:
+        return None, Path(spec)
+    label, path = spec.split("=", 1)
+    label = label.strip()
+    path = path.strip()
+    if not label:
+        raise ValueError(f"Missing history run label in: {spec}")
+    if not path:
+        raise ValueError(f"Missing history run path in: {spec}")
+    return label, Path(path)
+
+
+def _display_path(path: Path) -> str:
+    return path.as_posix()
+
+
 def _load_eval_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
@@ -177,6 +265,94 @@ def _tool_delta_rows(before_summary: Mapping[str, Any], after_summary: Mapping[s
         delta = after - before
         rows.append(f"| `{tool}` | {before} | {after} | {delta:+d} |")
     return "\n".join(rows)
+
+
+def _history_trend_row(run: Mapping[str, Any]) -> str:
+    report = run["report"]
+    summary = _summary(report)
+    failed_tasks = _failed_task_names(report)
+    return (
+        "| {label} | `{source}` | {mode} | {memory} | {context} | {retrieval} | {passed} | {success_rate} | "
+        "{avg_tools} | {duration} | {input_tokens} | {output_tokens} | {cost} | {failed_tasks} |"
+    ).format(
+        label=run["label"],
+        source=run["path"],
+        mode=summary.get("mode", "unknown"),
+        memory=_enabled_text(summary.get("memory_enabled")),
+        context=_enabled_text(summary.get("context_enabled")),
+        retrieval=_enabled_text(summary.get("retrieval_enabled")),
+        passed=_passed_text(summary),
+        success_rate=_percent(summary.get("success_rate")),
+        avg_tools=_number(summary.get("average_tool_calls")),
+        duration=_seconds(summary.get("average_duration")),
+        input_tokens=_integer(summary.get("total_input_tokens")),
+        output_tokens=_integer(summary.get("total_output_tokens")),
+        cost=_money(summary.get("estimated_cost_usd")),
+        failed_tasks=", ".join(f"`{task}`" for task in failed_tasks) if failed_tasks else "none",
+    )
+
+
+def _history_tool_row(run: Mapping[str, Any]) -> str:
+    summary = _summary(run["report"])
+    edit_write = _tool_count_int(summary, "edit_file") + _tool_count_int(summary, "write_file")
+    return (
+        "| {label} | {todo} | {tests} | {shell} | {git_diff} | {read_file} | {context_pack} | {edit_write} |"
+    ).format(
+        label=run["label"],
+        todo=_tool_count(summary, "todo_write"),
+        tests=_tool_count(summary, "run_tests"),
+        shell=_tool_count(summary, "shell"),
+        git_diff=_tool_count(summary, "git_diff"),
+        read_file=_tool_count(summary, "read_file"),
+        context_pack=_tool_count(summary, "context_pack"),
+        edit_write=edit_write,
+    )
+
+
+def _task_outcome_change_rows(runs: Sequence[Mapping[str, Any]]) -> str:
+    task_ids = sorted({
+        str(task.get("task_id"))
+        for run in runs
+        for task in run["report"].get("tasks", [])
+        if task.get("task_id")
+    })
+    changed_rows = []
+    for task_id in task_ids:
+        statuses = [_task_status(run["report"], task_id) for run in runs]
+        known_statuses = [status for status in statuses if status != "missing"]
+        if len(set(known_statuses)) <= 1:
+            continue
+        status_text = " -> ".join(statuses)
+        changed_rows.append(f"| `{task_id}` | {status_text} |")
+    if not changed_rows:
+        return "No task outcome changes across the selected runs."
+    return "\n".join(["| Task | Outcome Trend |", "|---|---|", *changed_rows])
+
+
+def _task_status(report: Mapping[str, Any], task_id: str) -> str:
+    for task in report.get("tasks", []):
+        if task.get("task_id") == task_id:
+            return "pass" if task.get("success") else "fail"
+    return "missing"
+
+
+def _failed_task_names(report: Mapping[str, Any]) -> list[str]:
+    return [str(task.get("task_id")) for task in report.get("tasks", []) if task.get("task_id") and not task.get("success")]
+
+
+def _enabled_text(value: Any) -> str:
+    if value is True:
+        return "on"
+    if value is False:
+        return "off"
+    return "unknown"
+
+
+def _float_or_zero(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _failure_rows(tasks: list[Mapping[str, Any]], trace_root: Path) -> str:

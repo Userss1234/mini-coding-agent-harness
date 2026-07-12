@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harness.eval_analysis import analyze_eval_reports, classify_failure
+from harness.eval_analysis import analyze_eval_reports, build_eval_history, build_eval_history_report, classify_failure
 
 
 def test_analyze_eval_reports_compares_metrics_and_failure_patterns(tmp_path: Path) -> None:
@@ -111,3 +111,101 @@ def test_classify_failure_uses_json_when_trace_is_missing(tmp_path: Path) -> Non
     patterns = classify_failure(task, trace_root=tmp_path)
 
     assert patterns == ["trace_unavailable", "no_file_change", "over_exploration", "tool_failures"]
+
+
+def test_build_eval_history_report_shows_trends_and_task_changes() -> None:
+    before = _history_report(
+        passed=18,
+        task_count=20,
+        average_tool_calls=14.05,
+        cost=2.080083,
+        shell_calls=20,
+        run_tests_calls=20,
+        failed_tasks=["python_add_tests", "readme_update"],
+    )
+    after = _history_report(
+        passed=20,
+        task_count=20,
+        average_tool_calls=15.3,
+        cost=2.352057,
+        shell_calls=11,
+        run_tests_calls=31,
+        failed_tasks=[],
+    )
+
+    report = build_eval_history_report([
+        {"label": "baseline", "path": "before.json", "report": before},
+        {"label": "prompt-contract", "path": "after.json", "report": after},
+    ])
+
+    assert "# Eval History Report" in report
+    assert "Success-rate change: **+10.00%**" in report
+    assert "| baseline | `before.json` | agent | on | on | on | 18/20 | 90.00% |" in report
+    assert "| prompt-contract | 92 | 31 | 11 | 2 | 49 | 10 | 23 |" in report
+    assert "| `python_add_tests` | fail -> pass |" in report
+    assert "| `readme_update` | fail -> pass |" in report
+
+
+def test_build_eval_history_loads_labeled_paths_and_writes_output(tmp_path: Path) -> None:
+    first_path = tmp_path / "first.json"
+    second_path = tmp_path / "second.json"
+    output_path = tmp_path / "history.md"
+    first_path.write_text(json.dumps(_history_report(passed=1, task_count=2, failed_tasks=["readme_update"])), encoding="utf-8")
+    second_path.write_text(json.dumps(_history_report(passed=2, task_count=2, failed_tasks=[])), encoding="utf-8")
+
+    report = build_eval_history([
+        f"before={first_path}",
+        f"after={second_path}",
+    ], output_path=output_path)
+
+    assert "before" in report
+    assert "after" in report
+    assert "1/2" in report
+    assert "2/2" in report
+    assert output_path.read_text(encoding="utf-8") == report
+
+
+def _history_report(
+    passed: int,
+    task_count: int,
+    average_tool_calls: float = 1.0,
+    cost: float = 0.0,
+    shell_calls: int = 0,
+    run_tests_calls: int = 0,
+    failed_tasks: list[str] | None = None,
+) -> dict:
+    failed_task_ids = failed_tasks or []
+    tasks = []
+    for task_id in ["python_add_tests", "readme_update"]:
+        tasks.append({
+            "task_id": task_id,
+            "success": task_id not in failed_task_ids,
+        })
+    return {
+        "summary": {
+            "label": "selected",
+            "mode": "agent",
+            "memory_enabled": True,
+            "context_enabled": True,
+            "retrieval_enabled": True,
+            "task_count": task_count,
+            "passed": passed,
+            "success_rate": passed / task_count,
+            "average_tool_calls": average_tool_calls,
+            "average_duration": 12.5,
+            "total_input_tokens": 100,
+            "total_output_tokens": 20,
+            "estimated_cost_usd": cost,
+            "tool_counts": {
+                "todo_write": 92,
+                "run_tests": run_tests_calls,
+                "shell": shell_calls,
+                "git_diff": 2,
+                "read_file": 49,
+                "context_pack": 10,
+                "edit_file": 21,
+                "write_file": 2,
+            },
+        },
+        "tasks": tasks,
+    }

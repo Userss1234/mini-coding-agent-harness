@@ -5,7 +5,7 @@ from pathlib import Path
 
 from harness.agent import run_agent
 from harness.demo import run_demo
-from harness.eval_analysis import analyze_eval_reports
+from harness.eval_analysis import analyze_eval_reports, build_eval_history
 from harness.evaluation import run_evaluation
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
@@ -83,6 +83,16 @@ def cmd_analyze_eval(args) -> None:
     print(report)
     if args.output:
         print(f"Eval analysis written to {Path(args.output).resolve()}")
+
+
+def cmd_eval_history(args) -> None:
+    report = build_eval_history(
+        run_specs=args.run,
+        output_path=Path(args.output) if args.output else None,
+    )
+    print(report)
+    if args.output:
+        print(f"Eval history written to {Path(args.output).resolve()}")
 
 
 def cmd_trace_report(args) -> None:
@@ -219,6 +229,16 @@ def build_parser() -> argparse.ArgumentParser:
     analyze_eval.add_argument("--output", help="Optional Markdown analysis report path")
     analyze_eval.add_argument("--trace-root", help="Root used to resolve relative per-task trace paths")
     analyze_eval.set_defaults(func=cmd_analyze_eval)
+
+    eval_history = sub.add_parser("eval-history", help="Build a Markdown trend report from multiple JSON evaluation reports")
+    eval_history.add_argument(
+        "--run",
+        action="append",
+        required=True,
+        help="Evaluation JSON input, either PATH or LABEL=PATH; repeat in chronological order",
+    )
+    eval_history.add_argument("--output", help="Optional Markdown history report path")
+    eval_history.set_defaults(func=cmd_eval_history)
 
     return parser
 

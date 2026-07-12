@@ -133,6 +133,7 @@ python main.py eval --mode scripted --compare-retrieval --task syntax_check
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
+python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
 ```
 
 本地 demo 流程：
@@ -196,6 +197,7 @@ eval 分析示例：
 
 ```powershell
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
 ```
 
 ## 报告
@@ -209,6 +211,7 @@ python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after re
 - `reports/DEMO_python_bugfix.md` 和 `reports/DEMO_python_bugfix_TRACE.html` 是已提交的本地 demo 展示文件。
 - `reports/AGENT_EVAL.md` 是已提交的 DeepSeek `deepseek-chat` 真实 agent 报告，覆盖 10 个代表性 agent-mode 任务。
 - `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md` 可由 `python main.py analyze-eval` 生成，用于对比两份 JSON eval 报告并分类失败任务模式。
+- `reports/EVAL_HISTORY.md` 可由 `python main.py eval-history` 生成，用于跟踪多次 eval 的指标趋势和任务结果变化。
 - `reports/AGENT_COMPARE_2_TASKS.md` 是已提交的 memory/context ablation 报告，覆盖 2 个代表性 agent-mode 任务。
 - `reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md` 是已提交的 retrieval-on/off ablation 报告，覆盖 `context_pack_retrieval` 任务。
 - `reports/AGENT_TRACE_python_add_tests.html` 和 `reports/AGENT_TRACE_multi_file_service_fix.html` 是这次真实 agent 运行生成并提交的 trace viewer 示例。
