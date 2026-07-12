@@ -31,6 +31,26 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
 - **报告入口：**优先看 [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)、[`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md)、[`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md)、[`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md) 和 [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md)。
 
+## Portfolio Walkthrough
+
+面试展示时可以按这条路线讲项目：
+
+```powershell
+python main.py demo --task python_bugfix
+python main.py eval --mode scripted
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
+```
+
+讲解时重点打开这些已提交产物：
+
+- [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md)：本地确定性 bugfix 的工具循环证据。
+- [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)：20 任务真实模型 coding-agent 评估结果。
+- [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
+- [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
+- [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md)：展示 tools、resources 和 prompts 的 MCP 协议 transcript。
+
 ## 项目能做什么
 
 这个 harness 支持如下代码维护流程：

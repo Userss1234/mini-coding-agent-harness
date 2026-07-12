@@ -31,6 +31,26 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
 - **Reports:** Start with [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
 
+## Portfolio Walkthrough
+
+Use this route when demonstrating the project in an interview:
+
+```powershell
+python main.py demo --task python_bugfix
+python main.py eval --mode scripted
+python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
+python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
+```
+
+Show these committed artifacts while explaining the system:
+
+- [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
+- [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): 20-task model-backed coding-agent evaluation result.
+- [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing the 18/20 to 20/20 improvement.
+- [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md): failure-mode dashboard showing resolved agent failure patterns.
+- [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
+
 ## What It Does
 
 The harness supports repository-maintenance workflows such as:
