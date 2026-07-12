@@ -14,6 +14,7 @@ IGNORED_PATH_PARTS = {
     ".pytest_cache",
     "artifacts",
     "eval_runs",
+    "skills",
 }
 
 IGNORED_FILE_NAMES = {

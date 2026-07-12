@@ -240,6 +240,37 @@ def test_run_agent_preloads_retrieve_then_read_evidence(tmp_path: Path) -> None:
     assert "agent_retrieval_preflight" in trace_text
 
 
+def test_run_agent_preflight_uses_explicit_retrieval_query(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "def invoice_total(items):\n"
+        "    return round(sum(item.price for item in items), 2)\n",
+        encoding="utf-8",
+    )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse("end_turn", [FakeBlock("text", text="Used billing.py evidence.")])
+    ])
+
+    run_agent(
+        "Support prompt with workflow memories and broad tool instructions.\n\nTask: inspect invoice total rounding",
+        registry,
+        client=client,
+        model="fake-model",
+        retrieval_query="invoice total rounding",
+    )
+
+    events = [
+        json.loads(line)
+        for line in trace.path.read_text(encoding="utf-8").splitlines()
+    ]
+    preflight = [
+        event for event in events
+        if event["event"] == "agent_retrieval_preflight"
+    ][0]
+    assert preflight["data"]["query"] == "invoice total rounding"
+
+
 def test_run_agent_can_disable_retrieval_preflight(tmp_path: Path) -> None:
     (tmp_path / "billing.py").write_text(
         "def invoice_total(items):\n"

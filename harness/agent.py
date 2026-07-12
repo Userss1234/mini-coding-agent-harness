@@ -36,6 +36,7 @@ def run_agent(
     client: Any | None = None,
     model: str | None = None,
     retrieval_preflight: bool = True,
+    retrieval_query: str | None = None,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
     if client is None:
@@ -53,7 +54,11 @@ def run_agent(
     system_prompt = _build_system_prompt(registry)
     evidence_terms: set[str] = set()
     registry.trace.log("agent_start", prompt=prompt, model=model)
-    preflight = _run_retrieval_preflight(prompt, registry, enabled=retrieval_preflight)
+    preflight = _run_retrieval_preflight(
+        retrieval_query or prompt,
+        registry,
+        enabled=retrieval_preflight,
+    )
     task_prompt = _with_planning_contract(prompt, registry, preflight)
     messages: list[dict[str, Any]] = [{"role": "user", "content": task_prompt}]
     if preflight:

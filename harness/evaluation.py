@@ -640,7 +640,12 @@ def run_agent_eval_task(
         memory_query=task.description,
     )
     prompt = build_agent_eval_prompt(task, support_prompt)
-    answer = run_agent(prompt, registry, max_turns=_agent_eval_max_turns())
+    answer = run_agent(
+        prompt,
+        registry,
+        max_turns=_agent_eval_max_turns(),
+        retrieval_query=f"{task.task_id}: {task.description}",
+    )
     registry.trace.log("eval_agent_answer", task=task.task_id, answer=answer)
     if answer.startswith("Error:"):
         return False

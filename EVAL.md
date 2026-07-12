@@ -1,6 +1,6 @@
 # Evaluation Report
 
-Generated: 2026-07-12T15:32:14
+Generated: 2026-07-12T16:08:10
 
 Workspace: `D:\-\hello-agent\mini-coding-agent-harness`
 
@@ -15,7 +15,7 @@ Workspace: `D:\-\hello-agent\mini-coding-agent-harness`
 - Passed: **36**
 - Success rate: **100.00%**
 - Average tool calls: **2.83**
-- Average duration: **2.40s**
+- Average duration: **2.05s**
 - Input tokens: **0**
 - Output tokens: **0**
 - Estimated model cost: **$0.000000**
@@ -26,9 +26,9 @@ Workspace: `D:\-\hello-agent\mini-coding-agent-harness`
 
 | Task | Category | Status | Tool Calls | Failed Tool Calls | Duration | Trace |
 |---|---|---|---:|---:|---:|---|
-| syntax_check | code_quality | pass | 1 | 0 | 0.71s | `artifacts\eval_runs\syntax_check.jsonl` |
-| pytest_suite | tests | pass | 1 | 0 | 51.10s | `artifacts\eval_runs\pytest_suite.jsonl` |
-| context_compaction | trace | pass | 3 | 0 | 0.01s | `artifacts\eval_runs\context_compaction.jsonl` |
+| syntax_check | code_quality | pass | 1 | 0 | 0.82s | `artifacts\eval_runs\syntax_check.jsonl` |
+| pytest_suite | tests | pass | 1 | 0 | 45.77s | `artifacts\eval_runs\pytest_suite.jsonl` |
+| context_compaction | trace | pass | 3 | 0 | 0.02s | `artifacts\eval_runs\context_compaction.jsonl` |
 | read_file_line_range | trace | pass | 1 | 0 | 0.00s | `artifacts\eval_runs\read_file_line_range.jsonl` |
 | context_pack_retrieval | trace | pass | 1 | 0 | 0.01s | `artifacts\eval_runs\context_pack_retrieval.jsonl` |
 | rag_symbol_retrieval | retrieval | pass | 1 | 0 | 0.01s | `artifacts\eval_runs\rag_symbol_retrieval.jsonl` |
@@ -42,26 +42,26 @@ Workspace: `D:\-\hello-agent\mini-coding-agent-harness`
 | semantic_retry_plan | recovery | pass | 2 | 1 | 0.01s | `artifacts\eval_runs\semantic_retry_plan.jsonl` |
 | memory_listing | memory | pass | 1 | 0 | 0.00s | `artifacts\eval_runs\memory_listing.jsonl` |
 | memory_relevance_ranking | memory | pass | 1 | 0 | 0.00s | `artifacts\eval_runs\memory_relevance_ranking.jsonl` |
-| python_bugfix | code_maintenance | pass | 4 | 1 | 1.83s | `artifacts\eval_runs\python_bugfix.jsonl` |
-| python_add_tests | code_maintenance | pass | 4 | 1 | 1.66s | `artifacts\eval_runs\python_add_tests.jsonl` |
+| python_bugfix | code_maintenance | pass | 4 | 1 | 1.55s | `artifacts\eval_runs\python_bugfix.jsonl` |
+| python_add_tests | code_maintenance | pass | 4 | 1 | 1.44s | `artifacts\eval_runs\python_add_tests.jsonl` |
 | readme_update | documentation | pass | 3 | 0 | 0.01s | `artifacts\eval_runs\readme_update.jsonl` |
-| python_import_fix | code_maintenance | pass | 4 | 1 | 1.84s | `artifacts\eval_runs\python_import_fix.jsonl` |
-| config_default_fix | configuration | pass | 4 | 1 | 1.86s | `artifacts\eval_runs\config_default_fix.jsonl` |
-| json_config_update | configuration | pass | 4 | 1 | 1.80s | `artifacts\eval_runs\json_config_update.jsonl` |
-| cli_validation_fix | code_maintenance | pass | 4 | 1 | 1.75s | `artifacts\eval_runs\cli_validation_fix.jsonl` |
-| env_default_fix | configuration | pass | 4 | 1 | 1.73s | `artifacts\eval_runs\env_default_fix.jsonl` |
-| csv_parser_fix | code_maintenance | pass | 4 | 1 | 4.36s | `artifacts\eval_runs\csv_parser_fix.jsonl` |
-| date_format_fix | code_maintenance | pass | 4 | 1 | 1.91s | `artifacts\eval_runs\date_format_fix.jsonl` |
-| pagination_off_by_one | code_maintenance | pass | 4 | 1 | 1.83s | `artifacts\eval_runs\pagination_off_by_one.jsonl` |
-| secret_redaction_fix | security | pass | 4 | 1 | 1.78s | `artifacts\eval_runs\secret_redaction_fix.jsonl` |
-| shell_no_shell_execution | security | pass | 1 | 0 | 0.11s | `artifacts\eval_runs\shell_no_shell_execution.jsonl` |
+| python_import_fix | code_maintenance | pass | 4 | 1 | 1.64s | `artifacts\eval_runs\python_import_fix.jsonl` |
+| config_default_fix | configuration | pass | 4 | 1 | 1.66s | `artifacts\eval_runs\config_default_fix.jsonl` |
+| json_config_update | configuration | pass | 4 | 1 | 1.63s | `artifacts\eval_runs\json_config_update.jsonl` |
+| cli_validation_fix | code_maintenance | pass | 4 | 1 | 1.62s | `artifacts\eval_runs\cli_validation_fix.jsonl` |
+| env_default_fix | configuration | pass | 4 | 1 | 1.59s | `artifacts\eval_runs\env_default_fix.jsonl` |
+| csv_parser_fix | code_maintenance | pass | 4 | 1 | 1.61s | `artifacts\eval_runs\csv_parser_fix.jsonl` |
+| date_format_fix | code_maintenance | pass | 4 | 1 | 1.59s | `artifacts\eval_runs\date_format_fix.jsonl` |
+| pagination_off_by_one | code_maintenance | pass | 4 | 1 | 1.60s | `artifacts\eval_runs\pagination_off_by_one.jsonl` |
+| secret_redaction_fix | security | pass | 4 | 1 | 1.56s | `artifacts\eval_runs\secret_redaction_fix.jsonl` |
+| shell_no_shell_execution | security | pass | 1 | 0 | 0.10s | `artifacts\eval_runs\shell_no_shell_execution.jsonl` |
 | permission_policy_report | security | pass | 1 | 0 | 0.00s | `artifacts\eval_runs\permission_policy_report.jsonl` |
-| path_normalization_fix | code_maintenance | pass | 4 | 1 | 1.92s | `artifacts\eval_runs\path_normalization_fix.jsonl` |
-| dependency_pin_update | configuration | pass | 4 | 1 | 2.23s | `artifacts\eval_runs\dependency_pin_update.jsonl` |
-| mutable_default_fix | code_maintenance | pass | 4 | 1 | 2.37s | `artifacts\eval_runs\mutable_default_fix.jsonl` |
-| multi_file_service_fix | multi_file | pass | 6 | 1 | 1.79s | `artifacts\eval_runs\multi_file_service_fix.jsonl` |
-| multi_file_api_contract_fix | multi_file | pass | 6 | 1 | 1.78s | `artifacts\eval_runs\multi_file_api_contract_fix.jsonl` |
-| package_order_total_fix | multi_file | pass | 6 | 1 | 1.77s | `artifacts\eval_runs\package_order_total_fix.jsonl` |
+| path_normalization_fix | code_maintenance | pass | 4 | 1 | 1.55s | `artifacts\eval_runs\path_normalization_fix.jsonl` |
+| dependency_pin_update | configuration | pass | 4 | 1 | 1.58s | `artifacts\eval_runs\dependency_pin_update.jsonl` |
+| mutable_default_fix | code_maintenance | pass | 4 | 1 | 1.56s | `artifacts\eval_runs\mutable_default_fix.jsonl` |
+| multi_file_service_fix | multi_file | pass | 6 | 1 | 1.57s | `artifacts\eval_runs\multi_file_service_fix.jsonl` |
+| multi_file_api_contract_fix | multi_file | pass | 6 | 1 | 1.58s | `artifacts\eval_runs\multi_file_api_contract_fix.jsonl` |
+| package_order_total_fix | multi_file | pass | 6 | 1 | 1.63s | `artifacts\eval_runs\package_order_total_fix.jsonl` |
 
 ## Notes
 

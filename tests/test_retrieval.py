@@ -23,6 +23,11 @@ def test_build_workspace_index_chunks_text_and_skips_sensitive_paths(tmp_path: P
         "\n".join(f"line {index}" for index in range(1, 8)),
         encoding="utf-8",
     )
+    (tmp_path / "skills").mkdir()
+    (tmp_path / "skills" / "workflow.md").write_text(
+        "invoice total workflow memory should stay out of workspace retrieval\n",
+        encoding="utf-8",
+    )
     (tmp_path / ".env").write_text("SECRET_TOKEN=hidden\n", encoding="utf-8")
     (tmp_path / "artifacts").mkdir()
     (tmp_path / "artifacts" / "trace.py").write_text("secret generated context\n", encoding="utf-8")
@@ -35,6 +40,7 @@ def test_build_workspace_index_chunks_text_and_skips_sensitive_paths(tmp_path: P
     assert index.chunks[0].start_line == 1
     assert index.chunks[1].start_line == 3
     indexed_text = "\n".join(chunk.text for chunk in index.chunks)
+    assert "workflow memory" not in indexed_text
     assert "SECRET_TOKEN" not in indexed_text
     assert "secret generated context" not in indexed_text
 
