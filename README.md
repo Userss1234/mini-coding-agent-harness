@@ -25,7 +25,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 ## Project Snapshot
 
-- **Scripted benchmark:** 31 deterministic repository-maintenance tasks, 31/31 passing in the committed snapshot.
+- **Scripted benchmark:** 34 deterministic repository-maintenance tasks, 34/34 passing in the committed snapshot.
 - **Real-agent eval:** DeepSeek `deepseek-chat` report over 10 representative tasks, 10/10 passing; expanded 20-task run, 20/20 passing.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
@@ -283,7 +283,7 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 
 ## Evaluation
 
-The current benchmark has **31 tasks** and is fully deterministic. It includes harness checks, an injected-client agent-loop simulation, isolated code-maintenance fixtures, line-range file reading, query-ranked context retrieval, static trace HTML rendering, no-shell command execution, permission policy reporting, multi-file contract fixes, semantic retry planning, memory relevance ranking, and a package-structured `src/` fixture.
+The current benchmark has **34 tasks** and is fully deterministic. It includes harness checks, an injected-client agent-loop simulation, isolated code-maintenance fixtures, line-range file reading, query-ranked context retrieval, local RAG symbol retrieval, sensitive-path retrieval filtering, MCP RAG search smoke validation, static trace HTML rendering, no-shell command execution, permission policy reporting, multi-file contract fixes, semantic retry planning, memory relevance ranking, and a package-structured `src/` fixture.
 
 Task coverage:
 
@@ -293,6 +293,9 @@ Task coverage:
 - Context compaction
 - Line-range file reading
 - Query-ranked context pack retrieval
+- Local RAG symbol retrieval across distractor files
+- Sensitive-path filtering for RAG indexing/search
+- MCP `rag_search` smoke validation
 - Static HTML trace report generation
 - Error recovery
 - Semantic retry planning
@@ -348,9 +351,9 @@ Use `--retrieval on|off` to expose or hide retrieval tools such as `context_pack
 Use `--compare-retrieval` to generate a two-row retrieval-on/retrieval-off comparison report under the same memory/context settings.
 Comparison reports include average `context_pack` and `read_file` calls so retrieval changes can be inspected beyond pass rate.
 
-Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `security`, `tests`, and `trace`.
+Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 31-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths, and ranks chunks with local lexical scoring rather than embeddings. A committed DeepSeek `deepseek-chat` report currently covers 10 representative agent-mode tasks with 10/10 passing, plus a 2-task memory/context ablation with all four configurations passing. A committed retrieval ablation on `context_pack_retrieval` shows retrieval-on passing with a real `context_pack` call and retrieval-off failing without the tool exposed. Full 31-task real API comparison data still needs larger runs and analysis before claiming broad autonomous benchmark performance.
+Current honest status: this is a 34-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths, and ranks chunks with local lexical scoring rather than embeddings. The scripted benchmark now includes dedicated RAG tasks for symbol retrieval, sensitive-path filtering, and MCP `rag_search` protocol exposure. A committed DeepSeek `deepseek-chat` report currently covers 10 representative agent-mode tasks with 10/10 passing, plus a 2-task memory/context ablation with all four configurations passing. A committed retrieval ablation on `context_pack_retrieval` shows retrieval-on passing with a real `context_pack` call and retrieval-off failing without the tool exposed. Full 34-task real API comparison data still needs larger runs and analysis before claiming broad autonomous benchmark performance.
 
 ## Git Baseline
 
@@ -375,7 +378,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Run and tune real API-backed `eval --mode agent` against the 31 tasks, then compare it with scripted mode.
+1. Run and tune real API-backed `eval --mode agent` against the 34 tasks, then compare it with scripted mode.
 2. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.

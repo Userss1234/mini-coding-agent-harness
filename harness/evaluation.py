@@ -370,6 +370,30 @@ def default_tasks() -> list[EvalTask]:
             run_context_pack_retrieval_task,
         ),
         EvalTask(
+            "rag_symbol_retrieval",
+            "retrieval",
+            "Use rag_search to retrieve the correct symbol chunk across distractor files.",
+            run_rag_symbol_retrieval_task,
+            setup_rag_symbol_retrieval_fixture,
+            run_rag_symbol_retrieval_task,
+        ),
+        EvalTask(
+            "rag_sensitive_path_filter",
+            "retrieval",
+            "Verify rag_search indexes useful source files while excluding .env and generated artifacts.",
+            run_rag_sensitive_path_filter_task,
+            setup_rag_sensitive_path_filter_fixture,
+            run_rag_sensitive_path_filter_task,
+        ),
+        EvalTask(
+            "mcp_rag_search_smoke",
+            "retrieval",
+            "Call rag_search through the MCP tools/call protocol and validate structured results.",
+            run_mcp_rag_search_smoke_task,
+            setup_mcp_rag_search_smoke_fixture,
+            run_mcp_rag_search_smoke_task,
+        ),
+        EvalTask(
             "trace_html_report",
             "trace",
             "Render a JSONL trace as a static HTML report.",
@@ -778,6 +802,125 @@ def run_context_pack_retrieval_task(registry: ToolRegistry) -> bool:
         and metadata.get("count") == 1
         and first_path.endswith("billing/invoice.py")
         and "invoice_total" in result.output
+    )
+
+
+def setup_rag_symbol_retrieval_fixture(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "billing").mkdir(parents=True, exist_ok=True)
+    (workspace / "billing" / "invoice.py").write_text(
+        "class InvoiceCalculator:\n"
+        "    def invoice_total(self, items):\n"
+        "        subtotal = sum(item.price for item in items)\n"
+        "        return round(subtotal, 2)\n",
+        encoding="utf-8",
+    )
+    (workspace / "docs").mkdir(parents=True, exist_ok=True)
+    (workspace / "docs" / "invoice.md").write_text(
+        "# Invoice Notes\n\n"
+        "Customer invoice wording and billing emails mention total amounts.\n",
+        encoding="utf-8",
+    )
+    (workspace / "shipping.py").write_text(
+        "def shipping_total(items):\n"
+        "    return sum(item.weight for item in items)\n",
+        encoding="utf-8",
+    )
+
+
+def run_rag_symbol_retrieval_task(registry: ToolRegistry) -> bool:
+    result = registry.call(
+        "rag_search",
+        query="invoice total rounding",
+        glob="*.py,*.md",
+        limit=2,
+        chunk_lines=20,
+    )
+    metadata = result.metadata or {}
+    matches = metadata.get("matches", [])
+    first = matches[0] if matches else {}
+    return (
+        result.ok
+        and metadata.get("count") >= 1
+        and str(first.get("path", "")).endswith("billing/invoice.py")
+        and int(first.get("start_line", 0)) == 1
+        and "invoice_total" in result.output
+        and metadata.get("retrieval") == "local_chunk_lexical_scoring"
+    )
+
+
+def setup_rag_sensitive_path_filter_fixture(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "service.py").write_text(
+        "def public_context():\n"
+        "    return 'stable public retrieval context'\n",
+        encoding="utf-8",
+    )
+    (workspace / ".env").write_text("SECRET_CONTEXT=hidden\n", encoding="utf-8")
+    (workspace / "artifacts").mkdir(parents=True, exist_ok=True)
+    (workspace / "artifacts" / "generated.py").write_text(
+        "def generated_context():\n"
+        "    return 'secret generated retrieval context'\n",
+        encoding="utf-8",
+    )
+
+
+def run_rag_sensitive_path_filter_task(registry: ToolRegistry) -> bool:
+    index = registry.call("index_workspace", glob="*.py,*", chunk_lines=20)
+    search = registry.call("rag_search", query="public retrieval context", glob="*.py,*", limit=5, chunk_lines=20)
+    index_metadata = index.metadata or {}
+    search_metadata = search.metadata or {}
+    paths = [str(item.get("path", "")) for item in search_metadata.get("matches", [])]
+    combined_output = index.output + "\n" + search.output
+    return (
+        index.ok
+        and search.ok
+        and int(index_metadata.get("files_indexed", 0)) >= 1
+        and ".env" in (index_metadata.get("ignored_names") or [])
+        and "artifacts" in (index_metadata.get("ignored_parts") or [])
+        and "service.py" in paths
+        and ".env" not in paths
+        and all(not path.startswith("artifacts/") for path in paths)
+        and "SECRET_CONTEXT" not in combined_output
+        and "secret generated retrieval context" not in combined_output
+    )
+
+
+def setup_mcp_rag_search_smoke_fixture(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    (workspace / "orders.py").write_text(
+        "def order_total(lines):\n"
+        "    return round(sum(line.price for line in lines), 2)\n",
+        encoding="utf-8",
+    )
+    (workspace / "notes.md").write_text(
+        "Order status notes that should not outrank the order_total function.\n",
+        encoding="utf-8",
+    )
+
+
+def run_mcp_rag_search_smoke_task(registry: ToolRegistry) -> bool:
+    from .mcp_server import build_mcp_server
+
+    server = build_mcp_server(registry.workspace, registry.workspace / "mcp_rag_trace.jsonl", fresh_trace=True)
+    response = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": "rag_search",
+            "arguments": {"query": "order total rounding", "glob": "*.py,*.md", "limit": 1},
+        },
+    })
+    result = response.get("result", {}) if isinstance(response, dict) else {}
+    metadata = (result.get("structuredContent") or {}).get("metadata") or {}
+    matches = metadata.get("matches", [])
+    first = matches[0] if matches else {}
+    return (
+        result.get("isError") is False
+        and (result.get("structuredContent") or {}).get("ok") is True
+        and str(first.get("path", "")).endswith("orders.py")
+        and "order_total" in str((result.get("content") or [{}])[0].get("text", ""))
     )
 
 
