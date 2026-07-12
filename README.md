@@ -46,6 +46,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 Show these committed artifacts while explaining the system:
 
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md): 2-3 minute interview talk track.
+- [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md): evidence-backed resume bullet options.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): 20-task model-backed coding-agent evaluation result.
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing the 18/20 to 20/20 improvement.

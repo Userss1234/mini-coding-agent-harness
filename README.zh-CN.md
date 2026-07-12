@@ -46,6 +46,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 讲解时重点打开这些已提交产物：
 
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md)：2-3 分钟面试讲解稿。
+- [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md)：有证据对应的英文简历 bullet 选项。
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md)：本地确定性 bugfix 的工具循环证据。
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)：20 任务真实模型 coding-agent 评估结果。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。

@@ -3,6 +3,7 @@
 This directory contains committed portfolio artifacts that can be reviewed without rerunning the model.
 
 - `PORTFOLIO_WALKTHROUGH.md`: short interview talk track tying the demo, eval, failure-analysis, and MCP artifacts together.
+- `RESUME_BULLETS.md`: evidence-backed resume bullet options with claim-to-file mapping.
 
 ## Local Demo
 
