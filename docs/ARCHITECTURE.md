@@ -146,4 +146,4 @@ MCP exposes selected project documents and reports, including evaluation history
 - Permission checks are harness-level, not OS-level sandboxing.
 - Retrieval is lexical, not embedding-based.
 - MCP is stdio-only.
-- The committed full-suite real-agent results now include two same-model DeepSeek runs: one 36/36 run and one 35/36 run. `eval-stability` records `error_recovery` as the observed variance case.
+- The committed full-suite real-agent results now include three same-model DeepSeek runs: 36/36, 35/36, and post-fix 36/36. `eval-stability` records `error_recovery` as the historical variance case.

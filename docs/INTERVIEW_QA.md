@@ -137,7 +137,7 @@ Evidence:
 
 ## 14. What did the benchmark validate?
 
-The committed benchmark has 36 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, and multi-file repairs. The first full real-agent DeepSeek run passed 36/36, and the second same-model run passed 35/36.
+The committed benchmark has 36 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, and multi-file repairs. The full real-agent DeepSeek runs passed 36/36, then 35/36, then post-fix 36/36.
 
 Evidence:
 
@@ -146,6 +146,8 @@ Evidence:
 - `reports/AGENT_EVAL_36_TASKS.json`
 - `reports/AGENT_EVAL_36_TASKS_RUN2.md`
 - `reports/AGENT_EVAL_36_TASKS_RUN2.json`
+- `reports/AGENT_EVAL_36_TASKS_RUN3.md`
+- `reports/AGENT_EVAL_36_TASKS_RUN3.json`
 
 ## 15. How do you know improvements were real?
 
@@ -160,7 +162,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs showed one unstable task, `error_recovery`; a targeted prompt fix now passes that task, but a post-fix full-suite rerun is still needed to measure suite-level stability again.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs showed one historical unstable task, `error_recovery`; a targeted prompt fix and a post-fix full-suite run now pass that path, but more repeated runs would still be needed for a stronger variance estimate.
 
 Evidence:
 
@@ -169,7 +171,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The next best improvement is a post-fix same-model 36-task rerun to refresh `eval-stability`. After that, improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
+The next best improvement is to improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
 
 Evidence:
 
