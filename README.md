@@ -26,7 +26,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Scripted benchmark:** 36 deterministic repository-maintenance tasks, 36/36 passing in the committed snapshot.
-- **Real-agent eval:** DeepSeek `deepseek-chat` report over the full 36-task benchmark, 36/36 passing with memory, context compaction, and retrieval enabled.
+- **Real-agent eval:** DeepSeek `deepseek-chat` reports over the full 36-task benchmark: run 1 passed 36/36, run 2 passed 35/36 with one unstable `error_recovery` task.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
 - **Reports:** Start with [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
@@ -40,7 +40,7 @@ python main.py demo --task python_bugfix
 python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
-python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --output reports/EVAL_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -52,10 +52,11 @@ Show these committed artifacts while explaining the system:
 - [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md): source-backed interview questions and answers.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
 - [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
+- [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md): second same-model 36-task run used for repeated-run stability.
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): earlier 20-task model-backed coding-agent evaluation result.
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing 18/20 to 20/20 to 36/36.
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md): failure-mode dashboard showing resolved agent failure patterns.
-- [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md): repeated-run stability baseline for the 36-task suite.
+- [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md): repeated-run stability report comparing the two same-model 36-task runs.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
 ## What It Does
@@ -170,7 +171,7 @@ python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
-python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --output reports/EVAL_STABILITY.md
 ```
 
 Local demo flow:
@@ -236,7 +237,7 @@ Eval analysis example:
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
-python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --output reports/EVAL_STABILITY.md
 ```
 
 ## Reports
@@ -369,7 +370,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 36-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, and injected-client validation of retrieval preflight. A committed DeepSeek `deepseek-chat` report now covers the full 36-task agent-mode benchmark with 36/36 passing, and the history/failure dashboards track the earlier 18/20 and 20/20 runs.
+Current honest status: this is a 36-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, and injected-client validation of retrieval preflight. Committed DeepSeek `deepseek-chat` full-suite runs now show 36/36 on the first run and 35/36 on the second run; `eval-stability` records `error_recovery` as the repeated-run variance case, while the history/failure dashboards track the earlier 18/20 and 20/20 runs.
 
 ## Git Baseline
 
@@ -383,7 +384,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Current Limitations
 
-- The committed real-agent report covers one DeepSeek `deepseek-chat` 36-task run; `eval-stability` now records the single-run baseline, but a second same-suite run is still needed to measure real variance.
+- The committed same-model 36-task real-agent runs show one unstable task (`error_recovery`) across two runs; more repeated runs would be needed to estimate variance more precisely.
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
@@ -394,7 +395,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Add a second same-suite DeepSeek `deepseek-chat` 36-task run and append it to `reports/EVAL_STABILITY.md` to measure variance.
+1. Investigate the unstable `error_recovery` task and tighten the agent prompt or verifier so the model triggers the intended edit failure before exploring unrelated shell/path probes.
 2. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
 3. Add retrieval-off and memory/context ablations for the full 36-task agent suite.
 4. Add optional MCP HTTP/SSE transport and richer resource subscriptions.

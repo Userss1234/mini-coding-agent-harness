@@ -137,13 +137,15 @@ Evidence:
 
 ## 14. What did the benchmark validate?
 
-The committed benchmark has 36 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, and multi-file repairs. The full real-agent DeepSeek run passed 36/36.
+The committed benchmark has 36 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, and multi-file repairs. The first full real-agent DeepSeek run passed 36/36, and the second same-model run passed 35/36.
 
 Evidence:
 
 - `harness/evaluation.py`
 - `reports/AGENT_EVAL_36_TASKS.md`
 - `reports/AGENT_EVAL_36_TASKS.json`
+- `reports/AGENT_EVAL_36_TASKS_RUN2.md`
+- `reports/AGENT_EVAL_36_TASKS_RUN2.json`
 
 ## 15. How do you know improvements were real?
 
@@ -158,7 +160,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The 36/36 real-agent result is currently a single committed full-suite run, so repeated-run variance still needs a second same-suite run.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs show one unstable task, `error_recovery`, so the project should describe real-agent performance as strong but not perfectly deterministic.
 
 Evidence:
 
@@ -167,7 +169,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The next best improvement is a second same-model 36-task run to measure repeated-run variance with `eval-stability`. After that, improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
+The next best improvement is to investigate the unstable `error_recovery` run and tighten the prompt or verifier around intentional edit-failure classification. After that, improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
 
 Evidence:
 
@@ -185,4 +187,3 @@ Evidence:
 - `reports/RESUME_BULLETS.md`
 - `reports/AGENT_EVAL_36_TASKS.md`
 - `reports/MCP_SMOKE.md`
-

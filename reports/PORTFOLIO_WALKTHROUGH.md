@@ -15,7 +15,7 @@ python main.py demo --task python_bugfix
 python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
-python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --output reports/EVAL_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -37,7 +37,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
    Explain that the same harness is exposed through a minimal MCP stdio server. It lists tools, resources, and prompts, including report resources such as `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`.
 
 6. Open `reports/EVAL_STABILITY.md`.
-   Explain that the current 36/36 result is a committed single-run baseline, and the next same-model run can be appended to quantify repeated-run variance without needing another provider API.
+   Explain that the repeated same-model runs quantify variance without needing another provider API: run 1 passed 36/36, run 2 passed 35/36, and `error_recovery` is the observed unstable task.
 
 ## Key Architecture Points
 

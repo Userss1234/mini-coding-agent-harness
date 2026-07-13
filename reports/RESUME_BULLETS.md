@@ -10,8 +10,8 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Built a deterministic 36-task code-maintenance benchmark covering Python bug fixes, test generation, config updates, security checks, multi-file contract repairs, local RAG retrieval planning, agent-loop retrieve-then-read preflight, memory ranking, and MCP smoke validation; integrated it into GitHub Actions CI.
   Evidence: `README.md`, `.github/workflows/ci.yml`, `reports/MCP_SMOKE.md`.
 
-- Ran and analyzed DeepSeek `deepseek-chat` real-agent evaluations, improving an initial 20-task pass rate from 18/20 to 20/20 and validating the expanded 36-task suite at 36/36 while tracking tool calls, duration, token usage, cost, and failure patterns.
-  Evidence: `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_20_TASKS.md`, `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/AGENT_EVAL_36_TASKS.json`.
+- Ran and analyzed DeepSeek `deepseek-chat` real-agent evaluations, improving an initial 20-task pass rate from 18/20 to 20/20, validating one expanded 36-task run at 36/36, and measuring repeated-run variance with a second 35/36 same-model run.
+  Evidence: `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_20_TASKS.md`, `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
 
 - Added evaluation-analysis CLIs (`analyze-eval`, `eval-history`, `eval-failures`, `eval-stability`) that convert JSON eval outputs into comparison, trend, failure-mode, and repeated-run stability dashboards for debugging agent behavior beyond pass rate.
   Evidence: `README.md`, `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
@@ -29,7 +29,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | --- | --- |
 | Agent loop and local demo | `reports/DEMO_python_bugfix.md`, `reports/DEMO_python_bugfix_TRACE.html`, `harness/agent.py`, `harness/tools.py` |
 | Deterministic benchmark and CI | `README.md`, `.github/workflows/ci.yml`, `harness/evaluation.py`, `tests/test_evaluation.py` |
-| Real-agent evaluation | `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS.json`, `reports/AGENT_EVAL_20_TASKS.md`, `reports/AGENT_EVAL_20_TASKS_BEFORE.json` |
+| Real-agent evaluation | `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS.json`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.json`, `reports/AGENT_EVAL_20_TASKS.md`, `reports/AGENT_EVAL_20_TASKS_BEFORE.json` |
 | Prompt-contract improvement | `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md` |
 | Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
