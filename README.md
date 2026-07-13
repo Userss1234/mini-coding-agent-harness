@@ -27,6 +27,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 - **Scripted benchmark:** 36 deterministic repository-maintenance tasks, 36/36 passing in the committed snapshot.
 - **Real-agent eval:** DeepSeek `deepseek-chat` reports over the full 36-task benchmark: run 1 passed 36/36, run 2 passed 35/36 with one unstable `error_recovery` task.
+- **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted DeepSeek agent validation now passes 1/1 with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
 - **Reports:** Start with [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
@@ -53,6 +54,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
 - [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
 - [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md): second same-model 36-task run used for repeated-run stability.
+- [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md): targeted model-backed validation for the recovered `error_recovery` task.
 - [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md): earlier 20-task model-backed coding-agent evaluation result.
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md): trend view showing 18/20 to 20/20 to 36/36.
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md): failure-mode dashboard showing resolved agent failure patterns.
@@ -384,7 +386,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Current Limitations
 
-- The committed same-model 36-task real-agent runs show one unstable task (`error_recovery`) across two runs; more repeated runs would be needed to estimate variance more precisely.
+- The committed same-model 36-task real-agent runs show one historical unstable task (`error_recovery`) across two runs; the task now has a targeted model-backed fix report, but another full-suite repeat is needed to measure post-fix suite stability.
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
@@ -395,7 +397,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Investigate the unstable `error_recovery` task and tighten the agent prompt or verifier so the model triggers the intended edit failure before exploring unrelated shell/path probes.
+1. Rerun the full 36-task same-model suite after the `error_recovery` prompt fix and refresh `reports/EVAL_STABILITY.md`.
 2. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
 3. Add retrieval-off and memory/context ablations for the full 36-task agent suite.
 4. Add optional MCP HTTP/SSE transport and richer resource subscriptions.

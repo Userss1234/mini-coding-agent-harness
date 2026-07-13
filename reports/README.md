@@ -23,6 +23,8 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `AGENT_EVAL_36_TASKS.json`: machine-readable JSON copy of the full 36-task agent-mode evaluation report.
 - `AGENT_EVAL_36_TASKS_RUN2.md`: second same-model full 36-task DeepSeek `deepseek-chat` agent-mode evaluation report, 35/36 passing.
 - `AGENT_EVAL_36_TASKS_RUN2.json`: machine-readable JSON copy of the second same-model full 36-task agent-mode evaluation report.
+- `ERROR_RECOVERY_AGENT_FIX.md`: targeted DeepSeek `deepseek-chat` agent-mode validation for the prompt fix that keeps `error_recovery` on the intended edit-failure recovery path.
+- `ERROR_RECOVERY_AGENT_FIX.json`: machine-readable JSON copy of the targeted `error_recovery` fix validation.
 - `AGENT_EVAL_20_TASKS_BEFORE.json`: machine-readable JSON copy of the 18/20 baseline run before the prompt-contract improvement.
 - `AGENT_EVAL_20_TASKS.json`: machine-readable JSON copy of the expanded 20-task agent-mode evaluation report.
 - `AGENT_EVAL_PROMPT_IMPROVEMENT.md`: `analyze-eval` generated comparison of the 18/20 run and the prompt-contract improvement that reached 20/20.

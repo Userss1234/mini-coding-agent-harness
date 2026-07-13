@@ -429,7 +429,7 @@ def default_tasks() -> list[EvalTask]:
         EvalTask(
             "error_recovery",
             "recovery",
-            "Trigger an edit failure and classify it with recover_errors.",
+            "Call edit_file on sample.txt with old_text=\"old\" so the repeated text fails, then classify the failure with recover_errors.",
             run_error_recovery_task,
             setup_error_recovery_fixture,
             verify_error_recovery_task,
@@ -689,6 +689,13 @@ def build_agent_eval_prompt(task: EvalTask, support_prompt: str) -> str:
             "For this recovery task, call `edit_file` on `sample.txt` with `old_text=\"old\"` first; "
             "the snippet appears more than once, so the failure should be classified as `edit_match_failed`. "
             "Then call `retry_plan` and finish with the ordered plan."
+        )
+    if task.task_id == "error_recovery":
+        task_hints.append(
+            "For this recovery task, do not explore with shell, Git, list_python_files, or path probes. "
+            "First call `edit_file` on `sample.txt` with `old_text=\"old\"` and `new_text=\"new\"`; "
+            "the snippet appears more than once, so the edit must fail as `edit_match_failed`. "
+            "Then call `recover_errors` and finish once the recovery report includes `edit_match_failed`."
         )
     if task.category in {"code_maintenance", "configuration", "multi_file", "security"}:
         task_hints.append(

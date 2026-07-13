@@ -1,0 +1,64 @@
+{
+  "workspace": "D:\\-\\hello-agent\\mini-coding-agent-harness",
+  "summary": {
+    "label": "selected",
+    "mode": "agent",
+    "memory_enabled": true,
+    "context_enabled": true,
+    "retrieval_enabled": true,
+    "task_count": 1,
+    "passed": 1,
+    "success_rate": 1.0,
+    "average_tool_calls": 9.0,
+    "average_retrieve_then_read_calls": 1.0,
+    "average_context_pack_calls": 0.0,
+    "average_read_file_calls": 1.0,
+    "average_duration": 84.04025159962475,
+    "total_input_tokens": 22540,
+    "total_output_tokens": 804,
+    "estimated_cost_usd": 0.07968,
+    "tool_counts": {
+      "edit_file": 1,
+      "list_memories": 1,
+      "read_file": 1,
+      "recover_errors": 1,
+      "retrieve_then_read": 1,
+      "retry_plan": 1,
+      "todo_write": 3
+    },
+    "failure_categories": [
+      "edit_match_failed"
+    ]
+  },
+  "tasks": [
+    {
+      "task_id": "error_recovery",
+      "category": "recovery",
+      "description": "Call edit_file on sample.txt with old_text=\"old\" so the repeated text fails, then classify the failure with recover_errors.",
+      "mode": "agent",
+      "memory_enabled": true,
+      "context_enabled": true,
+      "retrieval_enabled": true,
+      "success": true,
+      "duration_seconds": 84.04025159962475,
+      "tool_calls": 9,
+      "failed_tool_calls": 1,
+      "tool_counts": {
+        "list_memories": 1,
+        "retrieve_then_read": 1,
+        "todo_write": 3,
+        "read_file": 1,
+        "edit_file": 1,
+        "retry_plan": 1,
+        "recover_errors": 1
+      },
+      "input_tokens": 22540,
+      "output_tokens": 804,
+      "estimated_cost_usd": 0.07968,
+      "failure_categories": [
+        "edit_match_failed"
+      ],
+      "trace_path": "artifacts\\error_recovery_agent_fix_runs\\agent\\error_recovery.jsonl"
+    }
+  ]
+}

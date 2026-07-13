@@ -240,6 +240,22 @@ def test_build_agent_eval_prompt_guides_retry_plan_failure() -> None:
     assert "Then call `retry_plan`" in prompt
 
 
+def test_build_agent_eval_prompt_guides_error_recovery_directly() -> None:
+    task = EvalTask(
+        "error_recovery",
+        "recovery",
+        "Call edit_file on sample.txt with old_text=\"old\" so the repeated text fails, then classify the failure with recover_errors.",
+        lambda registry: True,
+    )
+
+    prompt = build_agent_eval_prompt(task, "Support details.")
+
+    assert "do not explore with shell, Git, list_python_files, or path probes" in prompt
+    assert "First call `edit_file` on `sample.txt` with `old_text=\"old\"` and `new_text=\"new\"`" in prompt
+    assert "the edit must fail as `edit_match_failed`" in prompt
+    assert "Then call `recover_errors`" in prompt
+
+
 def test_pytest_ignores_generated_artifacts() -> None:
     pytest_ini = Path(__file__).parents[1] / "pytest.ini"
     text = pytest_ini.read_text(encoding="utf-8")

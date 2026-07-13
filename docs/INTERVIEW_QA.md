@@ -160,7 +160,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs show one unstable task, `error_recovery`, so the project should describe real-agent performance as strong but not perfectly deterministic.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs showed one unstable task, `error_recovery`; a targeted prompt fix now passes that task, but a post-fix full-suite rerun is still needed to measure suite-level stability again.
 
 Evidence:
 
@@ -169,7 +169,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The next best improvement is to investigate the unstable `error_recovery` run and tighten the prompt or verifier around intentional edit-failure classification. After that, improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
+The next best improvement is a post-fix same-model 36-task rerun to refresh `eval-stability`. After that, improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
 
 Evidence:
 
