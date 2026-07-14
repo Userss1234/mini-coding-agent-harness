@@ -26,10 +26,11 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## 项目快照
 
 - **Scripted benchmark：**36 个确定性代码仓库维护任务，当前提交快照 36/36 通过。
-- **真实 Agent eval：**DeepSeek `deepseek-chat` 运行 10 个代表任务，10/10 通过；扩展 20 任务评估 20/20 通过。
+- **真实 Agent eval：**DeepSeek `deepseek-chat` 已完成三次同模型 36-task 全量运行：run 1 为 36/36，run 2 为 35/36 且暴露 `error_recovery` 波动，修复后 run 3 回到 36/36。
+- **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
 - **Ablation：**已提交 2 任务 memory/context 对比，以及 `context_pack_retrieval` 的 retrieval-on/off 对比。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)、[`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md)、[`reports/AGENT_EVAL_10_TASKS.md`](reports/AGENT_EVAL_10_TASKS.md)、[`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md) 和 [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md)、[`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md)、[`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)、[`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)、[`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md) 和 [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md)。
 
 ## Portfolio Walkthrough
 
@@ -40,6 +41,7 @@ python main.py demo --task python_bugfix
 python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
+python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -48,7 +50,11 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md)：2-3 分钟面试讲解稿。
 - [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md)：有证据对应的英文简历 bullet 选项。
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md)：本地确定性 bugfix 的工具循环证据。
-- [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md)：20 任务真实模型 coding-agent 评估结果。
+- [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md)：第一次 36-task 真实模型全量评估，36/36 通过。
+- [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md)：第二次同模型全量评估，35/36 通过并暴露 `error_recovery` 波动。
+- [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)：修复后的第三次同模型全量评估，36/36 通过。
+- [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)：三次 36-task 运行的重复运行稳定性分析。
+- [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md)：展示 tools、resources 和 prompts 的 MCP 协议 transcript。
@@ -241,7 +247,11 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `artifacts/AGENT_TRACE_<task>.html` 可以由任意单任务 agent trace 通过 `trace-report` 生成。
 - `reports/DEMO_python_bugfix.md` 和 `reports/DEMO_python_bugfix_TRACE.html` 是已提交的本地 demo 展示文件。
 - `reports/PORTFOLIO_WALKTHROUGH.md` 是一份短面试讲稿，把 demo、eval、失败分析和 MCP 报告串起来。
-- `reports/AGENT_EVAL.md` 是已提交的 DeepSeek `deepseek-chat` 真实 agent 报告，覆盖 10 个代表性 agent-mode 任务。
+- `reports/AGENT_EVAL_36_TASKS.md` 是已提交的 DeepSeek `deepseek-chat` 第一次 36-task 全量真实 agent 报告，36/36 通过。
+- `reports/AGENT_EVAL_36_TASKS_RUN2.md` 是第二次同模型 36-task 全量真实 agent 报告，35/36 通过，并暴露 `error_recovery` 波动。
+- `reports/AGENT_EVAL_36_TASKS_RUN3.md` 是修复后的第三次同模型 36-task 全量真实 agent 报告，36/36 通过。
+- `reports/ERROR_RECOVERY_AGENT_FIX.md` 是 `error_recovery` prompt 修复后的定向真实 agent 验证报告。
+- `reports/EVAL_STABILITY.md` 是三次同模型 36-task 运行的重复运行稳定性报告。
 - `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md` 可由 `python main.py analyze-eval` 生成，用于对比两份 JSON eval 报告并分类失败任务模式。
 - `reports/EVAL_HISTORY.md` 可由 `python main.py eval-history` 生成，用于跟踪多次 eval 的指标趋势和任务结果变化。
 - `reports/FAILURE_MODES.md` 可由 `python main.py eval-failures` 生成，用于按失败模式聚合失败任务。
@@ -360,7 +370,7 @@ memory-off_context-off
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 36 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation 报告、注入式 agent-loop smoke test、静态 trace HTML 渲染、无 shell 命令执行、权限策略报告、CI validation，以及 DeepSeek/OpenAI-compatible 的真实 API agent 入口。检索层会对安全的 workspace 文本文件做 chunk，跳过敏感/生成路径和 `skills/` 下的 workflow memory，用本地 lexical scoring 排序，而不是 embeddings，能把 top matches 转成具体 `read_file` 计划，并能按计划装载行区间 evidence pack。agent loop 现在会在 retrieval 开启时，在第一轮模型调用前预加载这份 `retrieve_then_read` evidence pack。scripted benchmark 包含专门的 RAG 任务，用来验证 symbol retrieval、read-plan generation、retrieve-then-read evidence loading、敏感路径过滤、MCP `rag_search` 协议暴露，以及注入式 fake client 对 retrieval preflight 的验证。当前已提交一份 DeepSeek `deepseek-chat` 真实 agent 报告，覆盖 10 个代表性 agent-mode 任务且 10/10 通过；同时提交了 2 个任务的 memory/context ablation，四种配置都通过。已提交的 `context_pack_retrieval` retrieval ablation 显示：retrieval-on 会真实调用 `context_pack` 并通过，retrieval-off 在工具不暴露时失败。完整 36 任务真实 API 对比数据还需要更大规模运行和分析后再作为广义 autonomous benchmark 成果声明。
+当前诚实状态：这是一个 36 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation 报告、注入式 agent-loop smoke test、静态 trace HTML 渲染、无 shell 命令执行、权限策略报告、CI validation，以及 DeepSeek/OpenAI-compatible 的真实 API agent 入口。检索层会对安全的 workspace 文本文件做 chunk，跳过敏感/生成路径和 `skills/` 下的 workflow memory，用本地 lexical scoring 排序，而不是 embeddings，能把 top matches 转成具体 `read_file` 计划，并能按计划装载行区间 evidence pack。agent loop 现在会在 retrieval 开启时，在第一轮模型调用前预加载这份 `retrieve_then_read` evidence pack。scripted benchmark 包含专门的 RAG 任务，用来验证 symbol retrieval、read-plan generation、retrieve-then-read evidence loading、敏感路径过滤、MCP `rag_search` 协议暴露，以及注入式 fake client 对 retrieval preflight 的验证。当前已提交 DeepSeek `deepseek-chat` 三次同模型 36-task 全量真实 agent 报告：第一次 36/36，第二次 35/36 并暴露 `error_recovery` 波动，修复后第三次回到 36/36；`eval-stability` 将 `error_recovery` 记录为历史重复运行波动点，history/failure dashboards 也保留了早期 18/20 到 20/20 的 prompt-contract 改进轨迹。
 
 ## Git Baseline
 
@@ -374,7 +384,7 @@ git diff -- .
 
 ## 当前限制
 
-- 稳定 benchmark 快照仍然是 scripted，并包含带 retrieval preflight 的注入式 agent-loop smoke test；真实 API 驱动的模型评估已支持入口，并有 10 任务报告、2 任务 memory/context ablation 和一个聚焦 retrieval-on/off ablation，但还需要完整任务集对比运行和更广泛的 retrieval 调优。
+- 已提交的同模型 36-task 真实 agent 运行记录包含一个历史波动任务（`error_recovery`）：三次结果为 36/36、35/36、修复后 36/36；若要做更强的稳定性结论，还需要更多重复运行和更多模型/provider 对比。
 - workflow memory 可以按 query 排序并注入 agent 评估提示，但排序仍然是词法匹配，还不是 embedding 检索。
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。
 - retry/backoff 已能处理临时性模型/API 失败和非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
@@ -384,8 +394,8 @@ git diff -- .
 
 ## 下一步
 
-1. 在开启 retrieval preflight 的情况下，针对 36 个任务运行并调优真实 API 驱动的 `eval --mode agent`，再和 scripted 模式、retrieval-off 运行对比。
-2. 增加更真实的仓库 fixture，覆盖嵌套 package、跨文件测试和依赖/配置交互。
+1. 增加更真实的仓库 fixture，覆盖嵌套 package、跨文件测试和依赖/配置交互。
+2. 扩展 full-suite ablation：对 36 个任务分别运行 memory/context/retrieval-on/off 对比，而不只保留小样本消融。
 3. 增加可选 MCP HTTP/SSE transport 和更完整的 resource subscriptions。
 4. 为 shell execution 增加可选 OS 级沙箱。
 5. 跟踪自动注入 retry_plan 是否能提升 `eval --mode agent` 成功率并降低工具调用次数。
