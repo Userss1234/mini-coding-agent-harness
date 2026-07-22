@@ -45,7 +45,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
-讲解时重点打开这些已提交产物：
+已提交产物：
 
 - [`reports/PORTFOLIO_WALKTHROUGH.md`](reports/PORTFOLIO_WALKTHROUGH.md)：2-3 分钟面试讲解稿。
 - [`reports/RESUME_BULLETS.md`](reports/RESUME_BULLETS.md)：有证据对应的英文简历 bullet 选项。
