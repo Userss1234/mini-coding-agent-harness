@@ -34,7 +34,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 ## Portfolio Walkthrough
 
-面试展示时可以按这条路线讲项目：
+项目：
 
 ```powershell
 python main.py demo --task python_bugfix
