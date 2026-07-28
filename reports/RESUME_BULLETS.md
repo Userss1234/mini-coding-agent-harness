@@ -19,8 +19,8 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Added evaluation-analysis CLIs (`analyze-eval`, `eval-history`, `eval-failures`, `eval-stability`) that convert JSON eval outputs into comparison, trend, failure-mode, and repeated-run stability dashboards for debugging agent behavior beyond pass rate.
   Evidence: `README.md`, `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
 
-- Optimized retrieval preflight with merged read ranges, deduplication, configurable per-read/total evidence caps, and trace metrics; on the repeated paired 8-task DeepSeek evaluation, preserved 8/8 in both conditions while narrowing retrieval's input-token premium from 34.38% to 13.48% and estimated-cost premium from 28.65% to 11.53%.
-  Evidence: `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`, `harness/agent.py`, `harness/retrieval.py`.
+- Implemented explainable conditional retrieval gating with bounded evidence, merged read ranges, deduplication, configurable thresholds, and model-facing schema suppression; in a prompt-aligned paired 8-task DeepSeek run, activated retrieval on 4/8 tasks, kept auto/off at 8/8, and narrowed measured input-token/cost premiums from the original 34.38%/28.65% to 2.68%/1.87%.
+  Evidence: `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `harness/agent.py`, `harness/evaluation.py`.
 
 - Exposed the harness through a minimal MCP stdio server with permission-checked tools, safe read-only resources, prompt templates, workspace resource guards, and a committed protocol smoke transcript.
   Evidence: `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md`.
@@ -38,7 +38,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | Real-agent evaluation | `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_RUN2.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`, `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN3.md`, `reports/ERROR_RECOVERY_AGENT_FIX.md`, `reports/AGENT_EVAL_20_TASKS.md` |
 | Prompt-contract improvement | `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md` |
 | Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md` |
-| Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` |
+| Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
 
 ## Claims To Avoid

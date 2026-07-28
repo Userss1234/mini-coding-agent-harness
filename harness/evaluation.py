@@ -32,6 +32,10 @@ class EvalResult:
     memory_enabled: bool
     context_enabled: bool
     retrieval_enabled: bool
+    retrieval_mode: str
+    retrieval_gate_evaluated: bool
+    retrieval_activated: bool
+    retrieval_schema_count: int
     success: bool
     duration_seconds: float
     tool_calls: int
@@ -53,6 +57,11 @@ class EvalRunSummary:
     memory_enabled: bool
     context_enabled: bool
     retrieval_enabled: bool
+    retrieval_mode: str
+    retrieval_gate_decisions: int
+    retrieval_activations: int
+    retrieval_activation_rate: float
+    average_retrieval_schema_count: float
     task_count: int
     passed: int
     success_rate: float
@@ -80,6 +89,7 @@ def run_evaluation(
     memory_enabled: bool = True,
     context_enabled: bool = True,
     retrieval_enabled: bool = True,
+    retrieval_mode: str | None = None,
     compare: bool = False,
     compare_retrieval: bool = False,
     json_output_path: Path | None = None,
@@ -87,6 +97,11 @@ def run_evaluation(
     """Run a small deterministic benchmark and write a Markdown report."""
     if mode not in {"scripted", "agent"}:
         raise ValueError(f"Unsupported evaluation mode: {mode}")
+    normalized_retrieval_mode = _normalize_retrieval_mode(
+        retrieval_enabled,
+        retrieval_mode,
+    )
+    retrieval_enabled = normalized_retrieval_mode != "off"
 
     workspace = workspace.resolve()
     trace_dir = trace_dir.resolve()
@@ -102,6 +117,7 @@ def run_evaluation(
             tasks,
             mode,
             retrieval_enabled=retrieval_enabled,
+            retrieval_mode=normalized_retrieval_mode,
             json_output_path=json_output_path,
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,6 +131,7 @@ def run_evaluation(
             mode,
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
+            active_retrieval_mode=normalized_retrieval_mode,
             json_output_path=json_output_path,
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,6 +146,7 @@ def run_evaluation(
         memory_enabled=memory_enabled,
         context_enabled=context_enabled,
         retrieval_enabled=retrieval_enabled,
+        retrieval_mode=normalized_retrieval_mode,
     )
 
     report = build_eval_report(workspace, results)
@@ -147,7 +165,13 @@ def run_eval_tasks(
     memory_enabled: bool,
     context_enabled: bool,
     retrieval_enabled: bool,
+    retrieval_mode: str | None = None,
 ) -> list[EvalResult]:
+    normalized_retrieval_mode = _normalize_retrieval_mode(
+        retrieval_enabled,
+        retrieval_mode,
+    )
+    retrieval_enabled = normalized_retrieval_mode != "off"
     results: list[EvalResult] = []
     for task in tasks:
         trace_path = trace_dir / f"{task.task_id}.jsonl"
@@ -171,6 +195,7 @@ def run_eval_tasks(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
+            retrieval_mode=normalized_retrieval_mode,
             allow_write=True,
         )
         registry = build_registry(
@@ -190,6 +215,7 @@ def run_eval_tasks(
                     memory_enabled=memory_enabled,
                     context_enabled=context_enabled,
                     retrieval_enabled=retrieval_enabled,
+                    retrieval_mode=normalized_retrieval_mode,
                 ))
         except Exception as exc:
             success = False
@@ -204,6 +230,10 @@ def run_eval_tasks(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
+            retrieval_mode=normalized_retrieval_mode,
+            retrieval_gate_evaluated=metrics["retrieval_gate_evaluated"],
+            retrieval_activated=metrics["retrieval_activated"],
+            retrieval_schema_count=metrics["retrieval_schema_count"],
             success=success,
             duration_seconds=duration,
             tool_calls=metrics["tool_calls"],
@@ -226,6 +256,7 @@ def run_evaluation_comparison(
     tasks: list[EvalTask],
     mode: str,
     retrieval_enabled: bool = True,
+    retrieval_mode: str | None = None,
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
@@ -246,6 +277,7 @@ def run_evaluation_comparison(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
+            retrieval_mode=retrieval_mode,
         )
         summaries.append(summarize_results(label, results))
     if json_output_path is not None:
@@ -260,11 +292,18 @@ def run_retrieval_comparison(
     mode: str,
     memory_enabled: bool,
     context_enabled: bool,
+    active_retrieval_mode: str = "on",
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
-    for retrieval_enabled in [True, False]:
-        label = "retrieval-on" if retrieval_enabled else "retrieval-off"
+    comparison_mode = (
+        active_retrieval_mode
+        if active_retrieval_mode in {"on", "auto"}
+        else "on"
+    )
+    for current_retrieval_mode in [comparison_mode, "off"]:
+        retrieval_enabled = current_retrieval_mode != "off"
+        label = f"retrieval-{current_retrieval_mode}"
         config_trace_dir = trace_dir / "compare_retrieval" / label
         config_trace_dir.mkdir(parents=True, exist_ok=True)
         results = run_eval_tasks(
@@ -275,6 +314,7 @@ def run_retrieval_comparison(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
+            retrieval_mode=current_retrieval_mode,
         )
         summaries.append(summarize_results(label, results))
     if json_output_path is not None:
@@ -286,6 +326,18 @@ def eval_config_label(memory_enabled: bool, context_enabled: bool) -> str:
     memory = "memory-on" if memory_enabled else "memory-off"
     context = "context-on" if context_enabled else "context-off"
     return f"{memory}_{context}"
+
+
+def _normalize_retrieval_mode(
+    retrieval_enabled: bool,
+    retrieval_mode: str | None,
+) -> str:
+    if not retrieval_enabled:
+        return "off"
+    mode = "on" if retrieval_mode is None else str(retrieval_mode).strip().lower()
+    if mode not in {"on", "auto", "off"}:
+        raise ValueError(f"Unsupported retrieval mode: {retrieval_mode}")
+    return mode
 
 
 def copy_eval_memories(source_workspace: Path, task_workspace: Path) -> None:
@@ -662,19 +714,33 @@ def run_agent_eval_task(
     memory_enabled: bool,
     context_enabled: bool,
     retrieval_enabled: bool,
+    retrieval_mode: str = "on",
 ) -> bool:
     """Ask the model-driven loop to solve one task, then verify without scripted edits."""
     if task.verifier is None:
         registry.trace.log("eval_agent_unsupported", task=task.task_id)
         return False
 
-    from .agent import run_agent
+    from .agent import decide_retrieval_activation, run_agent
 
+    retrieval_query = f"{task.task_id}: {task.description}"
+    gate = decide_retrieval_activation(
+        retrieval_query,
+        registry.workspace,
+        mode=retrieval_mode,
+    )
+    retrieval_active = (
+        gate.enabled
+        and retrieval_enabled
+        and "retrieve_then_read" in registry.names()
+    )
     support_prompt = build_agent_support_prompt(
         registry,
         memory_enabled,
         context_enabled,
         retrieval_enabled,
+        retrieval_mode,
+        retrieval_active=retrieval_active,
         memory_query=task.description,
     )
     prompt = build_agent_eval_prompt(task, support_prompt)
@@ -682,7 +748,9 @@ def run_agent_eval_task(
         prompt,
         registry,
         max_turns=_agent_eval_max_turns(),
-        retrieval_query=f"{task.task_id}: {task.description}",
+        retrieval_query=retrieval_query,
+        retrieval_mode=retrieval_mode,
+        retrieval_gate_decision=gate,
     )
     registry.trace.log("eval_agent_answer", task=task.task_id, answer=answer)
     if answer.startswith("Error:"):
@@ -773,6 +841,8 @@ def build_agent_support_prompt(
     memory_enabled: bool,
     context_enabled: bool,
     retrieval_enabled: bool,
+    retrieval_mode: str = "on",
+    retrieval_active: bool | None = None,
     memory_query: str = "",
 ) -> str:
     parts: list[str] = []
@@ -789,7 +859,8 @@ def build_agent_support_prompt(
         parts.append("Context compaction is enabled; use compact_context if the trace becomes long or you need a state summary.")
     else:
         parts.append("Context compaction is disabled for this evaluation run; continue only from the current tool results.")
-    if retrieval_enabled and "retrieve_then_read" in registry.names():
+    active = retrieval_enabled if retrieval_active is None else retrieval_active
+    if active and "retrieve_then_read" in registry.names():
         parts.append(
             "Retrieval support is enabled; the agent loop preloads a retrieve_then_read evidence pack before the first model turn. "
             "Use that evidence before broad file reads, and call retrieve_then_read or context_pack again only when more retrieval context is needed."
@@ -2215,6 +2286,9 @@ def trace_metrics(trace_path: Path) -> dict:
     output_tokens = 0
     preflight_raw_chars = 0
     preflight_injected_chars = 0
+    retrieval_gate_evaluated = False
+    retrieval_activated = False
+    retrieval_schema_count = 0
     tool_counts: dict[str, int] = {}
     failure_categories: list[str] = []
     in_agent_verifier = False
@@ -2231,6 +2305,12 @@ def trace_metrics(trace_path: Path) -> dict:
             output_tokens += int(usage.get("output_tokens", 0) or 0)
             continue
         event_name = event.get("event")
+        if event_name == "agent_retrieval_gate":
+            data = event.get("data") or {}
+            retrieval_gate_evaluated = True
+            retrieval_activated = bool(data.get("activated", False))
+            retrieval_schema_count = int(data.get("exposed_retrieval_schema_count", 0) or 0)
+            continue
         if event_name == "agent_retrieval_preflight":
             data = event.get("data") or {}
             preflight_raw_chars += int(data.get("raw_evidence_chars", 0) or 0)
@@ -2267,6 +2347,9 @@ def trace_metrics(trace_path: Path) -> dict:
         "output_tokens": output_tokens,
         "preflight_raw_chars": preflight_raw_chars,
         "preflight_injected_chars": preflight_injected_chars,
+        "retrieval_gate_evaluated": retrieval_gate_evaluated,
+        "retrieval_activated": retrieval_activated,
+        "retrieval_schema_count": retrieval_schema_count,
         "failure_categories": failure_categories,
     }
 
@@ -2283,6 +2366,12 @@ def estimate_cost_usd(input_tokens: int, output_tokens: int) -> float:
 def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
     total = len(results)
     passed = sum(1 for item in results if item.success)
+    retrieval_gate_decisions = sum(
+        1 for item in results if item.retrieval_gate_evaluated
+    )
+    retrieval_activations = sum(
+        1 for item in results if item.retrieval_activated
+    )
     tool_counts = merge_tool_counts(results)
     failure_categories = sorted({
         category
@@ -2295,6 +2384,17 @@ def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
         memory_enabled=results[0].memory_enabled if results else False,
         context_enabled=results[0].context_enabled if results else False,
         retrieval_enabled=results[0].retrieval_enabled if results else False,
+        retrieval_mode=results[0].retrieval_mode if results else "off",
+        retrieval_gate_decisions=retrieval_gate_decisions,
+        retrieval_activations=retrieval_activations,
+        retrieval_activation_rate=(
+            retrieval_activations / retrieval_gate_decisions
+            if retrieval_gate_decisions else 0.0
+        ),
+        average_retrieval_schema_count=(
+            sum(item.retrieval_schema_count for item in results) / total
+            if total else 0.0
+        ),
         task_count=total,
         passed=passed,
         success_rate=(passed / total) if total else 0.0,
@@ -2369,6 +2469,21 @@ def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:
     memory_enabled = results[0].memory_enabled if results else True
     context_enabled = results[0].context_enabled if results else True
     retrieval_enabled = results[0].retrieval_enabled if results else True
+    retrieval_mode = results[0].retrieval_mode if results else "off"
+    retrieval_gate_decisions = sum(
+        1 for item in results if item.retrieval_gate_evaluated
+    )
+    retrieval_activations = sum(
+        1 for item in results if item.retrieval_activated
+    )
+    retrieval_activation_rate = (
+        retrieval_activations / retrieval_gate_decisions
+        if retrieval_gate_decisions else 0.0
+    )
+    average_retrieval_schema_count = (
+        sum(item.retrieval_schema_count for item in results) / total
+        if total else 0.0
+    )
     success_rate = (passed / total) if total else 0.0
     average_tool_calls = (
         sum(item.tool_calls for item in results) / total
@@ -2400,10 +2515,12 @@ def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:
     selected_categories = sorted({item.category for item in results})
     selected_category_text = ", ".join(selected_categories) if selected_categories else "none"
     rows = "\n".join(
-        "| {task_id} | {category} | {status} | {tool_calls} | {failed} | {duration:.2f}s | `{trace}` |".format(
+        "| {task_id} | {category} | {status} | {retrieval_active} | {retrieval_schemas} | {tool_calls} | {failed} | {duration:.2f}s | `{trace}` |".format(
             task_id=item.task_id,
             category=item.category,
             status="pass" if item.success else "fail",
+            retrieval_active="yes" if item.retrieval_activated else "no",
+            retrieval_schemas=item.retrieval_schema_count,
             tool_calls=item.tool_calls,
             failed=item.failed_tool_calls,
             duration=item.duration_seconds,
@@ -2424,6 +2541,9 @@ Workspace: `{workspace}`
 - Memory: **{_enabled_text(memory_enabled)}**
 - Context compaction: **{_enabled_text(context_enabled)}**
 - Context retrieval: **{_enabled_text(retrieval_enabled)}**
+- Retrieval strategy: **{retrieval_mode}**
+- Retrieval gate activations: **{retrieval_activations}/{retrieval_gate_decisions} ({retrieval_activation_rate:.2%})**
+- Average exposed retrieval schemas: **{average_retrieval_schema_count:.2f}**
 - Categories: **{selected_category_text}**
 - Tasks: **{total}**
 - Passed: **{passed}**
@@ -2439,8 +2559,8 @@ Workspace: `{workspace}`
 
 ## Tasks
 
-| Task | Category | Status | Tool Calls | Failed Tool Calls | Duration | Trace |
-|---|---|---|---:|---:|---:|---|
+| Task | Category | Status | Retrieval Active | Retrieval Schemas | Tool Calls | Failed Tool Calls | Duration | Trace |
+|---|---|---|---|---:|---:|---:|---:|---|
 {rows}
 
 ## Notes
@@ -2473,12 +2593,17 @@ def _format_tool_mix(tool_counts: dict[str, int], limit: int = 8) -> str:
 def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary]) -> str:
     generated = datetime.now().isoformat(timespec="seconds")
     rows = "\n".join(
-        "| {label} | {mode} | {memory} | {context} | {retrieval} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {preflight_raw_chars:.2f} | {preflight_injected_chars:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
+        "| {label} | {mode} | {memory} | {context} | {retrieval} | {retrieval_mode} | {activations}/{gate_decisions} | {activation_rate:.2%} | {retrieval_schemas:.2f} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {preflight_raw_chars:.2f} | {preflight_injected_chars:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
             label=item.label,
             mode=item.mode,
             memory=_enabled_text(item.memory_enabled),
             context=_enabled_text(item.context_enabled),
             retrieval=_enabled_text(item.retrieval_enabled),
+            retrieval_mode=item.retrieval_mode,
+            activations=item.retrieval_activations,
+            gate_decisions=item.retrieval_gate_decisions,
+            activation_rate=item.retrieval_activation_rate,
+            retrieval_schemas=item.average_retrieval_schema_count,
             passed=item.passed,
             total=item.task_count,
             success_rate=item.success_rate,
@@ -2506,8 +2631,8 @@ Workspace: `{workspace}`
 
 This report compares selected evaluation configurations on the same task set. The Memory, Context Compaction, and Context Retrieval columns show which supports were enabled for each run.
 
-| Config | Mode | Memory | Context Compaction | Context Retrieval | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Preflight Raw Chars | Avg Preflight Injected Chars | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Config | Mode | Memory | Context Compaction | Context Retrieval | Retrieval Strategy | Gate Active | Activation Rate | Avg Retrieval Schemas | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Preflight Raw Chars | Avg Preflight Injected Chars | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
+|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 {rows}
 
 ## Notes
@@ -2515,7 +2640,7 @@ This report compares selected evaluation configurations on the same task set. Th
 - In scripted mode these switches are reported for comparability, but task logic remains deterministic.
 - In agent mode memory changes the task prompt with available workflow memories.
 - In agent mode context compaction controls whether the run produces a compact trace summary before final verification.
-- In agent mode context retrieval controls whether retrieval tools are exposed and whether the agent loop can preload `retrieve_then_read` evidence.
+- In agent mode the retrieval strategy can always expose, conditionally gate, or fully disable retrieval schemas and preflight evidence.
 - Cost is estimated from traced model usage with a configurable placeholder rate in the code.
 """
 

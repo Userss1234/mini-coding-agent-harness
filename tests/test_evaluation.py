@@ -9,9 +9,12 @@ from harness.evaluation import (
     EvalTask,
     _agent_eval_max_turns,
     build_agent_eval_prompt,
+    build_agent_support_prompt,
     run_evaluation,
     trace_metrics,
 )
+from harness.tools import build_registry
+from harness.trace import TraceLogger
 
 
 def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
@@ -227,6 +230,8 @@ def test_trace_metrics_classifies_terminal_model_request_failure(tmp_path: Path)
 def test_trace_metrics_collects_retrieval_preflight_evidence_chars(tmp_path: Path) -> None:
     trace_path = tmp_path / "trace.jsonl"
     trace_path.write_text(
+        '{"event": "agent_retrieval_gate", "data": '
+        '{"activated": true, "exposed_retrieval_schema_count": 5}}\n'
         '{"event": "agent_retrieval_preflight", "data": '
         '{"raw_evidence_chars": 3200, "injected_chars": 1200}}\n',
         encoding="utf-8",
@@ -236,6 +241,9 @@ def test_trace_metrics_collects_retrieval_preflight_evidence_chars(tmp_path: Pat
 
     assert metrics["preflight_raw_chars"] == 3200
     assert metrics["preflight_injected_chars"] == 1200
+    assert metrics["retrieval_gate_evaluated"] is True
+    assert metrics["retrieval_activated"] is True
+    assert metrics["retrieval_schema_count"] == 5
 
 
 def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
@@ -254,6 +262,50 @@ def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
     assert "make the first file change by turn 6" in prompt
     assert "create a focused `tests/test_*.py` file" in prompt
     assert "Support details." in prompt
+
+
+def test_auto_retrieval_support_prompt_matches_resolved_on_or_off_state(tmp_path: Path) -> None:
+    registry = build_registry(
+        tmp_path,
+        TraceLogger(tmp_path / "trace.jsonl"),
+        allow_write=True,
+    )
+
+    auto_off = build_agent_support_prompt(
+        registry,
+        memory_enabled=False,
+        context_enabled=True,
+        retrieval_enabled=True,
+        retrieval_mode="auto",
+        retrieval_active=False,
+    )
+    forced_off = build_agent_support_prompt(
+        registry,
+        memory_enabled=False,
+        context_enabled=True,
+        retrieval_enabled=False,
+        retrieval_mode="off",
+        retrieval_active=False,
+    )
+    auto_on = build_agent_support_prompt(
+        registry,
+        memory_enabled=False,
+        context_enabled=True,
+        retrieval_enabled=True,
+        retrieval_mode="auto",
+        retrieval_active=True,
+    )
+    forced_on = build_agent_support_prompt(
+        registry,
+        memory_enabled=False,
+        context_enabled=True,
+        retrieval_enabled=True,
+        retrieval_mode="on",
+        retrieval_active=True,
+    )
+
+    assert auto_off == forced_off
+    assert auto_on == forced_on
 
 
 def test_build_agent_eval_prompt_guides_readme_tasks_to_readme() -> None:
@@ -418,6 +470,24 @@ def test_scripted_retrieval_off_keeps_context_pack_task_deterministic(tmp_path: 
     assert "context_pack_retrieval | trace | pass" in report
 
 
+def test_retrieval_mode_off_overrides_legacy_enabled_flag(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    run_evaluation(
+        workspace=tmp_path,
+        output_path=tmp_path / "EVAL.md",
+        trace_dir=tmp_path / "eval_runs",
+        task_ids=["syntax_check"],
+        retrieval_enabled=True,
+        retrieval_mode="off",
+        json_output_path=tmp_path / "EVAL.json",
+    )
+
+    payload = json.loads((tmp_path / "EVAL.json").read_text(encoding="utf-8"))
+    assert payload["summary"]["retrieval_enabled"] is False
+    assert payload["summary"]["retrieval_mode"] == "off"
+
+
 def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
 
@@ -440,6 +510,9 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert "Avg read_file" in report
     assert "Avg Preflight Raw Chars" in report
     assert "Avg Preflight Injected Chars" in report
+    assert "Retrieval Strategy" in report
+    assert "Activation Rate" in report
+    assert "Avg Retrieval Schemas" in report
     assert "disabled" in report
     assert "memory-on_context-on" in report
     assert "memory-off_context-on" in report
@@ -482,7 +555,31 @@ def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
     compare_json = json.loads((tmp_path / "RETRIEVAL_COMPARE.json").read_text(encoding="utf-8"))
     assert len(compare_json["comparison"]) == 2
     assert compare_json["comparison"][0]["retrieval_enabled"] is True
+    assert compare_json["comparison"][0]["retrieval_mode"] == "on"
     assert compare_json["comparison"][1]["retrieval_enabled"] is False
+    assert compare_json["comparison"][1]["retrieval_mode"] == "off"
+
+
+def test_auto_retrieval_comparison_uses_auto_and_off_labels(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    report = run_evaluation(
+        workspace=tmp_path,
+        output_path=tmp_path / "RETRIEVAL_AUTO_COMPARE.md",
+        trace_dir=tmp_path / "eval_runs",
+        task_ids=["syntax_check"],
+        retrieval_mode="auto",
+        compare_retrieval=True,
+        json_output_path=tmp_path / "RETRIEVAL_AUTO_COMPARE.json",
+    )
+
+    assert "retrieval-auto" in report
+    assert "retrieval-off" in report
+    compare_json = json.loads(
+        (tmp_path / "RETRIEVAL_AUTO_COMPARE.json").read_text(encoding="utf-8")
+    )
+    assert compare_json["comparison"][0]["retrieval_mode"] == "auto"
+    assert compare_json["comparison"][1]["retrieval_mode"] == "off"
 
 
 def test_run_evaluation_rejects_two_comparison_modes(tmp_path: Path) -> None:

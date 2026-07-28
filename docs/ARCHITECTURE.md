@@ -40,7 +40,7 @@ flowchart TD
 
 1. A user command or eval task enters through `main.py`.
 2. Agent mode builds a `ToolRegistry` and starts `harness.agent.run_agent()`.
-3. If retrieval is enabled, the agent preloads a budgeted `retrieve_then_read` evidence pack before the first model turn.
+3. The retrieval strategy is resolved before the first model turn. `on` always preloads bounded evidence, `auto` scores task-complexity signals, and `off` suppresses retrieval.
 4. The model returns either text or a tool request.
 5. Every tool request goes through `ToolRegistry.call(...)`, which applies permission policy before dispatching.
 6. Tool results are written to append-only JSONL through `TraceLogger`.
@@ -84,7 +84,9 @@ Retrieval is local and lexical. It is not embedding-based and does not use a vec
 
 ```mermaid
 flowchart TD
-    Query["Task query"] --> Index["Index safe text files"]
+    Query["Task query"] --> Gate{"Retrieval strategy / auto score"}
+    Gate -->|inactive| Direct["Direct file and test tools only"]
+    Gate -->|active| Index["Index safe text files"]
     Index --> Filter["Skip .env, .git, artifacts, eval_runs, skills"]
     Filter --> Score["Lexical chunk scoring"]
     Score --> Plan["rag_explain read plan"]
@@ -94,7 +96,7 @@ flowchart TD
     Deduplicate --> Pack["Character-capped evidence pack"]
 ```
 
-This makes retrieval explainable and measurable: reports and traces show selected paths and line ranges plus raw and injected evidence characters, merged reads, omissions, and truncation. The default preflight budget selects two chunks, uses a 48-line chunk size and 8-line read window, caps each read at 1,400 characters, and caps total injected evidence at 2,400 characters. All five limits can be overridden through the `AGENT_RETRIEVAL_PREFLIGHT_*` environment variables documented in `.env.example`.
+This makes retrieval explainable and measurable: reports and traces show the gate score/reasons, exposed or suppressed schemas, selected paths and line ranges, raw and injected evidence characters, merged reads, omissions, and truncation. The default auto threshold is 2. The preflight selects two chunks, uses a 48-line chunk size and 8-line read window, caps each read at 1,400 characters, and caps total injected evidence at 2,400 characters. These values can be overridden through the `AGENT_RETRIEVAL_GATE_THRESHOLD` and `AGENT_RETRIEVAL_PREFLIGHT_*` variables documented in `.env.example`.
 
 ## Evaluation Pipeline
 

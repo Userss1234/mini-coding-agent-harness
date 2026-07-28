@@ -6,12 +6,14 @@ from pathlib import Path
 import pytest
 
 from harness.agent import (
+    RETRIEVAL_TOOL_NAMES,
     RetrievalPreflightBudget,
     _augment_failed_tool_result,
     _build_preflight_evidence,
     _call_with_retries,
     _compact_on_max_turns,
     _response_usage,
+    decide_retrieval_activation,
 )
 from harness.agent import run_agent
 from harness.tools import ToolResult, build_registry
@@ -284,6 +286,97 @@ def test_run_agent_preloads_retrieve_then_read_evidence(tmp_path: Path) -> None:
     assert preflight["data"]["budget"]["max_chars"] == 2400
 
 
+def test_auto_retrieval_suppresses_preflight_and_schemas_for_simple_task(tmp_path: Path) -> None:
+    for index in range(5):
+        (tmp_path / f"module_{index}.py").write_text(
+            f"def value_{index}(): return {index}\n",
+            encoding="utf-8",
+        )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse("end_turn", [FakeBlock("text", text="Used direct file tools.")])
+    ])
+
+    run_agent(
+        "fix the calculator bug",
+        registry,
+        client=client,
+        model="fake-model",
+        retrieval_mode="auto",
+    )
+
+    tool_names = {tool["name"] for tool in client.messages.calls[0]["tools"]}
+    events = [
+        json.loads(line)
+        for line in trace.path.read_text(encoding="utf-8").splitlines()
+    ]
+    gate = next(event for event in events if event["event"] == "agent_retrieval_gate")
+    assert tool_names.isdisjoint(RETRIEVAL_TOOL_NAMES)
+    assert gate["data"]["activated"] is False
+    assert gate["data"]["score"] == 1
+    assert gate["data"]["suppressed_retrieval_schema_count"] == 5
+    assert any(event["event"] == "agent_retrieval_preflight_skipped" for event in events)
+
+
+def test_auto_retrieval_activates_preflight_and_schemas_for_multi_file_task(tmp_path: Path) -> None:
+    (tmp_path / "repository.py").write_text(
+        "def load_user(user_id): return {'id': user_id, 'active': False}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "service.py").write_text(
+        "from repository import load_user\n\ndef get_user(user_id): return load_user(user_id)\n",
+        encoding="utf-8",
+    )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse("end_turn", [FakeBlock("text", text="Used repository evidence.")])
+    ])
+
+    run_agent(
+        "fix multi_file service behavior across files",
+        registry,
+        client=client,
+        model="fake-model",
+        retrieval_mode="auto",
+    )
+
+    tool_names = {tool["name"] for tool in client.messages.calls[0]["tools"]}
+    events = [
+        json.loads(line)
+        for line in trace.path.read_text(encoding="utf-8").splitlines()
+    ]
+    gate = next(event for event in events if event["event"] == "agent_retrieval_gate")
+    assert RETRIEVAL_TOOL_NAMES.issubset(tool_names)
+    assert gate["data"]["activated"] is True
+    assert gate["data"]["score"] >= gate["data"]["threshold"]
+    assert gate["data"]["exposed_retrieval_schema_count"] == 5
+    assert any(event["event"] == "agent_retrieval_preflight" for event in events)
+
+
+def test_retrieval_gate_rejects_unknown_mode(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="Unsupported retrieval mode"):
+        decide_retrieval_activation("inspect repository", tmp_path, mode="sometimes")
+
+
+def test_retrieval_gate_threshold_can_disable_a_weak_auto_match(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AGENT_RETRIEVAL_GATE_THRESHOLD", "3")
+
+    decision = decide_retrieval_activation(
+        "fix behavior across files",
+        tmp_path,
+        mode="auto",
+    )
+
+    assert decision.score == 2
+    assert decision.threshold == 3
+    assert decision.enabled is False
+
+
 def test_run_agent_preflight_uses_explicit_retrieval_query(tmp_path: Path) -> None:
     (tmp_path / "billing.py").write_text(
         "def invoice_total(items):\n"
@@ -424,6 +517,10 @@ def test_run_agent_can_disable_retrieval_preflight(tmp_path: Path) -> None:
     assert answer == "No preload used."
     assert "Preloaded retrieval evidence" not in first_message
     assert "agent_retrieval_preflight_skipped" in trace_text
+    assert not {
+        tool["name"]
+        for tool in client.messages.calls[0]["tools"]
+    }.intersection(RETRIEVAL_TOOL_NAMES)
 
 
 def test_run_agent_injects_retry_plan_after_failed_tool(tmp_path: Path) -> None:

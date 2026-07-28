@@ -40,14 +40,14 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 6. Open `reports/EVAL_STABILITY_40_TASKS.md`.
    Explain that repeated same-model runs quantify variance without needing another provider API: the two complete expanded-suite runs passed 39/40 and 40/40, with 39 stable-pass tasks and one provider-affected fail-to-pass task.
 
-7. Open `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`.
-   Explain the measured retrieval tradeoff and iteration: the original paired run exposed a 34.38% input-token and 28.65% cost premium, so the preflight was bounded, overlapping ranges were merged, duplicates were removed, and evidence metrics were added. The repeated paired run kept both conditions at 8/8 while narrowing those premiums to 13.48% and 11.53%. Retrieval still is not cheaper, so the next target is conditional activation rather than an unsupported success-rate claim.
+7. Open `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`.
+   Explain the measured retrieval iteration: evidence budgeting first narrowed the input-token/cost premiums, then an explainable gate suppressed preflight and five schemas for simple tasks. The prompt-aligned auto/off run kept both rows at 8/8, activated 4/8 tasks, reduced exploration and duration, and narrowed the measured premiums to 2.68%/1.87%. The remaining difference is below observed run variance, so the project does not claim cost superiority.
 
 ## Key Architecture Points
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
 - `harness/tools.py` owns the permission-checked tool registry for file, shell, Git, test, memory, and reporting tools.
-- `harness/agent.py` preloads `retrieve_then_read` evidence before the first model turn when retrieval tools are enabled.
+- `harness/agent.py` resolves `on/auto/off`, records the gate decision, filters model-facing schemas, and preloads bounded evidence only when active.
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution.
 - `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, and stability dashboards.
 - `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
@@ -58,7 +58,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, then ran the expanded suite twice at 39/40 and 40/40; traced the only first-run interruption to provider HTTP 503 and verified recovery in a complete hardened run.
 - Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
-- Measured retrieval on eight ordinary maintenance tasks, implemented a bounded evidence budget, and validated that the repeated input-token and estimated-cost premiums narrowed while both conditions remained 8/8.
+- Measured retrieval on eight ordinary maintenance tasks, added bounded evidence and conditional schema gating, and narrowed measured input-token/cost premiums while auto/off remained 8/8.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid

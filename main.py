@@ -20,12 +20,18 @@ def make_registry(
     trace_path: Path,
     fresh_trace: bool = False,
     allow_write: bool = False,
+    enable_context_pack: bool = True,
 ):
     if fresh_trace and trace_path.exists():
         trace_path.unlink()
     trace = TraceLogger(trace_path)
     trace.log("session_start", workspace=str(workspace.resolve()), allow_write=allow_write)
-    return build_registry(workspace.resolve(), trace, allow_write=allow_write)
+    return build_registry(
+        workspace.resolve(),
+        trace,
+        allow_write=allow_write,
+        enable_context_pack=enable_context_pack,
+    )
 
 
 def cmd_tools(args) -> None:
@@ -49,8 +55,14 @@ def cmd_inspect(args) -> None:
 
 
 def cmd_ask(args) -> None:
-    registry = make_registry(Path(args.workspace), Path(args.trace), args.fresh_trace, args.allow_write)
-    print(run_agent(args.prompt, registry))
+    registry = make_registry(
+        Path(args.workspace),
+        Path(args.trace),
+        args.fresh_trace,
+        args.allow_write,
+        enable_context_pack=args.retrieval != "off",
+    )
+    print(run_agent(args.prompt, registry, retrieval_mode=args.retrieval))
     print(f"Trace written to {Path(args.trace).resolve()}")
 
 
@@ -64,7 +76,8 @@ def cmd_eval(args) -> None:
         categories=args.categories,
         memory_enabled=args.memory == "on",
         context_enabled=args.context == "on",
-        retrieval_enabled=args.retrieval == "on",
+        retrieval_enabled=args.retrieval != "off",
+        retrieval_mode=args.retrieval,
         compare=args.compare,
         compare_retrieval=args.compare_retrieval,
         json_output_path=Path(args.json_output) if args.json_output else None,
@@ -190,6 +203,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")
+    ask.add_argument(
+        "--retrieval",
+        choices=["on", "auto", "off"],
+        default="on",
+        help="Always enable, conditionally gate, or disable retrieval preflight and model-facing schemas",
+    )
     ask.set_defaults(func=cmd_ask)
 
     eval_cmd = sub.add_parser("eval", help="Run the harness evaluation suite")
@@ -228,9 +247,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eval_cmd.add_argument(
         "--retrieval",
-        choices=["on", "off"],
+        choices=["on", "auto", "off"],
         default="on",
-        help="Enable or disable context-pack retrieval support for evaluation reporting and agent runs",
+        help="Always enable, conditionally gate, or disable retrieval support for agent runs",
     )
     eval_cmd.add_argument(
         "--compare",
@@ -240,7 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_cmd.add_argument(
         "--compare-retrieval",
         action="store_true",
-        help="Run retrieval-on and retrieval-off configurations using the selected memory/context settings",
+        help="Compare the selected on/auto retrieval strategy with retrieval-off using the same settings",
     )
     eval_cmd.set_defaults(func=cmd_eval)
 

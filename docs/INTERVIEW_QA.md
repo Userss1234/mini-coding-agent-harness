@@ -85,13 +85,13 @@ Evidence:
 
 ## 9. What is retrieval preflight?
 
-Before the first model turn, the agent can call `retrieve_then_read` with a focused task query. The preflight merges overlapping or adjacent read ranges, removes exact duplicate reads, and caps per-read and total evidence characters before injection. The JSONL trace and eval report expose raw/injected characters, merged reads, omissions, truncation, and the active budget.
+Before the first model turn, retrieval can run in `on`, `auto`, or `off` mode. Auto scores explainable task-complexity signals and either suppresses all five retrieval schemas plus preflight or runs the bounded `retrieve_then_read` path. Active preflight merges overlapping ranges, removes exact duplicates, and caps per-read and total evidence. Traces expose the gate decision, schema counts, evidence metrics, and budget.
 
 Evidence:
 
 - `harness/agent.py`
 - `tests/test_agent.py`
-- `reports/AGENT_EVAL_36_TASKS.md`
+- `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`
 
 ## 10. What is context compaction?
 
@@ -174,12 +174,12 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The evidence-budget optimization is complete: the repeated paired 8-task run kept both conditions at 8/8 and narrowed retrieval's input-token premium from 34.38% to 13.48% and estimated-cost premium from 28.65% to 11.53%. Retrieval still costs more than retrieval-off, so the next experiment should conditionally enable preflight and retrieval tool schemas only for tasks likely to benefit. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
+Conditional gating is complete: the prompt-aligned 8-task run activated retrieval on 4/8 tasks, halved average retrieval schemas, kept auto and off at 8/8, and narrowed the measured input-token/cost premiums to 2.68%/1.87%. That difference is smaller than observed run-to-run variance, so the next experiment should repeat auto/off with varied order and build a stability report before further threshold tuning. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
 
 Evidence:
 
 - `README.md` Next Steps
-- `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`
+- `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`
 
 ## 18. How should you summarize this on a resume?
 

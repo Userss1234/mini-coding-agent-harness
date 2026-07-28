@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import re
 import time
 from typing import Any, Callable
 
@@ -27,6 +28,57 @@ For multi-step work, your first tool call must be todo_write.
 Update todo_write as steps move from pending to in_progress to completed.
 Use plain ASCII punctuation and avoid decorative symbols in final answers.
 """
+
+RETRIEVAL_TOOL_NAMES = frozenset({
+    "index_workspace",
+    "rag_search",
+    "rag_explain",
+    "retrieve_then_read",
+    "context_pack",
+})
+_SOURCE_SUFFIXES = frozenset({".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".go", ".rs"})
+_IGNORED_GATE_PARTS = frozenset({
+    ".git",
+    ".pytest_cache",
+    ".venv",
+    "__pycache__",
+    "artifacts",
+    "eval_runs",
+    "node_modules",
+    "skills",
+    "tests",
+})
+_MULTI_FILE_SIGNALS = (
+    "multi file",
+    "multiple files",
+    "cross file",
+    "cross module",
+    "across modules",
+    "across files",
+    "repository wide",
+    "codebase wide",
+)
+_DEPENDENCY_SIGNALS = (
+    "integration",
+    "dependency interaction",
+    "configuration precedence",
+    "call contract",
+    "api contract",
+    "registry",
+    "plugin discovery",
+    "nested package",
+)
+_DISCOVERY_SIGNALS = (
+    "locate the implementation",
+    "find the relevant files",
+    "unknown file",
+    "investigate across",
+    "trace through",
+)
+_EXPLICIT_SOURCE_PATH = re.compile(
+    r"(?:^|\s|`)[\w./\\-]+\.(?:py|js|jsx|ts|tsx|java|go|rs)(?:`|\s|$)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -53,6 +105,80 @@ class RetrievalPreflightBudget:
         )
 
 
+@dataclass(frozen=True)
+class RetrievalGateDecision:
+    mode: str
+    enabled: bool
+    score: int
+    threshold: int
+    reasons: tuple[str, ...]
+    candidate_source_files: int
+
+
+def decide_retrieval_activation(
+    query: str,
+    workspace: Path,
+    mode: str = "on",
+    threshold: int | None = None,
+) -> RetrievalGateDecision:
+    normalized_mode = str(mode).strip().lower()
+    if normalized_mode not in {"on", "auto", "off"}:
+        raise ValueError(f"Unsupported retrieval mode: {mode}")
+    gate_threshold = (
+        max(1, min(int(threshold), 10))
+        if threshold is not None
+        else _bounded_env_int("AGENT_RETRIEVAL_GATE_THRESHOLD", 2, 1, 10)
+    )
+    candidate_source_files = _count_candidate_source_files(workspace)
+    if normalized_mode == "on":
+        return RetrievalGateDecision(
+            mode="on",
+            enabled=True,
+            score=gate_threshold,
+            threshold=gate_threshold,
+            reasons=("forced_on",),
+            candidate_source_files=candidate_source_files,
+        )
+    if normalized_mode == "off":
+        return RetrievalGateDecision(
+            mode="off",
+            enabled=False,
+            score=0,
+            threshold=gate_threshold,
+            reasons=("forced_off",),
+            candidate_source_files=candidate_source_files,
+        )
+
+    normalized_query = re.sub(r"[_-]+", " ", str(query).lower())
+    score = 0
+    reasons: list[str] = []
+    if any(signal in normalized_query for signal in _MULTI_FILE_SIGNALS):
+        score += 2
+        reasons.append("multi_file_scope")
+    if any(signal in normalized_query for signal in _DEPENDENCY_SIGNALS):
+        score += 2
+        reasons.append("dependency_or_contract_scope")
+    if any(signal in normalized_query for signal in _DISCOVERY_SIGNALS):
+        score += 2
+        reasons.append("file_discovery_needed")
+    if candidate_source_files >= 4:
+        score += 1
+        reasons.append("broad_workspace")
+    if _EXPLICIT_SOURCE_PATH.search(str(query)):
+        score = max(score - 1, 0)
+        reasons.append("explicit_source_path")
+    if not reasons:
+        reasons.append("no_complexity_signal")
+    return RetrievalGateDecision(
+        mode="auto",
+        enabled=score >= gate_threshold,
+        score=score,
+        threshold=gate_threshold,
+        reasons=tuple(reasons),
+        candidate_source_files=candidate_source_files,
+    )
+
+
 def run_agent(
     prompt: str,
     registry: ToolRegistry,
@@ -63,6 +189,8 @@ def run_agent(
     retrieval_preflight: bool = True,
     retrieval_query: str | None = None,
     retrieval_preflight_budget: RetrievalPreflightBudget | None = None,
+    retrieval_mode: str | None = None,
+    retrieval_gate_decision: RetrievalGateDecision | None = None,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
     if client is None:
@@ -78,16 +206,55 @@ def run_agent(
         model = model or config.default_model
     model = model or os.getenv("MODEL_ID", "claude-3-5-sonnet-latest")
     preflight_budget = retrieval_preflight_budget or RetrievalPreflightBudget.from_env()
-    system_prompt = _build_system_prompt(registry)
+    effective_retrieval_mode = retrieval_mode or ("on" if retrieval_preflight else "off")
+    if not retrieval_preflight:
+        effective_retrieval_mode = "off"
+    gate = retrieval_gate_decision or decide_retrieval_activation(
+        retrieval_query or prompt,
+        registry.workspace,
+        mode=effective_retrieval_mode,
+    )
+    if not retrieval_preflight and gate.enabled:
+        gate = decide_retrieval_activation(
+            retrieval_query or prompt,
+            registry.workspace,
+            mode="off",
+        )
+    available_retrieval_schemas = len(RETRIEVAL_TOOL_NAMES.intersection(registry.names()))
+    retrieval_active = gate.enabled and available_retrieval_schemas > 0
+    model_tools = _model_tool_schemas(registry, retrieval_active)
+    system_prompt = _build_system_prompt(registry, retrieval_active)
     evidence_terms: set[str] = set()
-    registry.trace.log("agent_start", prompt=prompt, model=model)
+    registry.trace.log(
+        "agent_start",
+        prompt=prompt,
+        model=model,
+        retrieval_mode=gate.mode,
+    )
+    registry.trace.log(
+        "agent_retrieval_gate",
+        mode=gate.mode,
+        activated=retrieval_active,
+        decision_enabled=gate.enabled,
+        score=gate.score,
+        threshold=gate.threshold,
+        reasons=list(gate.reasons),
+        candidate_source_files=gate.candidate_source_files,
+        exposed_retrieval_schema_count=available_retrieval_schemas if retrieval_active else 0,
+        suppressed_retrieval_schema_count=0 if retrieval_active else available_retrieval_schemas,
+    )
     preflight = _run_retrieval_preflight(
         retrieval_query or prompt,
         registry,
-        enabled=retrieval_preflight,
+        enabled=retrieval_active,
         budget=preflight_budget,
     )
-    task_prompt = _with_planning_contract(prompt, registry, preflight)
+    task_prompt = _with_planning_contract(
+        prompt,
+        registry,
+        preflight,
+        retrieval_enabled=retrieval_active,
+    )
     messages: list[dict[str, Any]] = [{"role": "user", "content": task_prompt}]
     if preflight:
         evidence_terms.add("retrieve_then_read")
@@ -100,7 +267,7 @@ def run_agent(
                     model=model,
                     system=system_prompt,
                     messages=messages,
-                    tools=registry.schemas(),
+                    tools=model_tools,
                     max_tokens=4000,
                 ),
                 trace=registry.trace,
@@ -176,11 +343,11 @@ def _text_from_blocks(blocks: list[Any]) -> str:
     return "\n".join(chunks).strip()
 
 
-def _build_system_prompt(registry: ToolRegistry) -> str:
+def _build_system_prompt(registry: ToolRegistry, retrieval_enabled: bool = True) -> str:
     prompt = BASE_SYSTEM_PROMPT
-    if "retrieve_then_read" in registry.names():
+    if retrieval_enabled and "retrieve_then_read" in registry.names():
         prompt += "The harness may preload a retrieve_then_read evidence pack before the first model turn; use it as the starting context before broad search.\n"
-    if "context_pack" in registry.names():
+    if retrieval_enabled and "context_pack" in registry.names():
         prompt += "When the preloaded evidence is insufficient, use retrieve_then_read or context_pack to retrieve likely file snippets before detailed reads.\n"
     return prompt
 
@@ -189,11 +356,12 @@ def _with_planning_contract(
     prompt: str,
     registry: ToolRegistry,
     preflight: dict[str, Any] | None = None,
+    retrieval_enabled: bool = True,
 ) -> str:
     tool_guidance = ""
-    if "retrieve_then_read" in registry.names():
+    if retrieval_enabled and "retrieve_then_read" in registry.names():
         tool_guidance = "using the preloaded retrieve_then_read evidence before broad search, "
-    if "context_pack" in registry.names():
+    if retrieval_enabled and "context_pack" in registry.names():
         tool_guidance += "using context_pack when you need more retrieval context, and "
     text = (
         "Before doing repository work, call todo_write with a concise plan. "
@@ -341,6 +509,41 @@ def _bounded_env_int(name: str, default: int, minimum: int, maximum: int) -> int
     except ValueError:
         return default
     return max(minimum, min(value, maximum))
+
+
+def _model_tool_schemas(
+    registry: ToolRegistry,
+    retrieval_enabled: bool,
+) -> list[dict[str, Any]]:
+    schemas = registry.schemas()
+    if retrieval_enabled:
+        return schemas
+    return [
+        schema
+        for schema in schemas
+        if str(schema.get("name", "")) not in RETRIEVAL_TOOL_NAMES
+    ]
+
+
+def _count_candidate_source_files(workspace: Path, limit: int = 50) -> int:
+    count = 0
+    try:
+        paths = workspace.rglob("*")
+        for path in paths:
+            try:
+                relative = path.relative_to(workspace)
+                if any(part in _IGNORED_GATE_PARTS for part in relative.parts):
+                    continue
+                if not path.is_file() or path.suffix.lower() not in _SOURCE_SUFFIXES:
+                    continue
+            except OSError:
+                continue
+            count += 1
+            if count >= limit:
+                return limit
+    except OSError:
+        return count
+    return count
 
 
 def _check_answer_evidence(answer: str, evidence_terms: set[str]) -> dict[str, Any]:

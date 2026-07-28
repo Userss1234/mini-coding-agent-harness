@@ -28,9 +28,9 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Scripted benchmark：**40 个确定性代码仓库维护任务，当前提交快照 40/40 通过，并新增嵌套 package、跨文件、插件注册表和依赖/配置交互 fixture。
 - **真实 Agent eval：**将瞬时请求重试从 2 次提高到 4 次后，DeepSeek `deepseek-chat` 在第二次完整扩展 suite 中一次性通过 40/40。第一次运行仍诚实保留为 39/40，原因是 verifier 前的一次 provider HTTP 503；仓库已提交 39/40 -> 40/40 的重复运行证据。
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
-- **Ablation：**已提交 2 任务 memory/context 对比，以及原始和 evidence-budget 优化后的两轮 8-task retrieval-on/off 真实 agent 配对实验。四组都为 8/8；优化后仍减少 6.82% 工具调用和 37.04% 直接读取，并将 input-token 溢价从 34.38% 压到 13.48%、成本溢价从 28.65% 压到 11.53%。
+- **Ablation：**已提交 2 任务 memory/context 对比和三轮 8-task retrieval 配对实验。条件式 auto gate 在 4/8 任务启用 retrieval，将平均模型可见 schema 减半；auto/off 都为 8/8，auto 减少 7.41% 工具调用和 15.38% 直接读取，并把 input-token/成本溢价压到 2.68%/1.87%。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`](reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md)、[`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md) 和 [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md)、[`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md) 和 [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)。
 
 ## Portfolio Walkthrough
 
@@ -171,6 +171,7 @@ python main.py eval --mode scripted --json-output EVAL.json
 python main.py eval --mode scripted --compare --task syntax_check
 python main.py eval --mode scripted --compare-retrieval --task syntax_check
 python main.py eval --mode agent --retrieval off --task python_bugfix
+python main.py eval --mode agent --retrieval auto --compare-retrieval --task python_bugfix --task multi_file_service_fix
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
@@ -206,6 +207,7 @@ DEEPSEEK_API_KEY=...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
 AGENT_EVAL_MAX_TURNS=12
+AGENT_RETRIEVAL_GATE_THRESHOLD=2
 AGENT_RETRIEVAL_PREFLIGHT_LIMIT=2
 AGENT_RETRIEVAL_PREFLIGHT_CHUNK_LINES=48
 AGENT_RETRIEVAL_PREFLIGHT_READ_WINDOW=8
@@ -269,6 +271,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md` 是已提交的 retrieval-on/off ablation 报告，覆盖 `context_pack_retrieval` 任务。
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md` 和 `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md` 对比 8 个普通维护任务的 retrieval preflight，并记录工具探索与 token/成本之间的权衡。
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md` 和 `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` 在同一组 8 个任务上验证受预算约束的 preflight，并与原始结果对比。
+- `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` 和 `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` 验证提示对齐后的条件式 retrieval gate。
 - `reports/AGENT_TRACE_python_add_tests.html` 和 `reports/AGENT_TRACE_multi_file_service_fix.html` 是这次真实 agent 运行生成并提交的 trace viewer 示例。
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` 和 `reports/AGENT_TRACE_retrieval_off_context_pack.html` 展示 retrieval ablation 中开启和关闭 `context_pack` 的两条路径。
 - `reports/README.md` 说明已提交的 demo 和真实 agent evaluation 展示文件。
@@ -379,14 +382,14 @@ memory-on_context-off
 memory-off_context-off
 ```
 
-可以用 `--retrieval on|off` 控制 evaluation 时是否暴露 `context_pack`、`rag_search`、`rag_explain`、`retrieve_then_read` 和 `index_workspace` 等 retrieval 工具。在 agent 模式下，这也会控制 loop 是否能在第一轮模型调用前预加载 `retrieve_then_read` evidence。
+可以用 `--retrieval on|auto|off` 始终启用、按条件启用或关闭 retrieval。`auto` 会在第一轮模型调用前根据可解释的任务复杂度信号评分，然后同时启用 bounded preflight 和 5 个 retrieval schema，或把两者全部抑制。
 
-可以用 `--compare-retrieval` 在相同 memory/context 设置下生成两行 retrieval-on/retrieval-off 对比报告。
+可以用 `--compare-retrieval` 在相同 memory/context 设置下，将选定的 `on` 或 `auto` 策略与 retrieval-off 对比。
 对比报告会包含平均 `retrieve_then_read`、`context_pack` 和 `read_file` 调用次数，以及 preflight 原始/实际注入的平均字符数，方便同时观察通过率、工具结构和证据预算。
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation 报告、注入式 agent-loop smoke test、可交互单文件 trace HTML、无 shell 命令执行、权限策略报告、CI validation，以及 DeepSeek/OpenAI-compatible 的真实 API agent 入口。retrieval preflight 现在会合并重叠区间、去重并限制每次读取和总注入字符数。第一次扩展 suite 全量运行通过 39/40，`shell_no_shell_execution` 在 verifier 前因 provider HTTP 503 停止。将瞬时模型请求重试从 2 次提高到 4 次后，该任务定向重跑通过，第二次完整 40-task 运行一次性通过 40/40，且没有 verifier 或 provider 终态失败。第二轮使用 1,590,593 个输入 token 和 44,750 个输出 token，平均每任务 13.15 次工具调用、103.91 秒，预估成本 5.443029 美元。原始 8-task 配对消融中 retrieval-on/off 都通过 8/8，retrieval 减少探索但增加 34.38% input token 和 28.65% 预估成本；预算优化后的配对复测仍全部 8/8，并把两项溢价分别压到 13.48% 和 11.53%。retrieval 在这组任务上仍比关闭时贵，因此不声称成功率或成本优势。
+当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 现在使用本地词法评分、区间合并、证据预算和条件式 schema gate。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。三轮 8-task retrieval 配对实验中，input-token/成本溢价从原始 always-on 的 34.38%/28.65%，降到证据预算后的 13.48%/11.53%，再降到提示对齐 auto gate 的 2.68%/1.87%。最终 auto/off 都通过 8/8；auto 只启用 4/8，平均暴露 2.5 个 retrieval schema，并减少工具调用、直接读取和时长，但成本仍略高。不同轮次存在模型/provider 方差，因此不声称成功率或成本优势。
 
 ## Git Baseline
 
@@ -410,7 +413,7 @@ git diff -- .
 
 ## 下一步
 
-1. 增加按任务条件启用的 retrieval preflight 和工具 schema 暴露，然后用同一组 8-task 配对实验复测。
+1. 用不同运行顺序重复提示对齐后的 auto/off 实验，并在继续调整 gate 阈值前生成 retrieval 稳定性报告。
 2. 将 memory/context ablation 扩展到一组有代表性的跨文件任务。
 3. 增加可选 MCP HTTP/SSE transport 和更完整的 resource subscriptions。
 4. 为 shell execution 增加可选 OS 级沙箱。
