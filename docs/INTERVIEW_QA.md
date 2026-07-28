@@ -85,7 +85,7 @@ Evidence:
 
 ## 9. What is retrieval preflight?
 
-Before the first model turn, the agent can call `retrieve_then_read` with a focused task query. The loaded evidence pack is injected into the model's initial context, and the preflight is recorded in the JSONL trace.
+Before the first model turn, the agent can call `retrieve_then_read` with a focused task query. The preflight merges overlapping or adjacent read ranges, removes exact duplicate reads, and caps per-read and total evidence characters before injection. The JSONL trace and eval report expose raw/injected characters, merged reads, omissions, truncation, and the active budget.
 
 Evidence:
 
@@ -137,11 +137,14 @@ Evidence:
 
 ## 14. What did the benchmark validate?
 
-The committed benchmark has 36 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, and multi-file repairs. The full real-agent DeepSeek runs passed 36/36, then 35/36, then post-fix 36/36.
+The committed deterministic benchmark has 40 tasks covering code quality, pytest, trace behavior, local retrieval, MCP RAG search, recovery, memory ranking, code maintenance, configuration fixes, documentation, security checks, nested packages, dependency interactions, and multi-file repairs. The expanded full real-agent DeepSeek runs passed 39/40 and then 40/40 after transient request retry hardening. Earlier 36-task repeats remain committed as historical stability evidence.
 
 Evidence:
 
 - `harness/evaluation.py`
+- `reports/AGENT_EVAL_40_TASKS.md`
+- `reports/AGENT_EVAL_40_TASKS_RUN2.md`
+- `reports/EVAL_STABILITY_40_TASKS.md`
 - `reports/AGENT_EVAL_36_TASKS.md`
 - `reports/AGENT_EVAL_36_TASKS.json`
 - `reports/AGENT_EVAL_36_TASKS_RUN2.md`
@@ -171,12 +174,12 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The next best improvement is to reduce the retrieval preflight evidence budget and rerun the same paired 8-task ablation. The current evidence shows equal 8/8 success with retrieval on and off: retrieval reduces exploration but raises input tokens and cost. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
+The evidence-budget optimization is complete: the repeated paired 8-task run kept both conditions at 8/8 and narrowed retrieval's input-token premium from 34.38% to 13.48% and estimated-cost premium from 28.65% to 11.53%. Retrieval still costs more than retrieval-off, so the next experiment should conditionally enable preflight and retrieval tool schemas only for tasks likely to benefit. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
 
 Evidence:
 
 - `README.md` Next Steps
-- `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md`
+- `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`
 
 ## 18. How should you summarize this on a resume?
 

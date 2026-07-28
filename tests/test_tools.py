@@ -540,6 +540,11 @@ def test_retrieve_then_read_returns_evidence_pack(tmp_path: Path) -> None:
     assert "Retrieved Context" in result.output
     assert "invoice_total" in result.output
     assert result.metadata["count"] == 1
+    assert result.metadata["matched_chunk_count"] == 1
+    assert result.metadata["merged_read_count"] == 0
+    assert result.metadata["unique_path_count"] == 1
+    assert result.metadata["evidence_text_chars"] > 0
+    assert result.metadata["formatted_output_chars"] == len(result.output)
     assert result.metadata["reads"][0]["ok"] is True
     assert result.metadata["reads"][0]["read_file_args"]["path"] == "billing_service.py"
     assert result.metadata["read_plan"][0]["read_file_args"]["path"] == "billing_service.py"

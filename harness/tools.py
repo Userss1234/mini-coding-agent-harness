@@ -719,14 +719,29 @@ def build_registry(
             reads.append(read_item)
         result = dict(plan_result)
         result["reads"] = reads
+        output = format_retrieved_context(result)
+        evidence_text_chars = sum(
+            len(str(item.get("text", "")))
+            for item in reads
+            if item.get("ok")
+        )
         return ToolResult(
             all(bool(item.get("ok")) for item in reads) if reads else True,
-            format_retrieved_context(result),
+            output,
             {
                 "query": query_text,
                 "tokens": tokens,
                 "glob": str(glob or "*"),
                 "count": len(reads),
+                "matched_chunk_count": len(plan_result["matches"]),
+                "merged_read_count": max(len(plan_result["matches"]) - len(reads), 0),
+                "unique_path_count": len({
+                    str((item.get("read_file_args") or {}).get("path", ""))
+                    for item in reads
+                    if (item.get("read_file_args") or {}).get("path")
+                }),
+                "evidence_text_chars": evidence_text_chars,
+                "formatted_output_chars": len(output),
                 "matches": plan_result["matches"],
                 "read_plan": plan_result["read_plan"],
                 "reads": reads,

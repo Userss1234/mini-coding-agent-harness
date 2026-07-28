@@ -39,6 +39,8 @@ class EvalResult:
     tool_counts: dict[str, int]
     input_tokens: int
     output_tokens: int
+    preflight_raw_chars: int
+    preflight_injected_chars: int
     estimated_cost_usd: float
     failure_categories: list[str]
     trace_path: str
@@ -61,6 +63,8 @@ class EvalRunSummary:
     average_duration: float
     total_input_tokens: int
     total_output_tokens: int
+    average_preflight_raw_chars: float
+    average_preflight_injected_chars: float
     estimated_cost_usd: float
     tool_counts: dict[str, int]
     failure_categories: list[str]
@@ -207,6 +211,8 @@ def run_eval_tasks(
             tool_counts=metrics["tool_counts"],
             input_tokens=metrics["input_tokens"],
             output_tokens=metrics["output_tokens"],
+            preflight_raw_chars=metrics["preflight_raw_chars"],
+            preflight_injected_chars=metrics["preflight_injected_chars"],
             estimated_cost_usd=estimate_cost_usd(metrics["input_tokens"], metrics["output_tokens"]),
             failure_categories=metrics["failure_categories"],
             trace_path=str(trace_path.relative_to(workspace)),
@@ -2207,6 +2213,8 @@ def trace_metrics(trace_path: Path) -> dict:
     failed_tool_calls = 0
     input_tokens = 0
     output_tokens = 0
+    preflight_raw_chars = 0
+    preflight_injected_chars = 0
     tool_counts: dict[str, int] = {}
     failure_categories: list[str] = []
     in_agent_verifier = False
@@ -2223,6 +2231,11 @@ def trace_metrics(trace_path: Path) -> dict:
             output_tokens += int(usage.get("output_tokens", 0) or 0)
             continue
         event_name = event.get("event")
+        if event_name == "agent_retrieval_preflight":
+            data = event.get("data") or {}
+            preflight_raw_chars += int(data.get("raw_evidence_chars", 0) or 0)
+            preflight_injected_chars += int(data.get("injected_chars", 0) or 0)
+            continue
         if event_name == "agent_error":
             if "model_request_failed" not in failure_categories:
                 failure_categories.append("model_request_failed")
@@ -2252,6 +2265,8 @@ def trace_metrics(trace_path: Path) -> dict:
         "tool_counts": tool_counts,
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
+        "preflight_raw_chars": preflight_raw_chars,
+        "preflight_injected_chars": preflight_injected_chars,
         "failure_categories": failure_categories,
     }
 
@@ -2296,6 +2311,14 @@ def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
         ),
         total_input_tokens=sum(item.input_tokens for item in results),
         total_output_tokens=sum(item.output_tokens for item in results),
+        average_preflight_raw_chars=(
+            sum(item.preflight_raw_chars for item in results) / total
+            if total else 0.0
+        ),
+        average_preflight_injected_chars=(
+            sum(item.preflight_injected_chars for item in results) / total
+            if total else 0.0
+        ),
         estimated_cost_usd=sum(item.estimated_cost_usd for item in results),
         tool_counts=tool_counts,
         failure_categories=failure_categories,
@@ -2357,6 +2380,14 @@ def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:
     )
     total_input_tokens = sum(item.input_tokens for item in results)
     total_output_tokens = sum(item.output_tokens for item in results)
+    average_preflight_raw_chars = (
+        sum(item.preflight_raw_chars for item in results) / total
+        if total else 0.0
+    )
+    average_preflight_injected_chars = (
+        sum(item.preflight_injected_chars for item in results) / total
+        if total else 0.0
+    )
     estimated_cost = sum(item.estimated_cost_usd for item in results)
     tool_counts = merge_tool_counts(results)
     tool_mix_text = _format_tool_mix(tool_counts)
@@ -2401,6 +2432,7 @@ Workspace: `{workspace}`
 - Average duration: **{average_duration:.2f}s**
 - Input tokens: **{total_input_tokens}**
 - Output tokens: **{total_output_tokens}**
+- Average preflight evidence chars (raw -> injected): **{average_preflight_raw_chars:.2f} -> {average_preflight_injected_chars:.2f}**
 - Estimated model cost: **${estimated_cost:.6f}**
 - Failure categories observed: **{category_text}**
 - Tool-call mix: **{tool_mix_text}**
@@ -2441,7 +2473,7 @@ def _format_tool_mix(tool_counts: dict[str, int], limit: int = 8) -> str:
 def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary]) -> str:
     generated = datetime.now().isoformat(timespec="seconds")
     rows = "\n".join(
-        "| {label} | {mode} | {memory} | {context} | {retrieval} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
+        "| {label} | {mode} | {memory} | {context} | {retrieval} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {preflight_raw_chars:.2f} | {preflight_injected_chars:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
             label=item.label,
             mode=item.mode,
             memory=_enabled_text(item.memory_enabled),
@@ -2454,6 +2486,8 @@ def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary
             retrieve_then_read_calls=item.average_retrieve_then_read_calls,
             context_pack_calls=item.average_context_pack_calls,
             read_file_calls=item.average_read_file_calls,
+            preflight_raw_chars=item.average_preflight_raw_chars,
+            preflight_injected_chars=item.average_preflight_injected_chars,
             duration=item.average_duration,
             input_tokens=item.total_input_tokens,
             output_tokens=item.total_output_tokens,
@@ -2472,8 +2506,8 @@ Workspace: `{workspace}`
 
 This report compares selected evaluation configurations on the same task set. The Memory, Context Compaction, and Context Retrieval columns show which supports were enabled for each run.
 
-| Config | Mode | Memory | Context Compaction | Context Retrieval | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
-|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Config | Mode | Memory | Context Compaction | Context Retrieval | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Preflight Raw Chars | Avg Preflight Injected Chars | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 {rows}
 
 ## Notes

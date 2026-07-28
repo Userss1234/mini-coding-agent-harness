@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
 from pathlib import Path
 import time
@@ -28,6 +29,30 @@ Use plain ASCII punctuation and avoid decorative symbols in final answers.
 """
 
 
+@dataclass(frozen=True)
+class RetrievalPreflightBudget:
+    limit: int = 2
+    chunk_lines: int = 48
+    read_window: int = 8
+    max_chars_per_read: int = 1400
+    max_chars: int = 2400
+
+    @classmethod
+    def from_env(cls) -> "RetrievalPreflightBudget":
+        return cls(
+            limit=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_LIMIT", 2, 1, 8),
+            chunk_lines=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_CHUNK_LINES", 48, 8, 200),
+            read_window=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_READ_WINDOW", 8, 0, 100),
+            max_chars_per_read=_bounded_env_int(
+                "AGENT_RETRIEVAL_PREFLIGHT_MAX_CHARS_PER_READ",
+                1400,
+                200,
+                12000,
+            ),
+            max_chars=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_MAX_CHARS", 2400, 400, 24000),
+        )
+
+
 def run_agent(
     prompt: str,
     registry: ToolRegistry,
@@ -37,6 +62,7 @@ def run_agent(
     model: str | None = None,
     retrieval_preflight: bool = True,
     retrieval_query: str | None = None,
+    retrieval_preflight_budget: RetrievalPreflightBudget | None = None,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
     if client is None:
@@ -51,6 +77,7 @@ def run_agent(
             return f"Error: {exc}"
         model = model or config.default_model
     model = model or os.getenv("MODEL_ID", "claude-3-5-sonnet-latest")
+    preflight_budget = retrieval_preflight_budget or RetrievalPreflightBudget.from_env()
     system_prompt = _build_system_prompt(registry)
     evidence_terms: set[str] = set()
     registry.trace.log("agent_start", prompt=prompt, model=model)
@@ -58,6 +85,7 @@ def run_agent(
         retrieval_query or prompt,
         registry,
         enabled=retrieval_preflight,
+        budget=preflight_budget,
     )
     task_prompt = _with_planning_contract(prompt, registry, preflight)
     messages: list[dict[str, Any]] = [{"role": "user", "content": task_prompt}]
@@ -185,7 +213,9 @@ def _run_retrieval_preflight(
     prompt: str,
     registry: ToolRegistry,
     enabled: bool = True,
+    budget: RetrievalPreflightBudget | None = None,
 ) -> dict[str, Any] | None:
+    budget = budget or RetrievalPreflightBudget.from_env()
     if not enabled or "retrieve_then_read" not in registry.names():
         registry.trace.log(
             "agent_retrieval_preflight_skipped",
@@ -198,32 +228,119 @@ def _run_retrieval_preflight(
         "retrieve_then_read",
         query=prompt,
         glob="*.py,*.md,*.txt,*.toml,*.json",
-        limit=3,
-        chunk_lines=80,
-        read_window=20,
-        max_chars_per_read=4000,
+        limit=budget.limit,
+        chunk_lines=budget.chunk_lines,
+        read_window=budget.read_window,
+        max_chars_per_read=budget.max_chars_per_read,
     )
     metadata = result.metadata or {}
-    paths = []
-    for item in metadata.get("reads", []):
-        args = item.get("read_file_args") or {}
-        path = args.get("path")
-        if path:
-            paths.append(str(path))
+    output, evidence_metrics = _build_preflight_evidence(metadata, budget.max_chars)
+    paths = evidence_metrics["injected_paths"]
     registry.trace.log(
         "agent_retrieval_preflight",
         ok=result.ok,
         query=prompt,
         read_count=len(paths),
         paths=paths,
+        matched_chunk_count=metadata.get("matched_chunk_count", 0),
+        planned_read_count=metadata.get("count", 0),
+        merged_read_count=metadata.get("merged_read_count", 0),
+        raw_output_chars=len(result.output),
+        raw_evidence_chars=evidence_metrics["raw_evidence_chars"],
+        injected_chars=evidence_metrics["injected_chars"],
+        duplicate_read_count=evidence_metrics["duplicate_read_count"],
+        omitted_read_count=evidence_metrics["omitted_read_count"],
+        truncated=evidence_metrics["truncated"],
+        budget={
+            "limit": budget.limit,
+            "chunk_lines": budget.chunk_lines,
+            "read_window": budget.read_window,
+            "max_chars_per_read": budget.max_chars_per_read,
+            "max_chars": budget.max_chars,
+        },
     )
-    if not result.ok:
+    if not result.ok or not output:
         return None
     return {
         "ok": result.ok,
-        "output": result.output,
+        "output": output,
         "paths": paths,
+        "metrics": evidence_metrics,
     }
+
+
+def _build_preflight_evidence(
+    metadata: dict[str, Any],
+    max_chars: int,
+) -> tuple[str, dict[str, Any]]:
+    char_budget = max(int(max_chars), 400)
+    sections: list[str] = []
+    injected_paths: list[str] = []
+    fingerprints: set[tuple[str, str]] = set()
+    duplicate_read_count = 0
+    readable_items = [
+        item
+        for item in metadata.get("reads", [])
+        if item.get("ok") and str(item.get("text", "")).strip()
+    ]
+    raw_evidence_chars = sum(len(str(item.get("text", "")).strip()) for item in readable_items)
+    truncated = False
+    budget_exhausted = False
+
+    for item in readable_items:
+        args = item.get("read_file_args") or {}
+        path = str(args.get("path", "")).strip()
+        text = str(item.get("text", "")).strip()
+        if not path or not text:
+            continue
+        fingerprint = (path, text)
+        if fingerprint in fingerprints:
+            duplicate_read_count += 1
+            continue
+        fingerprints.add(fingerprint)
+        if budget_exhausted:
+            truncated = True
+            continue
+
+        header = (
+            f"`{path}` lines {args.get('start_line', 1)}-"
+            f"{args.get('end_line', args.get('start_line', 1))}"
+        )
+        current_chars = len("\n\n".join(sections))
+        separator_chars = 2 if sections else 0
+        available = char_budget - current_chars - separator_chars
+        marker = "\n... [evidence truncated]"
+        minimum_section_chars = len(header) + 1 + len(marker)
+        if available < minimum_section_chars:
+            truncated = True
+            budget_exhausted = True
+            continue
+        section = f"{header}\n{text}"
+        if len(section) > available:
+            keep = max(available - len(header) - len(marker) - 1, 0)
+            section = f"{header}\n{text[:keep].rstrip()}{marker}"
+            truncated = True
+            budget_exhausted = True
+        sections.append(section)
+        injected_paths.append(path)
+
+    output = "\n\n".join(sections)
+    return output, {
+        "raw_evidence_chars": raw_evidence_chars,
+        "injected_chars": len(output),
+        "injected_paths": injected_paths,
+        "duplicate_read_count": duplicate_read_count,
+        "omitted_read_count": max(len(readable_items) - len(sections) - duplicate_read_count, 0),
+        "truncated": truncated,
+    }
+
+
+def _bounded_env_int(name: str, default: int, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return max(minimum, min(value, maximum))
 
 
 def _check_answer_evidence(answer: str, evidence_terms: set[str]) -> dict[str, Any]:

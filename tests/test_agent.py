@@ -5,7 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from harness.agent import _augment_failed_tool_result, _call_with_retries, _compact_on_max_turns, _response_usage
+from harness.agent import (
+    RetrievalPreflightBudget,
+    _augment_failed_tool_result,
+    _build_preflight_evidence,
+    _call_with_retries,
+    _compact_on_max_turns,
+    _response_usage,
+)
 from harness.agent import run_agent
 from harness.tools import ToolResult, build_registry
 from harness.trace import TraceLogger
@@ -270,6 +277,11 @@ def test_run_agent_preloads_retrieve_then_read_evidence(tmp_path: Path) -> None:
     assert "invoice_total" in first_message
     assert "billing.py" in first_message
     assert "agent_retrieval_preflight" in trace_text
+    events = [json.loads(line) for line in trace_text.splitlines()]
+    preflight = next(event for event in events if event["event"] == "agent_retrieval_preflight")
+    assert preflight["data"]["injected_chars"] <= 2400
+    assert preflight["data"]["budget"]["limit"] == 2
+    assert preflight["data"]["budget"]["max_chars"] == 2400
 
 
 def test_run_agent_preflight_uses_explicit_retrieval_query(tmp_path: Path) -> None:
@@ -301,6 +313,90 @@ def test_run_agent_preflight_uses_explicit_retrieval_query(tmp_path: Path) -> No
         if event["event"] == "agent_retrieval_preflight"
     ][0]
     assert preflight["data"]["query"] == "invoice total rounding"
+
+
+def test_run_agent_caps_preflight_evidence_and_records_metrics(tmp_path: Path) -> None:
+    (tmp_path / "billing.py").write_text(
+        "\n".join(
+            f"def invoice_total_{index}(items): return round(sum(items), 2)  # invoice total rounding"
+            for index in range(120)
+        ),
+        encoding="utf-8",
+    )
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    registry = build_registry(tmp_path, trace, allow_write=True)
+    client = FakeClient([
+        FakeResponse("end_turn", [FakeBlock("text", text="Used billing.py evidence.")])
+    ])
+
+    run_agent(
+        "inspect invoice total rounding",
+        registry,
+        client=client,
+        model="fake-model",
+        retrieval_preflight_budget=RetrievalPreflightBudget(
+            limit=2,
+            chunk_lines=30,
+            read_window=4,
+            max_chars_per_read=1000,
+            max_chars=500,
+        ),
+    )
+
+    events = [
+        json.loads(line)
+        for line in trace.path.read_text(encoding="utf-8").splitlines()
+    ]
+    preflight = next(event for event in events if event["event"] == "agent_retrieval_preflight")
+    first_message = client.messages.calls[0]["messages"][0]["content"]
+    assert preflight["data"]["raw_evidence_chars"] > 500
+    assert preflight["data"]["injected_chars"] <= 500
+    assert preflight["data"]["truncated"] is True
+    assert preflight["data"]["merged_read_count"] >= 1
+    assert "... [evidence truncated]" in first_message
+
+
+def test_retrieval_preflight_budget_reads_bounded_environment_values(monkeypatch) -> None:
+    monkeypatch.setenv("AGENT_RETRIEVAL_PREFLIGHT_LIMIT", "5")
+    monkeypatch.setenv("AGENT_RETRIEVAL_PREFLIGHT_CHUNK_LINES", "64")
+    monkeypatch.setenv("AGENT_RETRIEVAL_PREFLIGHT_READ_WINDOW", "12")
+    monkeypatch.setenv("AGENT_RETRIEVAL_PREFLIGHT_MAX_CHARS_PER_READ", "1800")
+    monkeypatch.setenv("AGENT_RETRIEVAL_PREFLIGHT_MAX_CHARS", "3200")
+
+    budget = RetrievalPreflightBudget.from_env()
+
+    assert budget == RetrievalPreflightBudget(
+        limit=5,
+        chunk_lines=64,
+        read_window=12,
+        max_chars_per_read=1800,
+        max_chars=3200,
+    )
+
+
+def test_build_preflight_evidence_enforces_total_budget_across_many_reads() -> None:
+    metadata = {
+        "reads": [
+            {
+                "ok": True,
+                "read_file_args": {
+                    "path": f"service_{index}.py",
+                    "start_line": 1,
+                    "end_line": 20,
+                },
+                "text": f"def service_{index}():\n" + ("    return 'context'\n" * 30),
+            }
+            for index in range(5)
+        ]
+    }
+
+    output, metrics = _build_preflight_evidence(metadata, 700)
+
+    assert len(output) <= 700
+    assert metrics["injected_chars"] == len(output)
+    assert metrics["raw_evidence_chars"] > len(output)
+    assert metrics["omitted_read_count"] >= 1
+    assert metrics["truncated"] is True
 
 
 def test_run_agent_can_disable_retrieval_preflight(tmp_path: Path) -> None:

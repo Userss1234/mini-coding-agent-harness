@@ -44,6 +44,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "Average tool calls:" in report
     assert "Input tokens: **0**" in report
     assert "Output tokens: **0**" in report
+    assert "Average preflight evidence chars (raw -> injected):" in report
     assert "Estimated model cost: **$0.000000**" in report
     assert "Tool-call mix:" in report
     assert "edit_match_failed" in report
@@ -182,9 +183,13 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert eval_json["summary"]["task_count"] == 40
     assert eval_json["summary"]["passed"] == 40
     assert eval_json["summary"]["retrieval_enabled"] is True
+    assert eval_json["summary"]["average_preflight_raw_chars"] > 0
+    assert eval_json["summary"]["average_preflight_injected_chars"] > 0
     assert "tool_counts" in eval_json["summary"]
     assert eval_json["tasks"][0]["task_id"] == "syntax_check"
     assert eval_json["tasks"][0]["retrieval_enabled"] is True
+    assert eval_json["tasks"][0]["preflight_raw_chars"] == 0
+    assert eval_json["tasks"][0]["preflight_injected_chars"] == 0
     assert eval_json["tasks"][0]["tool_counts"]["run_py_compile"] == 1
     assert eval_json["tasks"][0]["trace_path"].endswith("syntax_check.jsonl")
 
@@ -217,6 +222,20 @@ def test_trace_metrics_classifies_terminal_model_request_failure(tmp_path: Path)
     assert metrics["input_tokens"] == 10
     assert metrics["output_tokens"] == 2
     assert metrics["failure_categories"] == ["model_request_failed"]
+
+
+def test_trace_metrics_collects_retrieval_preflight_evidence_chars(tmp_path: Path) -> None:
+    trace_path = tmp_path / "trace.jsonl"
+    trace_path.write_text(
+        '{"event": "agent_retrieval_preflight", "data": '
+        '{"raw_evidence_chars": 3200, "injected_chars": 1200}}\n',
+        encoding="utf-8",
+    )
+
+    metrics = trace_metrics(trace_path)
+
+    assert metrics["preflight_raw_chars"] == 3200
+    assert metrics["preflight_injected_chars"] == 1200
 
 
 def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
@@ -419,6 +438,8 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert "Avg retrieve_then_read" in report
     assert "Avg context_pack" in report
     assert "Avg read_file" in report
+    assert "Avg Preflight Raw Chars" in report
+    assert "Avg Preflight Injected Chars" in report
     assert "disabled" in report
     assert "memory-on_context-on" in report
     assert "memory-off_context-on" in report
@@ -432,6 +453,8 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert compare_json["comparison"][0]["retrieval_enabled"] is False
     assert "average_retrieve_then_read_calls" in compare_json["comparison"][0]
     assert "average_context_pack_calls" in compare_json["comparison"][0]
+    assert "average_preflight_raw_chars" in compare_json["comparison"][0]
+    assert "average_preflight_injected_chars" in compare_json["comparison"][0]
     assert "tool_counts" in compare_json["comparison"][0]
 
 

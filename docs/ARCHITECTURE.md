@@ -40,7 +40,7 @@ flowchart TD
 
 1. A user command or eval task enters through `main.py`.
 2. Agent mode builds a `ToolRegistry` and starts `harness.agent.run_agent()`.
-3. If retrieval is enabled, the agent preloads a `retrieve_then_read` evidence pack before the first model turn.
+3. If retrieval is enabled, the agent preloads a budgeted `retrieve_then_read` evidence pack before the first model turn.
 4. The model returns either text or a tool request.
 5. Every tool request goes through `ToolRegistry.call(...)`, which applies permission policy before dispatching.
 6. Tool results are written to append-only JSONL through `TraceLogger`.
@@ -88,11 +88,13 @@ flowchart TD
     Index --> Filter["Skip .env, .git, artifacts, eval_runs, skills"]
     Filter --> Score["Lexical chunk scoring"]
     Score --> Plan["rag_explain read plan"]
-    Plan --> Read["read_file line ranges"]
-    Read --> Pack["retrieve_then_read evidence pack"]
+    Plan --> Merge["Merge overlapping or adjacent ranges"]
+    Merge --> Read["read_file bounded line ranges"]
+    Read --> Deduplicate["Remove exact duplicate reads"]
+    Deduplicate --> Pack["Character-capped evidence pack"]
 ```
 
-This makes retrieval explainable: reports and traces show which paths and line ranges were selected.
+This makes retrieval explainable and measurable: reports and traces show selected paths and line ranges plus raw and injected evidence characters, merged reads, omissions, and truncation. The default preflight budget selects two chunks, uses a 48-line chunk size and 8-line read window, caps each read at 1,400 characters, and caps total injected evidence at 2,400 characters. All five limits can be overridden through the `AGENT_RETRIEVAL_PREFLIGHT_*` environment variables documented in `.env.example`.
 
 ## Evaluation Pipeline
 

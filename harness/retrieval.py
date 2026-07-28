@@ -218,30 +218,58 @@ def explain_retrieval_plan(
 
 def build_read_plan(matches: list[dict[str, Any]], *, read_window: int = 20) -> list[dict[str, Any]]:
     plan: list[dict[str, Any]] = []
-    seen: set[tuple[str, int, int]] = set()
     for index, item in enumerate(matches, start=1):
         path = str(item.get("path", "")).strip()
         if not path:
             continue
         start_line = max(int(item.get("start_line", 1)) - read_window, 1)
         end_line = max(int(item.get("end_line", start_line)) + read_window, start_line)
-        key = (path, start_line, end_line)
-        if key in seen:
+        overlapping = [
+            existing
+            for existing in plan
+            if existing["path"] == path
+            and start_line <= int(existing["end_line"]) + 1
+            and end_line + 1 >= int(existing["start_line"])
+        ]
+        if overlapping:
+            target = overlapping[0]
+            target["start_line"] = min(int(target["start_line"]), start_line)
+            target["end_line"] = max(int(target["end_line"]), end_line)
+            target["score"] = max(float(target.get("score", 0)), float(item.get("score", 0)))
+            target["_match_ranks"].append(index)
+            for extra in overlapping[1:]:
+                target["start_line"] = min(int(target["start_line"]), int(extra["start_line"]))
+                target["end_line"] = max(int(target["end_line"]), int(extra["end_line"]))
+                target["score"] = max(float(target.get("score", 0)), float(extra.get("score", 0)))
+                target["_match_ranks"].extend(extra["_match_ranks"])
+                plan.remove(extra)
+            target["read_file_args"] = {
+                "path": path,
+                "start_line": target["start_line"],
+                "end_line": target["end_line"],
+            }
             continue
-        seen.add(key)
         plan.append({
-            "step": len(plan) + 1,
+            "step": 0,
             "path": path,
             "start_line": start_line,
             "end_line": end_line,
             "score": item.get("score", 0),
-            "reason": f"ranked match #{index} for the retrieval query",
+            "_match_ranks": [index],
             "read_file_args": {
                 "path": path,
                 "start_line": start_line,
                 "end_line": end_line,
             },
         })
+    for step, item in enumerate(plan, start=1):
+        ranks = sorted(set(item.pop("_match_ranks")))
+        item["step"] = step
+        if len(ranks) == 1:
+            item["reason"] = f"ranked match #{ranks[0]} for the retrieval query"
+        else:
+            labels = ", ".join(f"#{rank}" for rank in ranks)
+            item["reason"] = f"merged ranked matches {labels} for the retrieval query"
     return plan
 
 

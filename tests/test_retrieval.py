@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harness.retrieval import build_workspace_index, explain_retrieval_plan, search_workspace, tokenize_query
+from harness.retrieval import (
+    build_read_plan,
+    build_workspace_index,
+    explain_retrieval_plan,
+    search_workspace,
+    tokenize_query,
+)
 
 
 def test_tokenize_query_keeps_searchable_terms() -> None:
@@ -100,3 +106,22 @@ def test_explain_retrieval_plan_builds_read_file_arguments(tmp_path: Path) -> No
         "reason": "ranked match #1 for the retrieval query",
         "read_file_args": {"path": "billing.py", "start_line": 1, "end_line": 6},
     }]
+
+
+def test_build_read_plan_merges_overlapping_ranges_for_the_same_file() -> None:
+    matches = [
+        {"path": "service.py", "start_line": 1, "end_line": 20, "score": 9.0},
+        {"path": "service.py", "start_line": 15, "end_line": 35, "score": 8.0},
+        {"path": "tests/test_service.py", "start_line": 5, "end_line": 15, "score": 7.0},
+    ]
+
+    plan = build_read_plan(matches, read_window=2)
+
+    assert len(plan) == 2
+    assert plan[0]["read_file_args"] == {
+        "path": "service.py",
+        "start_line": 1,
+        "end_line": 37,
+    }
+    assert plan[0]["reason"] == "merged ranked matches #1, #2 for the retrieval query"
+    assert plan[1]["step"] == 2
