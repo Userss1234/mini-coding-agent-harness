@@ -64,4 +64,4 @@ This report checks whether repeated evaluation runs stay stable across the same 
 
 ## Interpretation
 
-For a resume or interview, one 36/36 run proves the full suite can pass end to end; two or more same-suite runs are stronger evidence because they show whether the result survives model randomness. When adding new runs, keep the same task set and model/provider settings unless the report is explicitly a comparison.
+For a resume or interview, one 36/36 run proves the common task set can pass end to end; two or more same-suite runs are stronger evidence because they show whether the result survives model randomness. When adding new runs, keep the same task set and model/provider settings unless the report is explicitly a comparison.

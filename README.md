@@ -26,11 +26,11 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
-- **Real-agent eval:** DeepSeek `deepseek-chat` passed 39/40 on the expanded suite; the only failure was a terminal provider HTTP 503 before verification. After increasing transient request retries, the failed task passed a targeted 1/1 rerun. Earlier 36-task runs remain 36/36, 35/36, and post-fix 36/36.
+- **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS.md`](reports/AGENT_EVAL_40_TASKS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
 
 ## Portfolio Walkthrough
 
@@ -42,6 +42,7 @@ python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -52,7 +53,9 @@ Show these committed artifacts while explaining the system:
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): architecture diagrams and module boundaries.
 - [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md): source-backed interview questions and answers.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
-- [`reports/AGENT_EVAL_40_TASKS.md`](reports/AGENT_EVAL_40_TASKS.md): expanded full-suite run, 39/40 with one terminal provider HTTP 503 before verification.
+- [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md): second complete expanded-suite run, 40/40 with hardened transient request retries.
+- [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md): two-run 40-task stability analysis, including the original provider interruption and the hardened full pass.
+- [`reports/AGENT_EVAL_40_TASKS.md`](reports/AGENT_EVAL_40_TASKS.md): preserved first expanded full-suite run, 39/40 with one terminal provider HTTP 503 before verification.
 - [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md): retry hardening analysis and the failed task's targeted 1/1 recovery evidence.
 - [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
 - [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md): second same-model 36-task run that exposed `error_recovery` variance.
@@ -379,7 +382,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The expanded full-suite DeepSeek run passed 39/40: all completed verifiers passed, while `shell_no_shell_execution` stopped on a provider HTTP 503 before verification. After increasing transient request retries from 2 to 4, that task passed a targeted 1/1 rerun. This is reported as full-run 39/40 plus targeted recovery, not as a single-run 40/40. Earlier 36-task runs remain 36/36, 35/36, and post-fix 36/36.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification. After increasing transient request retries from 2 to 4, the task passed a targeted rerun and the second complete 40-task run passed 40/40 with no verifier or terminal provider failures. The second run used 1,590,593 input tokens and 44,750 output tokens, averaged 13.15 tool calls and 103.91 seconds per task, and cost an estimated $5.443029. The committed stability report therefore records 39 stable-pass tasks and one provider-affected `fail -> pass` task across the two full runs.
 
 ## Git Baseline
 
@@ -393,7 +396,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Current Limitations
 
-- The committed same-model 36-task real-agent runs show one historical unstable task (`error_recovery`) across three runs; the post-fix full-suite run is back to 36/36, but more repeats would be needed for a stronger variance estimate.
+- The two same-model 40-task full runs are 39/40 and 40/40. Thirty-nine tasks are stable passes; `shell_no_shell_execution` is still classified as unstable because its first-run provider interruption became a second-run pass. More repeats or another provider/model would be needed for a stronger variance estimate.
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
@@ -404,7 +407,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Repeat the expanded 40-task real-agent suite with the hardened provider retry policy to seek a single-run 40/40 result and stability evidence.
-2. Add retrieval-off and memory/context ablations for the full 40-task agent suite.
+1. Add retrieval-off and memory/context ablations for the full 40-task agent suite.
+2. Add a third hardened 40-task run or a second provider/model when another API becomes available.
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.

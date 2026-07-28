@@ -18,6 +18,8 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 - `AGENT_EVAL_40_TASKS.md`: expanded full 40-task DeepSeek `deepseek-chat` run, 39/40 because one task hit a terminal provider HTTP 503 before verification.
 - `AGENT_EVAL_40_TASKS.json`: machine-readable JSON copy of the expanded full-suite run.
+- `AGENT_EVAL_40_TASKS_RUN2.md`: second complete 40-task DeepSeek `deepseek-chat` run, 40/40 with hardened transient request retries.
+- `AGENT_EVAL_40_TASKS_RUN2.json`: machine-readable JSON copy of the second complete expanded-suite run.
 - `AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`: targeted 1/1 rerun of the provider-interrupted task after retry hardening.
 - `AGENT_EVAL_40_TASKS_PROVIDER_RETRY.json`: machine-readable JSON copy of the targeted rerun.
 - `AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`: trace-backed analysis separating the original full-run result from the targeted recovery.
@@ -38,6 +40,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `EVAL_HISTORY.md`: `eval-history` generated trend report comparing eval metrics and task outcomes across runs.
 - `FAILURE_MODES.md`: `eval-failures` generated dashboard aggregating failed tasks by failure mode.
 - `EVAL_STABILITY.md`: `eval-stability` generated repeated-run stability analysis across three same-model 36-task reports, including the post-fix rerun.
+- `EVAL_STABILITY_40_TASKS.md`: repeated-run stability analysis across the two complete 40-task reports, showing 39 stable passes and one provider-affected fail-to-pass task.
 - `AGENT_COMPARE_2_TASKS.md`: memory/context ablation report over 2 representative agent-mode tasks.
 - `AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`: retrieval-on/off ablation report for `context_pack_retrieval`.
 - `AGENT_TRACE_python_add_tests.html`: sample trace for a real agent task that adds pytest coverage.

@@ -13,8 +13,8 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Ran and analyzed DeepSeek `deepseek-chat` real-agent evaluations, improving an initial 20-task pass rate from 18/20 to 20/20, validating 36-task full-suite runs at 36/36 and 35/36, then fixing the unstable `error_recovery` prompt path and restoring the post-fix full-suite run to 36/36.
   Evidence: `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN3.md`, `reports/ERROR_RECOVERY_AGENT_FIX.md`, `reports/AGENT_EVAL_20_TASKS.md`, `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
 
-- Ran the expanded 40-task DeepSeek suite at 39/40, traced the sole failure to a provider HTTP 503 before verification, increased transient request retries from 2 to 4, added terminal model-failure classification, and recovered the interrupted task in a targeted 1/1 rerun.
-  Evidence: `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`, `harness/agent.py`, `harness/evaluation.py`, `tests/test_agent.py`, `tests/test_evaluation.py`.
+- Ran two complete 40-task DeepSeek real-agent evaluations at 39/40 and 40/40, traced the sole first-run interruption to provider HTTP 503, increased transient request retries from 2 to 4, and measured repeated-run stability with 39 stable-pass tasks and one provider-affected fail-to-pass task.
+  Evidence: `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_RUN2.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `harness/agent.py`, `harness/evaluation.py`, `tests/test_agent.py`, `tests/test_evaluation.py`.
 
 - Added evaluation-analysis CLIs (`analyze-eval`, `eval-history`, `eval-failures`, `eval-stability`) that convert JSON eval outputs into comparison, trend, failure-mode, and repeated-run stability dashboards for debugging agent behavior beyond pass rate.
   Evidence: `README.md`, `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
@@ -24,7 +24,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 
 ## Short Version
 
-- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, RAG retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, error recovery, interactive execution tracing, MCP resources/prompts, and a 40-task deterministic benchmark with repeated real-agent stability analysis over the earlier 36-task suite.
+- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, RAG retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, error recovery, interactive execution tracing, MCP resources/prompts, and a 40-task deterministic benchmark validated by a complete 40/40 real-agent run.
 
 ## Evidence Map
 
@@ -32,14 +32,14 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | --- | --- |
 | Agent loop and local demo | `reports/DEMO_python_bugfix.md`, `reports/DEMO_python_bugfix_TRACE.html`, `harness/agent.py`, `harness/tools.py` |
 | Deterministic benchmark and CI | `README.md`, `.github/workflows/ci.yml`, `harness/evaluation.py`, `tests/test_evaluation.py` |
-| Real-agent evaluation | `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS.json`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`, `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN3.md`, `reports/ERROR_RECOVERY_AGENT_FIX.md`, `reports/AGENT_EVAL_20_TASKS.md` |
+| Real-agent evaluation | `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_RUN2.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`, `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN3.md`, `reports/ERROR_RECOVERY_AGENT_FIX.md`, `reports/AGENT_EVAL_20_TASKS.md` |
 | Prompt-contract improvement | `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md` |
-| Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md` |
+| Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
 
 ## Claims To Avoid
 
 - Do not call it a full autonomous software engineer.
-- Do not claim broad benchmark superiority from a single 36-task run.
+- Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
 - Do not claim OS-level sandboxing; the project implements harness-level permission controls.

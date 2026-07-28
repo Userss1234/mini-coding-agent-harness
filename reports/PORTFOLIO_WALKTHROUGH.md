@@ -16,6 +16,7 @@ python main.py eval --mode scripted
 python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
+python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -24,8 +25,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 1. Start with `reports/DEMO_python_bugfix.md`.
    Explain that the harness turns a maintenance task into a todo plan, tool calls, file edits, tests, and a final diff. The important point is that every action is recorded as evidence, not hidden inside a model response.
 
-2. Open `reports/AGENT_EVAL_40_TASKS.md` and `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`.
-   Explain that the expanded full-suite run passed 39/40 and that trace evidence identified the sole failure as a provider HTTP 503 before verification. Show how the request retry budget was hardened and the interrupted task then passed a targeted 1/1 rerun without rewriting the original full-run result.
+2. Open `reports/AGENT_EVAL_40_TASKS_RUN2.md` and `reports/EVAL_STABILITY_40_TASKS.md`.
+   Explain that the first expanded full-suite run passed 39/40 because of a provider HTTP 503 before verification. Show how the request retry budget was hardened, the original result was preserved, and the second complete run passed 40/40. The stability report records 39 stable-pass tasks and the provider-affected task as fail-to-pass.
 
 3. Open `reports/EVAL_HISTORY.md`.
    Explain the engineering loop: an earlier 20-task run passed 18/20, trace review drove a prompt-contract improvement to 20/20, and the final full-suite run reached 36/36. Point to the success-rate change, tool-call mix, and task outcome changes.
@@ -36,8 +37,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 5. Open `reports/MCP_SMOKE.md`.
    Explain that the same harness is exposed through a minimal MCP stdio server. It lists tools, resources, and prompts, including report resources such as `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`.
 
-6. Open `reports/EVAL_STABILITY.md`.
-   Explain that the repeated same-model runs quantify variance without needing another provider API: run 1 passed 36/36, run 2 passed 35/36 with `error_recovery` failing, and the post-fix run 3 returned to 36/36.
+6. Open `reports/EVAL_STABILITY_40_TASKS.md`.
+   Explain that repeated same-model runs quantify variance without needing another provider API: the two complete expanded-suite runs passed 39/40 and 40/40, with 39 stable-pass tasks and one provider-affected fail-to-pass task.
 
 ## Key Architecture Points
 
@@ -52,13 +53,13 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
 - Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
-- Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, and ran the expanded 40-task suite at 39/40; traced the sole interruption to provider HTTP 503 and recovered that task in a targeted 1/1 rerun after retry hardening.
+- Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, then ran the expanded suite twice at 39/40 and 40/40; traced the only first-run interruption to provider HTTP 503 and verified recovery in a complete hardened run.
 - Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid
 
 - Do not claim this is a full autonomous software engineer.
-- Do not claim broad benchmark superiority from a single 36-task run.
+- Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
 - Do not claim OS-level sandboxing; the project implements harness-level permission controls.

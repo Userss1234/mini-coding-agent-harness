@@ -162,12 +162,12 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The expanded 40-task real-model run passed 39/40; the only interruption was a provider HTTP 503 before verification, and the task later passed a targeted 1/1 rerun after request retry hardening. This is not claimed as a single-run 40/40 result.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
 
 Evidence:
 
 - `README.md` Current Limitations
-- `reports/EVAL_STABILITY.md`
+- `reports/EVAL_STABILITY_40_TASKS.md`
 
 ## 17. What would you improve next?
 
@@ -182,10 +182,11 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic suite; ran the expanded real-agent suite at 39/40, traced the sole interruption to provider HTTP 503, and recovered it with retry hardening plus a targeted 1/1 rerun.
+Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic suite; ran two complete DeepSeek real-agent evaluations at 39/40 and 40/40, traced the sole first-run interruption to provider HTTP 503, and verified the retry hardening in the full second run.
 
 Evidence:
 
 - `reports/RESUME_BULLETS.md`
-- `reports/AGENT_EVAL_36_TASKS.md`
+- `reports/AGENT_EVAL_40_TASKS_RUN2.md`
+- `reports/EVAL_STABILITY_40_TASKS.md`
 - `reports/MCP_SMOKE.md`

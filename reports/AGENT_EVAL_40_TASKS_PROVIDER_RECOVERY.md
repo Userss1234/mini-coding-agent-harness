@@ -9,8 +9,9 @@ Generated: 2026-07-28
 - The agent request retry budget was increased from 2 retries to 4 retries, preserving exponential backoff.
 - A focused regression test now proves recovery after four consecutive transient 503 failures.
 - A targeted model-backed rerun of `shell_no_shell_execution` passed **1/1**.
+- A second complete model-backed 40-task run with the hardened retry policy passed **40/40**.
 
-This is not presented as a single-run 40/40 result. The committed evidence is one full 39/40 run plus a successful targeted provider-recovery rerun.
+The original 39/40 result remains preserved. The committed follow-up evidence now includes both the targeted provider-recovery rerun and a separate complete 40/40 run.
 
 ## Full-Run Evidence
 
@@ -55,4 +56,4 @@ Source: `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md` and `reports/AGENT_EVAL_
 
 ## Interpretation
 
-The full run demonstrates that all expanded-suite task verifiers except the provider-interrupted task passed. The targeted rerun demonstrates that the task itself remains solvable after the provider recovered. A second complete 40-task run is still required before claiming a single-run 40/40 result with the hardened retry policy.
+The first full run demonstrates that all expanded-suite task verifiers except the provider-interrupted task passed. The targeted rerun demonstrates that the task itself remained solvable after the provider recovered. The second complete run then passed 40/40 with the hardened retry policy, so the repository can now claim a single-run 40/40 result while retaining the original 39/40 evidence. See `reports/AGENT_EVAL_40_TASKS_RUN2.md` and `reports/EVAL_STABILITY_40_TASKS.md`.

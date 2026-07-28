@@ -245,6 +245,8 @@ def test_build_eval_stability_report_marks_single_run_baseline() -> None:
     assert "single-run baseline only" in report
     assert "Common tasks across all runs: **2**" in report
     assert "Unstable tasks: **none**" in report
+    assert "one 2/2 run proves the common task set" in report
+    assert "one 36/36 run proves" not in report
     assert "| `python_add_tests` | pass | 1 | 0 | 0 | `stable_pass` |" in report
 
 
