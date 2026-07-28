@@ -43,6 +43,9 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `EVAL_STABILITY_40_TASKS.md`: repeated-run stability analysis across the two complete 40-task reports, showing 39 stable passes and one provider-affected fail-to-pass task.
 - `AGENT_COMPARE_2_TASKS.md`: memory/context ablation report over 2 representative agent-mode tasks.
 - `AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`: retrieval-on/off ablation report for `context_pack_retrieval`.
+- `AGENT_RETRIEVAL_COMPARE_8_TASKS.md`: paired retrieval-on/off real-agent comparison over 8 ordinary maintenance tasks.
+- `AGENT_RETRIEVAL_COMPARE_8_TASKS.json`: machine-readable comparison metrics for the 8-task retrieval ablation.
+- `AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md`: evidence-backed interpretation of the ablation's tool-call, token, latency, and cost tradeoffs.
 - `AGENT_TRACE_python_add_tests.html`: sample trace for a real agent task that adds pytest coverage.
 - `AGENT_TRACE_multi_file_service_fix.html`: sample trace for a real agent task that fixes a multi-file service bug.
 - `AGENT_TRACE_retrieval_on_context_pack.html`: trace where the model calls `context_pack` and passes the retrieval task.

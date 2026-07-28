@@ -40,6 +40,9 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 6. Open `reports/EVAL_STABILITY_40_TASKS.md`.
    Explain that repeated same-model runs quantify variance without needing another provider API: the two complete expanded-suite runs passed 39/40 and 40/40, with 39 stable-pass tasks and one provider-affected fail-to-pass task.
 
+7. Open `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md`.
+   Explain the measured retrieval tradeoff: both conditions passed 8/8, retrieval reduced tool exploration and direct reads, but the preloaded evidence increased input tokens and cost. The next engineering target is a smaller evidence budget, not an unsupported success-rate claim.
+
 ## Key Architecture Points
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
@@ -55,6 +58,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, then ran the expanded suite twice at 39/40 and 40/40; traced the only first-run interruption to provider HTTP 503 and verified recovery in a complete hardened run.
 - Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
+- Measured retrieval on eight ordinary maintenance tasks and identified a concrete exploration-versus-context-cost tradeoff.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid

@@ -28,9 +28,9 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
-- **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
+- **Ablations:** Memory/context comparison over 2 tasks plus a paired 8-task retrieval-on/off real-agent study. Both retrieval conditions passed 8/8; retrieval reduced tool calls by 13.28% and direct file reads by 46.43%, but increased input tokens by 34.38% and cost by 28.65%.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md`](reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), and [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md).
 
 ## Portfolio Walkthrough
 
@@ -265,6 +265,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 - `reports/EVAL_STABILITY.md` is generated with `python main.py eval-stability` to measure repeated-run stability for same-suite agent reports.
 - `reports/AGENT_COMPARE_2_TASKS.md` is a committed memory/context ablation report over 2 representative agent-mode tasks.
 - `reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md` is a committed retrieval-on/off ablation report for the `context_pack_retrieval` task.
+- `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md` and `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md` compare retrieval preflight on eight ordinary maintenance tasks and document the measured exploration-versus-cost tradeoff.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` and `reports/AGENT_TRACE_retrieval_off_context_pack.html` show the successful and disabled-retrieval paths for the retrieval ablation.
 - `reports/README.md` explains the committed demo and real-agent evaluation artifacts.
@@ -382,7 +383,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification. After increasing transient request retries from 2 to 4, the task passed a targeted rerun and the second complete 40-task run passed 40/40 with no verifier or terminal provider failures. The second run used 1,590,593 input tokens and 44,750 output tokens, averaged 13.15 tool calls and 103.91 seconds per task, and cost an estimated $5.443029. The committed stability report therefore records 39 stable-pass tasks and one provider-affected `fail -> pass` task across the two full runs.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification. After increasing transient request retries from 2 to 4, the task passed a targeted rerun and the second complete 40-task run passed 40/40 with no verifier or terminal provider failures. The second run used 1,590,593 input tokens and 44,750 output tokens, averaged 13.15 tool calls and 103.91 seconds per task, and cost an estimated $5.443029. The committed stability report therefore records 39 stable-pass tasks and one provider-affected `fail -> pass` task across the two full runs. A separate paired 8-task ablation passed 8/8 with retrieval both on and off: retrieval reduced tool calls and direct reads, but increased input tokens and cost, so the next retrieval target is evidence-budget efficiency rather than a success-rate claim.
 
 ## Git Baseline
 
@@ -407,7 +408,8 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Add retrieval-off and memory/context ablations for the full 40-task agent suite.
-2. Add a third hardened 40-task run or a second provider/model when another API becomes available.
+1. Reduce the retrieval preflight evidence budget, then rerun the same paired 8-task ablation.
+2. Expand memory/context ablation to a representative multi-file task set.
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.
+5. Add a third hardened 40-task run or a second provider/model when another API becomes available.

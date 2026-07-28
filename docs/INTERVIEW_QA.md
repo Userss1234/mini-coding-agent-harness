@@ -171,12 +171,12 @@ Evidence:
 
 ## 17. What would you improve next?
 
-The next best improvement is to improve realism with larger multi-file fixtures, full-suite retrieval-off and memory/context ablations, optional MCP HTTP/SSE transport, and optional OS-level sandboxing.
+The next best improvement is to reduce the retrieval preflight evidence budget and rerun the same paired 8-task ablation. The current evidence shows equal 8/8 success with retrieval on and off: retrieval reduces exploration but raises input tokens and cost. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
 
 Evidence:
 
 - `README.md` Next Steps
-- `reports/EVAL_STABILITY.md`
+- `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md`
 
 ## 18. How should you summarize this on a resume?
 
