@@ -24,8 +24,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 1. Start with `reports/DEMO_python_bugfix.md`.
    Explain that the harness turns a maintenance task into a todo plan, tool calls, file edits, tests, and a final diff. The important point is that every action is recorded as evidence, not hidden inside a model response.
 
-2. Open `reports/AGENT_EVAL_36_TASKS.md`.
-   Explain that the project has a real model-backed evaluation path, not only scripted fixtures. The committed full-suite DeepSeek `deepseek-chat` run reached 36/36, and each task has tool-call counts, duration, token cost, and trace paths.
+2. Open `reports/AGENT_EVAL_40_TASKS.md` and `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`.
+   Explain that the expanded full-suite run passed 39/40 and that trace evidence identified the sole failure as a provider HTTP 503 before verification. Show how the request retry budget was hardened and the interrupted task then passed a targeted 1/1 rerun without rewriting the original full-run result.
 
 3. Open `reports/EVAL_HISTORY.md`.
    Explain the engineering loop: an earlier 20-task run passed 18/20, trace review drove a prompt-contract improvement to 20/20, and the final full-suite run reached 36/36. Point to the success-rate change, tool-call mix, and task outcome changes.
@@ -52,7 +52,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
 - Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
-- Improved real-agent evaluation from an 18/20 baseline to 20/20, then validated the earlier 36-task suite at 36/36 using trace-backed failure analysis; the four newest tasks are deterministic-only until the next model-backed rerun.
+- Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, and ran the expanded 40-task suite at 39/40; traced the sole interruption to provider HTTP 503 and recovered that task in a targeted 1/1 rerun after retry hardening.
 - Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 

@@ -16,6 +16,11 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 ## Real Agent Eval
 
+- `AGENT_EVAL_40_TASKS.md`: expanded full 40-task DeepSeek `deepseek-chat` run, 39/40 because one task hit a terminal provider HTTP 503 before verification.
+- `AGENT_EVAL_40_TASKS.json`: machine-readable JSON copy of the expanded full-suite run.
+- `AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`: targeted 1/1 rerun of the provider-interrupted task after retry hardening.
+- `AGENT_EVAL_40_TASKS_PROVIDER_RETRY.json`: machine-readable JSON copy of the targeted rerun.
+- `AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`: trace-backed analysis separating the original full-run result from the targeted recovery.
 - `AGENT_EVAL.md`: earlier DeepSeek `deepseek-chat` report over 10 representative agent-mode tasks.
 - `AGENT_EVAL_10_TASKS.md`: named copy of the 10-task real-agent evaluation report.
 - `AGENT_EVAL_20_TASKS.md`: expanded 20-task DeepSeek `deepseek-chat` agent-mode evaluation report.

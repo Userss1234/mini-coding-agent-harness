@@ -5,7 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from harness.evaluation import EvalTask, _agent_eval_max_turns, build_agent_eval_prompt, run_evaluation
+from harness.evaluation import (
+    EvalTask,
+    _agent_eval_max_turns,
+    build_agent_eval_prompt,
+    run_evaluation,
+    trace_metrics,
+)
 
 
 def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
@@ -195,6 +201,22 @@ def test_agent_eval_max_turns_reads_environment(monkeypatch) -> None:
 
     monkeypatch.setenv("AGENT_EVAL_MAX_TURNS", "0")
     assert _agent_eval_max_turns() == 1
+
+
+def test_trace_metrics_classifies_terminal_model_request_failure(tmp_path: Path) -> None:
+    trace_path = tmp_path / "trace.jsonl"
+    trace_path.write_text(
+        '{"event": "agent_response", "data": {"usage": {"input_tokens": 10, "output_tokens": 2}}}\n'
+        '{"event": "model_request_retry", "data": {"attempt": 1, "max_retries": 4}}\n'
+        '{"event": "agent_error", "data": {"error": "HTTPError: HTTP Error 503"}}\n',
+        encoding="utf-8",
+    )
+
+    metrics = trace_metrics(trace_path)
+
+    assert metrics["input_tokens"] == 10
+    assert metrics["output_tokens"] == 2
+    assert metrics["failure_categories"] == ["model_request_failed"]
 
 
 def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:

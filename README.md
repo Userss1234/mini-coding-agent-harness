@@ -26,11 +26,11 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
-- **Real-agent eval:** DeepSeek `deepseek-chat` reports over the previous 36-task suite: run 1 passed 36/36, run 2 passed 35/36 with one unstable `error_recovery` task, and post-fix run 3 passed 36/36.
+- **Real-agent eval:** DeepSeek `deepseek-chat` passed 39/40 on the expanded suite; the only failure was a terminal provider HTTP 503 before verification. After increasing transient request retries, the failed task passed a targeted 1/1 rerun. Earlier 36-task runs remain 36/36, 35/36, and post-fix 36/36.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/AGENT_EVAL_20_TASKS.md`](reports/AGENT_EVAL_20_TASKS.md), [`reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`](reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md), [`reports/AGENT_COMPARE_2_TASKS.md`](reports/AGENT_COMPARE_2_TASKS.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS.md`](reports/AGENT_EVAL_40_TASKS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md), [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md), and [`reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md`](reports/AGENT_RETRIEVAL_COMPARE_CONTEXT_TASK.md).
 
 ## Portfolio Walkthrough
 
@@ -52,6 +52,8 @@ Show these committed artifacts while explaining the system:
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): architecture diagrams and module boundaries.
 - [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md): source-backed interview questions and answers.
 - [`reports/DEMO_python_bugfix.md`](reports/DEMO_python_bugfix.md): tool loop evidence for a deterministic local bugfix.
+- [`reports/AGENT_EVAL_40_TASKS.md`](reports/AGENT_EVAL_40_TASKS.md): expanded full-suite run, 39/40 with one terminal provider HTTP 503 before verification.
+- [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md): retry hardening analysis and the failed task's targeted 1/1 recovery evidence.
 - [`reports/AGENT_EVAL_36_TASKS.md`](reports/AGENT_EVAL_36_TASKS.md): full 36-task model-backed coding-agent evaluation result.
 - [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md): second same-model 36-task run that exposed `error_recovery` variance.
 - [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md): post-fix same-model 36-task run showing the suite back at 36/36.
@@ -377,7 +379,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, injected-client validation of retrieval preflight, and realistic nested-package/config fixtures. Committed DeepSeek `deepseek-chat` runs cover the earlier 36-task suite at 36/36, 35/36, and post-fix 36/36; the four newest tasks have deterministic evidence but have not yet been included in a real-model full-suite rerun. `eval-stability` records `error_recovery` as the historical repeated-run variance case, while the history/failure dashboards track the earlier 18/20 and 20/20 runs.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The expanded full-suite DeepSeek run passed 39/40: all completed verifiers passed, while `shell_no_shell_execution` stopped on a provider HTTP 503 before verification. After increasing transient request retries from 2 to 4, that task passed a targeted 1/1 rerun. This is reported as full-run 39/40 plus targeted recovery, not as a single-run 40/40. Earlier 36-task runs remain 36/36, 35/36, and post-fix 36/36.
 
 ## Git Baseline
 
@@ -395,14 +397,14 @@ After the initial baseline commit, future tool changes and generated report chan
 - Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
-- Retry/backoff handles transient model/API and non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
+- Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
 - Shell/Git permission checks use an allowlist and `shell=False`, including through MCP, but they are not a real OS sandbox.
 - MCP support is stdio-only and does not yet implement HTTP/SSE transport, OAuth, or resource subscriptions.
 - Workflow memory is not full RAG: it ranks local Markdown memories lexically rather than using embeddings or a vector database.
 
 ## Next Steps
 
-1. Run the expanded 40-task suite in real-agent mode and repeat it for stability evidence.
+1. Repeat the expanded 40-task real-agent suite with the hardened provider retry policy to seek a single-run 40/40 result and stability evidence.
 2. Add retrieval-off and memory/context ablations for the full 40-task agent suite.
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.

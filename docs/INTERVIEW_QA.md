@@ -162,7 +162,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The deterministic suite now has 40 tasks, while the committed repeated real-model evidence covers the previous 36-task suite. Those same-model runs showed one historical unstable task, `error_recovery`; a targeted prompt fix and a post-fix full-suite run now pass that path, but the four newest realistic fixtures still need real-model reruns.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The expanded 40-task real-model run passed 39/40; the only interruption was a provider HTTP 503 before verification, and the task later passed a targeted 1/1 rerun after request retry hardening. This is not claimed as a single-run 40/40 result.
 
 Evidence:
 
@@ -182,7 +182,7 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic evaluation suite with repeated real-agent reports over its earlier 36-task version.
+Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic suite; ran the expanded real-agent suite at 39/40, traced the sole interruption to provider HTTP 503, and recovered it with retry hardening plus a targeted 1/1 rerun.
 
 Evidence:
 

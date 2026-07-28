@@ -2223,6 +2223,10 @@ def trace_metrics(trace_path: Path) -> dict:
             output_tokens += int(usage.get("output_tokens", 0) or 0)
             continue
         event_name = event.get("event")
+        if event_name == "agent_error":
+            if "model_request_failed" not in failure_categories:
+                failure_categories.append("model_request_failed")
+            continue
         if event_name == "eval_agent_verifier_start":
             in_agent_verifier = True
             continue

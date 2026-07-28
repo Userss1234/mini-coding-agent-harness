@@ -146,4 +146,4 @@ MCP exposes selected project documents and reports, including evaluation history
 - Permission checks are harness-level, not OS-level sandboxing.
 - Retrieval is lexical, not embedding-based.
 - MCP is stdio-only.
-- The deterministic suite has 40 tasks, while the committed real-agent evidence covers the earlier 36-task version across three same-model DeepSeek runs: 36/36, 35/36, and post-fix 36/36. `eval-stability` records `error_recovery` as the historical variance case.
+- The deterministic suite has 40 tasks. The expanded real-agent run passed 39/40, with the only interruption caused by provider HTTP 503 before verification; the task passed a targeted 1/1 rerun after transient model retries were increased from 2 to 4. Earlier 36-task DeepSeek runs remain 36/36, 35/36, and post-fix 36/36.

@@ -117,6 +117,38 @@ def test_call_with_retries_treats_rate_limit_as_transient(tmp_path: Path) -> Non
     assert "model_request_retry" in trace.path.read_text(encoding="utf-8")
 
 
+def test_call_with_retries_survives_extended_provider_outage(tmp_path: Path) -> None:
+    trace = TraceLogger(tmp_path / "trace.jsonl")
+    attempts = {"count": 0}
+    sleeps: list[float] = []
+
+    def unavailable_four_times() -> str:
+        attempts["count"] += 1
+        if attempts["count"] <= 4:
+            raise RuntimeError("503 service unavailable")
+        return "ok"
+
+    result = _call_with_retries(
+        unavailable_four_times,
+        trace=trace,
+        event_name="model_request_retry",
+        max_retries=4,
+        base_delay=0.5,
+        sleeper=sleeps.append,
+    )
+
+    events = [
+        json.loads(line)
+        for line in trace.path.read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert result == "ok"
+    assert attempts["count"] == 5
+    assert sleeps == [0.5, 1.0, 2.0, 4.0]
+    assert len(events) == 4
+    assert all(event["data"]["max_retries"] == 4 for event in events)
+
+
 def test_response_usage_extracts_token_counts() -> None:
     class Usage:
         input_tokens = 12

@@ -1,0 +1,62 @@
+{
+  "workspace": "D:\\-\\hello-agent\\mini-coding-agent-harness",
+  "summary": {
+    "label": "selected",
+    "mode": "agent",
+    "memory_enabled": true,
+    "context_enabled": true,
+    "retrieval_enabled": true,
+    "task_count": 1,
+    "passed": 1,
+    "success_rate": 1.0,
+    "average_tool_calls": 17.0,
+    "average_retrieve_then_read_calls": 1.0,
+    "average_context_pack_calls": 1.0,
+    "average_read_file_calls": 1.0,
+    "average_duration": 137.4631154006347,
+    "total_input_tokens": 85198,
+    "total_output_tokens": 1178,
+    "estimated_cost_usd": 0.273264,
+    "tool_counts": {
+      "compact_context": 1,
+      "context_pack": 1,
+      "grep": 10,
+      "list_memories": 1,
+      "read_file": 1,
+      "read_memory": 1,
+      "retrieve_then_read": 1,
+      "todo_write": 1
+    },
+    "failure_categories": []
+  },
+  "tasks": [
+    {
+      "task_id": "shell_no_shell_execution",
+      "category": "security",
+      "description": "Run an allowlisted command without invoking a shell.",
+      "mode": "agent",
+      "memory_enabled": true,
+      "context_enabled": true,
+      "retrieval_enabled": true,
+      "success": true,
+      "duration_seconds": 137.4631154006347,
+      "tool_calls": 17,
+      "failed_tool_calls": 0,
+      "tool_counts": {
+        "list_memories": 1,
+        "retrieve_then_read": 1,
+        "read_memory": 1,
+        "todo_write": 1,
+        "grep": 10,
+        "context_pack": 1,
+        "read_file": 1,
+        "compact_context": 1
+      },
+      "input_tokens": 85198,
+      "output_tokens": 1178,
+      "estimated_cost_usd": 0.273264,
+      "failure_categories": [],
+      "trace_path": "artifacts\\agent_eval_40_tasks_provider_retry_runs\\agent\\shell_no_shell_execution.jsonl"
+    }
+  ]
+}

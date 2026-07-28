@@ -32,7 +32,7 @@ def run_agent(
     prompt: str,
     registry: ToolRegistry,
     max_turns: int = 8,
-    max_retries: int = 2,
+    max_retries: int = 4,
     client: Any | None = None,
     model: str | None = None,
     retrieval_preflight: bool = True,
@@ -276,7 +276,7 @@ def _call_with_retries(
     operation: Callable[[], Any],
     trace: Any,
     event_name: str,
-    max_retries: int = 2,
+    max_retries: int = 4,
     base_delay: float = 0.5,
     sleeper: Callable[[float], None] = time.sleep,
 ) -> Any:
