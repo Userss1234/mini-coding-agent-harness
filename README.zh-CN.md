@@ -25,8 +25,8 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 ## 项目快照
 
-- **Scripted benchmark：**36 个确定性代码仓库维护任务，当前提交快照 36/36 通过。
-- **真实 Agent eval：**DeepSeek `deepseek-chat` 已完成三次同模型 36-task 全量运行：run 1 为 36/36，run 2 为 35/36 且暴露 `error_recovery` 波动，修复后 run 3 回到 36/36。
+- **Scripted benchmark：**40 个确定性代码仓库维护任务，当前提交快照 40/40 通过，并新增嵌套 package、跨文件、插件注册表和依赖/配置交互 fixture。
+- **真实 Agent eval：**DeepSeek `deepseek-chat` 已针对之前的 36-task suite 完成三次同模型运行：run 1 为 36/36，run 2 为 35/36 且暴露 `error_recovery` 波动，修复后 run 3 回到 36/36。
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
 - **Ablation：**已提交 2 任务 memory/context 对比，以及 `context_pack_retrieval` 的 retrieval-on/off 对比。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
@@ -298,7 +298,7 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 
 ## 评估
 
-当前 benchmark 有 **36 个任务**，全部是确定性任务。它包含 harness 能力检查、带 retrieval preflight 的注入式 fake client agent-loop smoke test、隔离的代码维护 fixture、行区间文件读取、query-ranked context retrieval、本地 RAG symbol retrieval、RAG read-plan generation、retrieve-then-read evidence loading、敏感路径检索过滤、MCP `rag_search` smoke validation、静态 trace HTML 渲染、无 shell 命令执行、权限策略报告、多文件契约修复任务、语义 retry planning、memory 相关性排序，以及带 `src/` 目录的 package 结构 fixture。
+当前 benchmark 有 **40 个任务**，全部是确定性任务。它包含 harness 能力检查、带 retrieval preflight 的注入式 fake client agent-loop smoke test、隔离的代码维护 fixture、行区间文件读取、query-ranked context retrieval、本地 RAG symbol retrieval、RAG read-plan generation、retrieve-then-read evidence loading、敏感路径检索过滤、MCP `rag_search` smoke validation、可交互的单文件 trace HTML 渲染、无 shell 命令执行、权限策略报告、多文件契约修复任务、语义 retry planning、memory 相关性排序、嵌套 `src/` package、插件发现和依赖/配置交互。
 
 任务覆盖：
 
@@ -313,7 +313,7 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 - Retrieve-then-read evidence pack loading
 - RAG indexing/search 的敏感路径过滤
 - MCP `rag_search` smoke validation
-- 静态 HTML trace 报告生成
+- 可交互的单文件 HTML trace 报告，支持事件/工具/状态/关键词筛选，并汇总耗时、模型轮次、token、权限决策和阻断调用
 - 错误恢复
 - 语义 retry planning
 - 工作流记忆列表
@@ -337,6 +337,10 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 - 多文件 service/repository 契约修复
 - 多文件 API handler/response 契约修复
 - `src/` package 结构下的订单/价格跨文件修复
+- 嵌套 package export 与 API payload 契约修复
+- 跨模块环境变量/文件配置优先级修复
+- pyproject 依赖范围与 runtime compatibility guard 对齐
+- 嵌套插件注册表发现和重复 slug 处理
 
 最新评估报告会跟踪：
 
@@ -370,7 +374,7 @@ memory-off_context-off
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 36 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation 报告、注入式 agent-loop smoke test、静态 trace HTML 渲染、无 shell 命令执行、权限策略报告、CI validation，以及 DeepSeek/OpenAI-compatible 的真实 API agent 入口。检索层会对安全的 workspace 文本文件做 chunk，跳过敏感/生成路径和 `skills/` 下的 workflow memory，用本地 lexical scoring 排序，而不是 embeddings，能把 top matches 转成具体 `read_file` 计划，并能按计划装载行区间 evidence pack。agent loop 现在会在 retrieval 开启时，在第一轮模型调用前预加载这份 `retrieve_then_read` evidence pack。scripted benchmark 包含专门的 RAG 任务，用来验证 symbol retrieval、read-plan generation、retrieve-then-read evidence loading、敏感路径过滤、MCP `rag_search` 协议暴露，以及注入式 fake client 对 retrieval preflight 的验证。当前已提交 DeepSeek `deepseek-chat` 三次同模型 36-task 全量真实 agent 报告：第一次 36/36，第二次 35/36 并暴露 `error_recovery` 波动，修复后第三次回到 36/36；`eval-stability` 将 `error_recovery` 记录为历史重复运行波动点，history/failure dashboards 也保留了早期 18/20 到 20/20 的 prompt-contract 改进轨迹。
+当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation 报告、注入式 agent-loop smoke test、可交互单文件 trace HTML、无 shell 命令执行、权限策略报告、CI validation，以及 DeepSeek/OpenAI-compatible 的真实 API agent 入口。检索层会对安全的 workspace 文本文件做 chunk，跳过敏感/生成路径和 `skills/` 下的 workflow memory，用本地 lexical scoring 排序，而不是 embeddings，能把 top matches 转成具体 `read_file` 计划，并能按计划装载行区间 evidence pack。agent loop 现在会在 retrieval 开启时，在第一轮模型调用前预加载这份 `retrieve_then_read` evidence pack。scripted benchmark 包含专门的 RAG 任务，以及嵌套 package、配置优先级、依赖兼容性和插件注册表 fixture。当前已提交 DeepSeek `deepseek-chat` 三次同模型运行覆盖之前的 36-task suite：第一次 36/36，第二次 35/36 并暴露 `error_recovery` 波动，修复后第三次回到 36/36；新增 4 个任务目前已有确定性验证，但尚未进入真实模型全量复跑。`eval-stability` 将 `error_recovery` 记录为历史重复运行波动点，history/failure dashboards 也保留了早期 18/20 到 20/20 的 prompt-contract 改进轨迹。
 
 ## Git Baseline
 
@@ -394,8 +398,8 @@ git diff -- .
 
 ## 下一步
 
-1. 增加更真实的仓库 fixture，覆盖嵌套 package、跨文件测试和依赖/配置交互。
-2. 扩展 full-suite ablation：对 36 个任务分别运行 memory/context/retrieval-on/off 对比，而不只保留小样本消融。
+1. 对扩展后的 40-task suite 运行真实 agent 全量评测，并重复运行以补充稳定性证据。
+2. 扩展 full-suite ablation：对 40 个任务分别运行 memory/context/retrieval-on/off 对比，而不只保留小样本消融。
 3. 增加可选 MCP HTTP/SSE transport 和更完整的 resource subscriptions。
 4. 为 shell execution 增加可选 OS 级沙箱。
 5. 跟踪自动注入 retry_plan 是否能提升 `eval --mode agent` 成功率并降低工具调用次数。

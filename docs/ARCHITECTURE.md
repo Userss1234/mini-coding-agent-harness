@@ -60,7 +60,7 @@ flowchart TD
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, and repeated-run stability reports. |
 | `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
-| `harness/trace_viewer.py` | Static HTML trace rendering. |
+| `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |
 
 ## Tool Registry Boundary
 
@@ -98,7 +98,7 @@ This makes retrieval explainable: reports and traces show which paths and line r
 
 ```mermaid
 flowchart TD
-    Tasks["36 eval tasks"] --> Mode{"Mode"}
+    Tasks["40 eval tasks"] --> Mode{"Mode"}
     Mode --> Scripted["Scripted deterministic runner"]
     Mode --> AgentMode["Real model-backed agent loop"]
     Scripted --> Verify["Task verifier"]
@@ -146,4 +146,4 @@ MCP exposes selected project documents and reports, including evaluation history
 - Permission checks are harness-level, not OS-level sandboxing.
 - Retrieval is lexical, not embedding-based.
 - MCP is stdio-only.
-- The committed full-suite real-agent results now include three same-model DeepSeek runs: 36/36, 35/36, and post-fix 36/36. `eval-stability` records `error_recovery` as the historical variance case.
+- The deterministic suite has 40 tasks, while the committed real-agent evidence covers the earlier 36-task version across three same-model DeepSeek runs: 36/36, 35/36, and post-fix 36/36. `eval-stability` records `error_recovery` as the historical variance case.

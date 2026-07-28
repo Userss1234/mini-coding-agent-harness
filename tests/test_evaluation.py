@@ -33,7 +33,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "Context compaction: **enabled**" in report
     assert "Context retrieval: **enabled**" in report
     assert "Categories: **agent_loop, code_maintenance, code_quality, configuration, documentation, memory, multi_file, recovery, retrieval, security, tests, trace**" in report
-    assert "Tasks: **36**" in report
+    assert "Tasks: **40**" in report
     assert "Success rate: **100.00%**" in report
     assert "Average tool calls:" in report
     assert "Input tokens: **0**" in report
@@ -72,6 +72,10 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "multi_file_service_fix" in report
     assert "multi_file_api_contract_fix" in report
     assert "package_order_total_fix" in report
+    assert "nested_package_export_fix" in report
+    assert "config_precedence_integration_fix" in report
+    assert "dependency_compatibility_fix" in report
+    assert "nested_plugin_registry_fix" in report
     assert (tmp_path / "EVAL.md").exists()
     assert (tmp_path / "eval_runs" / "syntax_check.jsonl").exists()
     assert (tmp_path / "eval_runs" / "read_file_line_range.jsonl").exists()
@@ -106,6 +110,10 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert (tmp_path / "eval_runs" / "multi_file_service_fix.jsonl").exists()
     assert (tmp_path / "eval_runs" / "multi_file_api_contract_fix.jsonl").exists()
     assert (tmp_path / "eval_runs" / "package_order_total_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "nested_package_export_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "config_precedence_integration_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "dependency_compatibility_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "nested_plugin_registry_fix.jsonl").exists()
     fixed_code = tmp_path / "eval_runs" / "workspaces" / "python_bugfix" / "calculator.py"
     added_test = tmp_path / "eval_runs" / "workspaces" / "python_add_tests" / "tests" / "test_string_utils.py"
     updated_readme = tmp_path / "eval_runs" / "workspaces" / "readme_update" / "README.md"
@@ -127,6 +135,13 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     fixed_response = tmp_path / "eval_runs" / "workspaces" / "multi_file_api_contract_fix" / "responses.py"
     fixed_cart = tmp_path / "eval_runs" / "workspaces" / "package_order_total_fix" / "src" / "shop" / "cart.py"
     fixed_pricing = tmp_path / "eval_runs" / "workspaces" / "package_order_total_fix" / "src" / "shop" / "pricing.py"
+    fixed_catalog_export = tmp_path / "eval_runs" / "workspaces" / "nested_package_export_fix" / "src" / "acme_store" / "catalog" / "__init__.py"
+    fixed_catalog_api = tmp_path / "eval_runs" / "workspaces" / "nested_package_export_fix" / "src" / "acme_store" / "api.py"
+    fixed_settings = tmp_path / "eval_runs" / "workspaces" / "config_precedence_integration_fix" / "src" / "jobrunner" / "settings.py"
+    fixed_worker = tmp_path / "eval_runs" / "workspaces" / "config_precedence_integration_fix" / "src" / "jobrunner" / "worker.py"
+    fixed_project = tmp_path / "eval_runs" / "workspaces" / "dependency_compatibility_fix" / "pyproject.toml"
+    fixed_compat = tmp_path / "eval_runs" / "workspaces" / "dependency_compatibility_fix" / "src" / "gateway" / "compat.py"
+    fixed_plugin_registry = tmp_path / "eval_runs" / "workspaces" / "nested_plugin_registry_fix" / "src" / "platform_app" / "plugins" / "registry.py"
     copied_memory = tmp_path / "eval_runs" / "workspaces" / "python_bugfix" / "skills" / "fixture-workflow.md"
     assert "return a + b" in fixed_code.read_text(encoding="utf-8")
     assert "test_normalize_title" in added_test.read_text(encoding="utf-8")
@@ -149,10 +164,17 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "status=400" in fixed_response.read_text(encoding="utf-8")
     assert "max(discounted_subtotal(items) - discount, 0)" in fixed_cart.read_text(encoding="utf-8")
     assert "item.get('quantity', 1)" in fixed_pricing.read_text(encoding="utf-8")
+    assert "from .models import Product" in fixed_catalog_export.read_text(encoding="utf-8")
+    assert "'available': product.is_available()" in fixed_catalog_api.read_text(encoding="utf-8")
+    assert "env.get('JOB_TIMEOUT'" in fixed_settings.read_text(encoding="utf-8")
+    assert "resolve_timeout(config, env)" in fixed_worker.read_text(encoding="utf-8")
+    assert "httpx>=0.28,<0.29" in fixed_project.read_text(encoding="utf-8")
+    assert "SUPPORTED_HTTPX_MINOR = 28" in fixed_compat.read_text(encoding="utf-8")
+    assert "duplicate plugin slug" in fixed_plugin_registry.read_text(encoding="utf-8")
     assert copied_memory.exists()
     eval_json = json.loads((tmp_path / "EVAL.json").read_text(encoding="utf-8"))
-    assert eval_json["summary"]["task_count"] == 36
-    assert eval_json["summary"]["passed"] == 36
+    assert eval_json["summary"]["task_count"] == 40
+    assert eval_json["summary"]["passed"] == 40
     assert eval_json["summary"]["retrieval_enabled"] is True
     assert "tool_counts" in eval_json["summary"]
     assert eval_json["tasks"][0]["task_id"] == "syntax_check"
@@ -293,14 +315,18 @@ def test_run_evaluation_can_select_categories(tmp_path: Path) -> None:
     )
 
     assert "Categories: **multi_file**" in report
-    assert "Tasks: **3**" in report
+    assert "Tasks: **5**" in report
     assert "multi_file_service_fix" in report
     assert "multi_file_api_contract_fix" in report
     assert "package_order_total_fix" in report
+    assert "nested_package_export_fix" in report
+    assert "nested_plugin_registry_fix" in report
     assert "python_bugfix" not in report
     assert (tmp_path / "eval_runs" / "multi_file_service_fix.jsonl").exists()
     assert (tmp_path / "eval_runs" / "multi_file_api_contract_fix.jsonl").exists()
     assert (tmp_path / "eval_runs" / "package_order_total_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "nested_package_export_fix.jsonl").exists()
+    assert (tmp_path / "eval_runs" / "nested_plugin_registry_fix.jsonl").exists()
     assert not (tmp_path / "eval_runs" / "python_bugfix.jsonl").exists()
 
 

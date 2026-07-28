@@ -615,6 +615,38 @@ def default_tasks() -> list[EvalTask]:
             setup_package_order_total_fix_fixture,
             verify_tests_pass,
         ),
+        EvalTask(
+            "nested_package_export_fix",
+            "multi_file",
+            "Fix a nested package export and API payload contract across a src/ layout.",
+            run_nested_package_export_fix_task,
+            setup_nested_package_export_fix_fixture,
+            verify_tests_pass,
+        ),
+        EvalTask(
+            "config_precedence_integration_fix",
+            "configuration",
+            "Fix environment-over-file configuration precedence and its cross-module call contract.",
+            run_config_precedence_integration_fix_task,
+            setup_config_precedence_integration_fix_fixture,
+            verify_tests_pass,
+        ),
+        EvalTask(
+            "dependency_compatibility_fix",
+            "configuration",
+            "Align a pyproject dependency range with the runtime compatibility guard.",
+            run_dependency_compatibility_fix_task,
+            setup_dependency_compatibility_fix_fixture,
+            verify_tests_pass,
+        ),
+        EvalTask(
+            "nested_plugin_registry_fix",
+            "multi_file",
+            "Fix plugin discovery and duplicate handling across a nested package.",
+            run_nested_plugin_registry_fix_task,
+            setup_nested_plugin_registry_fix_fixture,
+            verify_tests_pass,
+        ),
     ]
 
 
@@ -1881,6 +1913,281 @@ def run_package_order_total_fix_task(registry: ToolRegistry) -> bool:
         and read_pricing.ok
         and edit_pricing.ok
         and edit_cart.ok
+        and after.ok
+    )
+
+
+def setup_nested_package_export_fix_fixture(workspace: Path) -> None:
+    catalog_dir = workspace / "src" / "acme_store" / "catalog"
+    catalog_dir.mkdir(parents=True, exist_ok=True)
+    (workspace / "tests").mkdir(parents=True, exist_ok=True)
+    (workspace / "src" / "__init__.py").write_text("", encoding="utf-8")
+    (workspace / "src" / "acme_store" / "__init__.py").write_text("", encoding="utf-8")
+    (catalog_dir / "models.py").write_text(
+        "class Product:\n"
+        "    def __init__(self, sku, price, stock):\n"
+        "        self.sku = sku\n"
+        "        self.price = price\n"
+        "        self.stock = stock\n\n"
+        "    def is_available(self):\n"
+        "        return self.stock > 0\n",
+        encoding="utf-8",
+    )
+    (catalog_dir / "__init__.py").write_text(
+        "from .models import InventoryItem\n\n"
+        "__all__ = ['InventoryItem']\n",
+        encoding="utf-8",
+    )
+    (workspace / "src" / "acme_store" / "api.py").write_text(
+        "from .catalog import Product\n\n"
+        "def product_payload(product):\n"
+        "    return {\n"
+        "        'sku': product.sku,\n"
+        "        'price': product.price,\n"
+        "        'stock': product.stock,\n"
+        "    }\n",
+        encoding="utf-8",
+    )
+    (workspace / "tests" / "test_catalog_api.py").write_text(
+        "from src.acme_store.api import product_payload\n"
+        "from src.acme_store.catalog import Product\n\n"
+        "def test_product_payload_uses_public_catalog_export():\n"
+        "    product = Product('sku-1', 12.5, 3)\n"
+        "    assert product_payload(product) == {\n"
+        "        'sku': 'sku-1',\n"
+        "        'price': 12.5,\n"
+        "        'available': True,\n"
+        "    }\n",
+        encoding="utf-8",
+    )
+
+
+def run_nested_package_export_fix_task(registry: ToolRegistry) -> bool:
+    before = registry.call("run_tests")
+    read_models = registry.call("read_file", path="src/acme_store/catalog/models.py")
+    read_exports = registry.call("read_file", path="src/acme_store/catalog/__init__.py")
+    read_api = registry.call("read_file", path="src/acme_store/api.py")
+    edit_exports = registry.call(
+        "edit_file",
+        path="src/acme_store/catalog/__init__.py",
+        old_text="from .models import InventoryItem\n\n__all__ = ['InventoryItem']",
+        new_text="from .models import Product\n\n__all__ = ['Product']",
+    )
+    edit_api = registry.call(
+        "edit_file",
+        path="src/acme_store/api.py",
+        old_text="'stock': product.stock,",
+        new_text="'available': product.is_available(),",
+    )
+    after = registry.call("run_tests")
+    return (
+        (not before.ok)
+        and read_models.ok
+        and read_exports.ok
+        and read_api.ok
+        and edit_exports.ok
+        and edit_api.ok
+        and after.ok
+    )
+
+
+def setup_config_precedence_integration_fix_fixture(workspace: Path) -> None:
+    package_dir = workspace / "src" / "jobrunner"
+    package_dir.mkdir(parents=True, exist_ok=True)
+    (workspace / "tests").mkdir(parents=True, exist_ok=True)
+    (workspace / "src" / "__init__.py").write_text("", encoding="utf-8")
+    (package_dir / "__init__.py").write_text("", encoding="utf-8")
+    (package_dir / "settings.py").write_text(
+        "DEFAULT_TIMEOUT = 30\n\n"
+        "def resolve_timeout(config, env):\n"
+        "    raw = config.get('timeout', env.get('JOB_TIMEOUT', DEFAULT_TIMEOUT))\n"
+        "    return int(raw)\n",
+        encoding="utf-8",
+    )
+    (package_dir / "worker.py").write_text(
+        "from .settings import resolve_timeout\n\n"
+        "def resolve_worker_options(env, config):\n"
+        "    return {'timeout': resolve_timeout(env, config)}\n",
+        encoding="utf-8",
+    )
+    (workspace / "tests" / "test_worker_config.py").write_text(
+        "from src.jobrunner.settings import resolve_timeout\n"
+        "from src.jobrunner.worker import resolve_worker_options\n\n"
+        "def test_environment_overrides_file_config():\n"
+        "    assert resolve_timeout({'timeout': 10}, {'JOB_TIMEOUT': '15'}) == 15\n\n"
+        "def test_file_config_overrides_default():\n"
+        "    assert resolve_timeout({'timeout': 10}, {}) == 10\n\n"
+        "def test_worker_preserves_settings_argument_contract():\n"
+        "    options = resolve_worker_options({'JOB_TIMEOUT': '20'}, {'timeout': 5})\n"
+        "    assert options == {'timeout': 20}\n",
+        encoding="utf-8",
+    )
+
+
+def run_config_precedence_integration_fix_task(registry: ToolRegistry) -> bool:
+    before = registry.call("run_tests")
+    read_settings = registry.call("read_file", path="src/jobrunner/settings.py")
+    read_worker = registry.call("read_file", path="src/jobrunner/worker.py")
+    edit_settings = registry.call(
+        "edit_file",
+        path="src/jobrunner/settings.py",
+        old_text="raw = config.get('timeout', env.get('JOB_TIMEOUT', DEFAULT_TIMEOUT))",
+        new_text="raw = env.get('JOB_TIMEOUT', config.get('timeout', DEFAULT_TIMEOUT))",
+    )
+    edit_worker = registry.call(
+        "edit_file",
+        path="src/jobrunner/worker.py",
+        old_text="return {'timeout': resolve_timeout(env, config)}",
+        new_text="return {'timeout': resolve_timeout(config, env)}",
+    )
+    after = registry.call("run_tests")
+    return (
+        (not before.ok)
+        and read_settings.ok
+        and read_worker.ok
+        and edit_settings.ok
+        and edit_worker.ok
+        and after.ok
+    )
+
+
+def setup_dependency_compatibility_fix_fixture(workspace: Path) -> None:
+    package_dir = workspace / "src" / "gateway"
+    package_dir.mkdir(parents=True, exist_ok=True)
+    (workspace / "tests").mkdir(parents=True, exist_ok=True)
+    (workspace / "src" / "__init__.py").write_text("", encoding="utf-8")
+    (package_dir / "__init__.py").write_text("", encoding="utf-8")
+    (workspace / "pyproject.toml").write_text(
+        "[project]\n"
+        "name = \"gateway-fixture\"\n"
+        "version = \"0.1.0\"\n"
+        "dependencies = [\"httpx>=0.27,<0.28\"]\n",
+        encoding="utf-8",
+    )
+    (package_dir / "compat.py").write_text(
+        "SUPPORTED_HTTPX_MINOR = 27\n\n"
+        "def supports_httpx(version):\n"
+        "    parts = version.split('.')\n"
+        "    return len(parts) >= 2 and parts[0] == '0' and int(parts[1]) == SUPPORTED_HTTPX_MINOR\n",
+        encoding="utf-8",
+    )
+    (workspace / "tests" / "test_dependency_contract.py").write_text(
+        "from pathlib import Path\n\n"
+        "from src.gateway.compat import supports_httpx\n\n"
+        "def test_pyproject_and_runtime_guard_target_httpx_028():\n"
+        "    project = Path('pyproject.toml').read_text(encoding='utf-8')\n"
+        "    assert 'dependencies = [\"httpx>=0.28,<0.29\"]' in project\n"
+        "    assert supports_httpx('0.28.1') is True\n"
+        "    assert supports_httpx('0.27.9') is False\n",
+        encoding="utf-8",
+    )
+
+
+def run_dependency_compatibility_fix_task(registry: ToolRegistry) -> bool:
+    before = registry.call("run_tests")
+    read_project = registry.call("read_file", path="pyproject.toml")
+    read_compat = registry.call("read_file", path="src/gateway/compat.py")
+    edit_project = registry.call(
+        "edit_file",
+        path="pyproject.toml",
+        old_text='dependencies = ["httpx>=0.27,<0.28"]',
+        new_text='dependencies = ["httpx>=0.28,<0.29"]',
+    )
+    edit_compat = registry.call(
+        "edit_file",
+        path="src/gateway/compat.py",
+        old_text="SUPPORTED_HTTPX_MINOR = 27",
+        new_text="SUPPORTED_HTTPX_MINOR = 28",
+    )
+    after = registry.call("run_tests")
+    return (
+        (not before.ok)
+        and read_project.ok
+        and read_compat.ok
+        and edit_project.ok
+        and edit_compat.ok
+        and after.ok
+    )
+
+
+def setup_nested_plugin_registry_fix_fixture(workspace: Path) -> None:
+    plugin_dir = workspace / "src" / "platform_app" / "plugins"
+    builtin_dir = plugin_dir / "builtins"
+    builtin_dir.mkdir(parents=True, exist_ok=True)
+    (workspace / "tests").mkdir(parents=True, exist_ok=True)
+    for package in [
+        workspace / "src",
+        workspace / "src" / "platform_app",
+        plugin_dir,
+        builtin_dir,
+    ]:
+        (package / "__init__.py").write_text("", encoding="utf-8")
+    (plugin_dir / "base.py").write_text(
+        "class Plugin:\n"
+        "    slug = ''\n\n"
+        "    def run(self):\n"
+        "        raise NotImplementedError\n",
+        encoding="utf-8",
+    )
+    (builtin_dir / "audit.py").write_text(
+        "from ..base import Plugin\n\n"
+        "class AuditPlugin(Plugin):\n"
+        "    slug = 'audit'\n\n"
+        "    def run(self):\n"
+        "        return 'audit complete'\n",
+        encoding="utf-8",
+    )
+    (plugin_dir / "registry.py").write_text(
+        "def build_registry(plugins):\n"
+        "    return {plugin.__class__.__name__.lower(): plugin for plugin in plugins}\n",
+        encoding="utf-8",
+    )
+    (workspace / "tests" / "test_plugin_registry.py").write_text(
+        "import pytest\n\n"
+        "from src.platform_app.plugins.builtins.audit import AuditPlugin\n"
+        "from src.platform_app.plugins.registry import build_registry\n\n"
+        "def test_registry_uses_public_plugin_slug():\n"
+        "    registry = build_registry([AuditPlugin()])\n"
+        "    assert registry['audit'].run() == 'audit complete'\n\n"
+        "def test_registry_rejects_duplicate_slugs():\n"
+        "    with pytest.raises(ValueError, match='duplicate plugin slug: audit'):\n"
+        "        build_registry([AuditPlugin(), AuditPlugin()])\n",
+        encoding="utf-8",
+    )
+
+
+def run_nested_plugin_registry_fix_task(registry: ToolRegistry) -> bool:
+    before = registry.call("run_tests")
+    read_base = registry.call("read_file", path="src/platform_app/plugins/base.py")
+    read_plugin = registry.call(
+        "read_file",
+        path="src/platform_app/plugins/builtins/audit.py",
+    )
+    read_registry = registry.call("read_file", path="src/platform_app/plugins/registry.py")
+    edit_registry = registry.call(
+        "edit_file",
+        path="src/platform_app/plugins/registry.py",
+        old_text=(
+            "def build_registry(plugins):\n"
+            "    return {plugin.__class__.__name__.lower(): plugin for plugin in plugins}"
+        ),
+        new_text=(
+            "def build_registry(plugins):\n"
+            "    registry = {}\n"
+            "    for plugin in plugins:\n"
+            "        if plugin.slug in registry:\n"
+            "            raise ValueError(f'duplicate plugin slug: {plugin.slug}')\n"
+            "        registry[plugin.slug] = plugin\n"
+            "    return registry"
+        ),
+    )
+    after = registry.call("run_tests")
+    return (
+        (not before.ok)
+        and read_base.ok
+        and read_plugin.ok
+        and read_registry.ok
+        and edit_registry.ok
         and after.ok
     )
 

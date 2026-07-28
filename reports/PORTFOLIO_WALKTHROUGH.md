@@ -51,8 +51,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ## Claims To Make
 
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
-- Added a 36-task deterministic benchmark and a full 36-task real-agent evaluation artifact.
-- Improved real-agent evaluation from an 18/20 baseline to 20/20, then validated the expanded 36-task run at 36/36 using trace-backed failure analysis.
+- Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
+- Improved real-agent evaluation from an 18/20 baseline to 20/20, then validated the earlier 36-task suite at 36/36 using trace-backed failure analysis; the four newest tasks are deterministic-only until the next model-backed rerun.
 - Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 

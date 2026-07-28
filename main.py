@@ -170,7 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("--output", default="REVIEW.md", help="Review report path")
     inspect.set_defaults(func=cmd_inspect)
 
-    trace_report = sub.add_parser("trace-report", help="Render a JSONL trace as a static HTML report")
+    trace_report = sub.add_parser("trace-report", help="Render a JSONL trace as an interactive self-contained HTML report")
     trace_report.add_argument("--input", default="trace.jsonl", help="Input JSONL trace path")
     trace_report.add_argument("--output", default="TRACE.html", help="Output HTML report path")
     trace_report.set_defaults(func=cmd_trace_report)

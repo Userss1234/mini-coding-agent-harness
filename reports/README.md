@@ -8,7 +8,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 ## Local Demo
 
 - `DEMO_python_bugfix.md`: deterministic local demo report for `python main.py demo --task python_bugfix`.
-- `DEMO_python_bugfix_TRACE.html`: static trace viewer output for the local demo.
+- `DEMO_python_bugfix_TRACE.html`: self-contained interactive trace viewer output for the local demo.
 
 ## MCP
 

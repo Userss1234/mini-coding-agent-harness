@@ -4,7 +4,12 @@ from pathlib import Path
 
 from harness.tools import build_registry
 from harness.trace import TraceLogger
-from harness.trace_viewer import build_trace_report, load_trace_events, summarize_permission_events
+from harness.trace_viewer import (
+    build_trace_report,
+    load_trace_events,
+    summarize_permission_events,
+    summarize_trace_events,
+)
 
 
 def test_build_trace_report_renders_tool_statuses(tmp_path: Path) -> None:
@@ -22,6 +27,12 @@ def test_build_trace_report_renders_tool_statuses(tmp_path: Path) -> None:
     assert "read_file" in html
     assert "edit_file" in html
     assert "failed" in html
+    assert 'id="trace-search"' in html
+    assert 'id="event-filter"' in html
+    assert 'id="tool-filter"' in html
+    assert 'id="status-filter"' in html
+    assert 'class="event-row"' in html
+    assert "Tool-call mix:" in html
     assert (tmp_path / "TRACE.html").exists()
 
 
@@ -63,3 +74,42 @@ def test_load_trace_events_counts_parse_errors(tmp_path: Path) -> None:
 
     assert len(events) == 1
     assert parse_errors == 1
+
+
+def test_summarize_trace_events_aggregates_duration_usage_and_tools() -> None:
+    events = [
+        {
+            "event": "session_start",
+            "timestamp": "2026-07-28T10:00:00+00:00",
+            "data": {},
+        },
+        {
+            "event": "tool_call",
+            "timestamp": "2026-07-28T10:00:01+00:00",
+            "data": {"tool": "read_file", "ok": True},
+        },
+        {
+            "event": "agent_response",
+            "timestamp": "2026-07-28T10:00:02+00:00",
+            "data": {
+                "turn": 0,
+                "usage": {"input_tokens": 120, "output_tokens": 30},
+            },
+        },
+        {
+            "event": "agent_response",
+            "timestamp": "2026-07-28T10:00:03.500000+00:00",
+            "data": {
+                "turn": 1,
+                "usage": {"input_tokens": 80, "output_tokens": 20},
+            },
+        },
+    ]
+
+    summary = summarize_trace_events(events)
+
+    assert summary["duration_seconds"] == 3.5
+    assert summary["model_turns"] == 2
+    assert summary["input_tokens"] == 200
+    assert summary["output_tokens"] == 50
+    assert summary["tools"] == {"read_file": 1}

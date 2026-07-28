@@ -4,10 +4,10 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 
 ## Strong Options
 
-- Implemented a lightweight Coding Agent Harness for repository maintenance, including an agent loop with retrieval preflight, permission-checked tool registry, todo planning, context compaction, workflow memory, semantic retry planning, execution traces, and static trace reports.
+- Implemented a lightweight Coding Agent Harness for repository maintenance, including an agent loop with retrieval preflight, permission-checked tool registry, todo planning, context compaction, workflow memory, semantic retry planning, execution traces, and interactive self-contained trace reports.
   Evidence: `README.md`, `reports/DEMO_python_bugfix.md`, `reports/DEMO_python_bugfix_TRACE.html`, `reports/MCP_SMOKE.md`.
 
-- Built a deterministic 36-task code-maintenance benchmark covering Python bug fixes, test generation, config updates, security checks, multi-file contract repairs, local RAG retrieval planning, agent-loop retrieve-then-read preflight, memory ranking, and MCP smoke validation; integrated it into GitHub Actions CI.
+- Built a deterministic 40-task code-maintenance benchmark covering Python bug fixes, test generation, nested packages, cross-file contracts, dependency/config interactions, plugin discovery, security checks, local RAG retrieval planning, agent-loop retrieve-then-read preflight, memory ranking, and MCP smoke validation; integrated it into GitHub Actions CI.
   Evidence: `README.md`, `.github/workflows/ci.yml`, `reports/MCP_SMOKE.md`.
 
 - Ran and analyzed DeepSeek `deepseek-chat` real-agent evaluations, improving an initial 20-task pass rate from 18/20 to 20/20, validating 36-task full-suite runs at 36/36 and 35/36, then fixing the unstable `error_recovery` prompt path and restoring the post-fix full-suite run to 36/36.
@@ -21,7 +21,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 
 ## Short Version
 
-- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, RAG retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, error recovery, execution tracing, MCP resources/prompts, and a 36-task benchmark with repeated real-agent stability analysis.
+- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, RAG retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, error recovery, interactive execution tracing, MCP resources/prompts, and a 40-task deterministic benchmark with repeated real-agent stability analysis over the earlier 36-task suite.
 
 ## Evidence Map
 

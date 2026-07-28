@@ -25,8 +25,8 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 ## Project Snapshot
 
-- **Scripted benchmark:** 36 deterministic repository-maintenance tasks, 36/36 passing in the committed snapshot.
-- **Real-agent eval:** DeepSeek `deepseek-chat` full-suite reports over the 36-task benchmark: run 1 passed 36/36, run 2 passed 35/36 with one unstable `error_recovery` task, and post-fix run 3 passed 36/36.
+- **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
+- **Real-agent eval:** DeepSeek `deepseek-chat` reports over the previous 36-task suite: run 1 passed 36/36, run 2 passed 35/36 with one unstable `error_recovery` task, and post-fix run 3 passed 36/36.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks and retrieval-on/off comparison for `context_pack_retrieval`.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
@@ -301,7 +301,7 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 
 ## Evaluation
 
-The current benchmark has **36 tasks** and is fully deterministic. It includes harness checks, an injected-client agent-loop simulation with retrieval preflight, isolated code-maintenance fixtures, line-range file reading, query-ranked context retrieval, local RAG symbol retrieval, RAG read-plan generation, retrieve-then-read evidence loading, sensitive-path retrieval filtering, MCP RAG search smoke validation, static trace HTML rendering, no-shell command execution, permission policy reporting, multi-file contract fixes, semantic retry planning, memory relevance ranking, and a package-structured `src/` fixture.
+The current benchmark has **40 tasks** and is fully deterministic. It includes harness checks, an injected-client agent-loop simulation with retrieval preflight, isolated code-maintenance fixtures, line-range file reading, query-ranked context retrieval, local RAG symbol retrieval, RAG read-plan generation, retrieve-then-read evidence loading, sensitive-path retrieval filtering, MCP RAG search smoke validation, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, multi-file contract fixes, semantic retry planning, memory relevance ranking, nested `src/` packages, plugin discovery, and dependency/config interactions.
 
 Task coverage:
 
@@ -316,7 +316,7 @@ Task coverage:
 - Retrieve-then-read evidence pack loading
 - Sensitive-path filtering for RAG indexing/search
 - MCP `rag_search` smoke validation
-- Static HTML trace report generation with permission decision and blocked-call summaries
+- Self-contained interactive HTML trace reports with event/tool/status/search filters, duration, model-turn, token, permission, and blocked-call summaries
 - Error recovery
 - Semantic retry planning
 - Workflow memory listing
@@ -340,6 +340,10 @@ Task coverage:
 - Multi-file service/repository contract fix
 - Multi-file API handler/response contract fix
 - Package-structured order/pricing fix under `src/`
+- Nested package export and API payload contract fix
+- Environment-over-file configuration precedence across modules
+- Pyproject dependency/runtime compatibility alignment
+- Nested plugin registry discovery and duplicate handling
 
 The latest evaluation report tracks:
 
@@ -373,7 +377,7 @@ Comparison reports include average `retrieve_then_read`, `context_pack`, and `re
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 36-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, static trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, and injected-client validation of retrieval preflight. Committed DeepSeek `deepseek-chat` full-suite runs now show 36/36, 35/36, and post-fix 36/36; `eval-stability` records `error_recovery` as the historical repeated-run variance case, while the history/failure dashboards track the earlier 18/20 and 20/20 runs.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer chunks safe workspace text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks with local lexical scoring rather than embeddings, turns top matches into concrete `read_file` plans, and can load the planned line ranges as an evidence pack. The agent loop preloads that `retrieve_then_read` evidence pack before the first model turn when retrieval is enabled. The benchmark includes dedicated RAG tasks for symbol retrieval, read-plan generation, retrieve-then-read evidence loading, sensitive-path filtering, MCP `rag_search` protocol exposure, injected-client validation of retrieval preflight, and realistic nested-package/config fixtures. Committed DeepSeek `deepseek-chat` runs cover the earlier 36-task suite at 36/36, 35/36, and post-fix 36/36; the four newest tasks have deterministic evidence but have not yet been included in a real-model full-suite rerun. `eval-stability` records `error_recovery` as the historical repeated-run variance case, while the history/failure dashboards track the earlier 18/20 and 20/20 runs.
 
 ## Git Baseline
 
@@ -398,7 +402,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Add more realistic repository fixtures with nested packages, cross-file tests, and dependency/config interactions.
-2. Add retrieval-off and memory/context ablations for the full 36-task agent suite.
+1. Run the expanded 40-task suite in real-agent mode and repeat it for stability evidence.
+2. Add retrieval-off and memory/context ablations for the full 40-task agent suite.
 3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
 4. Add optional OS-level sandboxing for shell execution.

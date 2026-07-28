@@ -162,7 +162,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The repeated same-model 36-task runs showed one historical unstable task, `error_recovery`; a targeted prompt fix and a post-fix full-suite run now pass that path, but more repeated runs would still be needed for a stronger variance estimate.
+The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The deterministic suite now has 40 tasks, while the committed repeated real-model evidence covers the previous 36-task suite. Those same-model runs showed one historical unstable task, `error_recovery`; a targeted prompt fix and a post-fix full-suite run now pass that path, but the four newest realistic fixtures still need real-model reruns.
 
 Evidence:
 
@@ -182,7 +182,7 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, execution tracing, MCP resources/prompts, and a 36-task evaluation suite with committed real-agent reports.
+Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic evaluation suite with repeated real-agent reports over its earlier 36-task version.
 
 Evidence:
 
