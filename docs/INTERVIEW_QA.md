@@ -174,12 +174,13 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating is complete: the prompt-aligned 8-task run activated retrieval on 4/8 tasks, halved average retrieval schemas, kept auto and off at 8/8, and narrowed the measured input-token/cost premiums to 2.68%/1.87%. That difference is smaller than observed run-to-run variance, so the next experiment should repeat auto/off with varied order and build a stability report before further threshold tuning. After that, expand memory/context ablation, add optional remote MCP transport, and add optional OS-level sandboxing.
+Conditional gating and the first order-varied stability check are complete. Two prompt-aligned 8-task pairs ran in opposite orders; all four configuration rows passed 8/8, auto activated retrieval on 4/8 tasks in both runs, tool calls stayed 7.41%-17.73% lower, and direct reads stayed 14.29%-15.38% lower. Input-token and cost direction changed between runs, so the project does not claim stable cost savings. Next, preserve per-task comparison rows, add retrieval-dependent fixtures, and measure task-level paired variance before tuning the gate threshold. After that, expand memory/context ablation, add an optional embedding/reranking backend, remote MCP transport, and OS-level sandboxing.
 
 Evidence:
 
 - `README.md` Next Steps
 - `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`
+- `reports/RETRIEVAL_GATING_STABILITY.md`
 
 ## 18. How should you summarize this on a resume?
 

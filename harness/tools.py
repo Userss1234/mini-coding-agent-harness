@@ -346,7 +346,14 @@ def build_registry(
     read_cache: dict[tuple[Any, ...], str] = {}
 
     def list_python_files(include_venv: bool = False) -> ToolResult:
-        ignored_parts = {".git", ".venv", "__pycache__", ".pytest_cache", "eval_runs"}
+        ignored_parts = {
+            ".git",
+            ".venv",
+            "__pycache__",
+            ".pytest_cache",
+            "artifacts",
+            "eval_runs",
+        }
         files: list[str] = []
         for path in workspace.rglob("*.py"):
             rel = path.relative_to(workspace)

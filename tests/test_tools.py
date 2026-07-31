@@ -13,6 +13,22 @@ def make_registry(workspace: Path, allow_write: bool = True):
     return build_registry(workspace, TraceLogger(workspace / "trace.jsonl"), allow_write=allow_write)
 
 
+def test_python_scan_ignores_generated_artifacts(tmp_path: Path) -> None:
+    (tmp_path / "main.py").write_text("value = 1\n", encoding="utf-8")
+    generated = tmp_path / "artifacts" / "eval_workspace"
+    generated.mkdir(parents=True)
+    (generated / "broken.py").write_text("def broken(:\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+
+    listed = registry.call("list_python_files")
+    compiled = registry.call("run_py_compile")
+
+    assert listed.ok
+    assert listed.output == "main.py"
+    assert compiled.ok
+    assert compiled.metadata == {"checked": 1, "errors": 0}
+
+
 def test_edit_file_replaces_exactly_once_and_records_diff(tmp_path: Path) -> None:
     target = tmp_path / "sample.txt"
     target.write_text("alpha\nbeta\ngamma\n", encoding="utf-8")

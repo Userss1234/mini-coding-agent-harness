@@ -83,12 +83,36 @@ Conditional gating met the main engineering targets:
 
 It did not prove that auto retrieval is cheaper than retrieval-off. The remaining 1.87% estimated-cost difference is smaller than the variance seen across repeated off rows, so further threshold tuning from this single run would be overfitting.
 
-The next rigorous step is repeated, order-varied auto/off runs with a stability report. Only after measuring that variance should the gate threshold or signal weights be tuned further.
+## Order-Varied Stability Rerun
+
+The same eight tasks were repeated with retrieval-off first and retrieval-auto second. Sources:
+
+- `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`
+- `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json`
+- `reports/RETRIEVAL_GATING_STABILITY.md`
+
+Both rows again passed 8/8. Auto again activated retrieval on 4/8 tasks and exposed an average of 2.50 retrieval schemas.
+
+Across the selected-first and off-first pairs:
+
+| Metric | Observed auto-vs-off range | Direction |
+|---|---:|---|
+| Average tool calls | -17.73% to -7.41% | stable lower |
+| Average direct `read_file` calls | -15.38% to -14.29% | stable lower |
+| Average duration | -30.32% to -7.43% | stable lower |
+| Input tokens | -29.26% to +2.68% | mixed |
+| Output tokens | -16.61% to -2.21% | stable lower |
+| Estimated cost | -27.07% to +1.87% | mixed |
+
+This strengthens the claim that the gate consistently suppresses unnecessary exploration on this task set without reducing pass rate. It does not establish stable token or cost superiority because those metrics changed direction.
+
+The next rigorous step is to retain per-task comparison results, measure task-level paired variance, and add retrieval-dependent fixtures before tuning the threshold or signal weights.
 
 ## Limitations
 
-- Each aligned configuration was run once, with auto before off.
+- The aligned comparison now has two paired runs with opposite execution order, but only one run per order.
 - Model sampling and provider latency were not controlled.
+- Comparison JSON currently stores configuration summaries rather than task-level paired rows.
 - The tasks are project-specific and all remain solvable without retrieval.
 - The heuristic detects explicit complexity signals; it is not a learned classifier.
 - Retrieval remains local lexical scoring without embeddings, a vector database, or reranking.

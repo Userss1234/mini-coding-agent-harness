@@ -92,6 +92,7 @@ def run_evaluation(
     retrieval_mode: str | None = None,
     compare: bool = False,
     compare_retrieval: bool = False,
+    retrieval_compare_order: str = "selected-first",
     json_output_path: Path | None = None,
 ) -> str:
     """Run a small deterministic benchmark and write a Markdown report."""
@@ -132,6 +133,7 @@ def run_evaluation(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             active_retrieval_mode=normalized_retrieval_mode,
+            execution_order=retrieval_compare_order,
             json_output_path=json_output_path,
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -293,6 +295,7 @@ def run_retrieval_comparison(
     memory_enabled: bool,
     context_enabled: bool,
     active_retrieval_mode: str = "on",
+    execution_order: str = "selected-first",
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
@@ -301,7 +304,14 @@ def run_retrieval_comparison(
         if active_retrieval_mode in {"on", "auto"}
         else "on"
     )
-    for current_retrieval_mode in [comparison_mode, "off"]:
+    if execution_order not in {"selected-first", "off-first"}:
+        raise ValueError(f"Unsupported retrieval comparison order: {execution_order}")
+    retrieval_modes = (
+        [comparison_mode, "off"]
+        if execution_order == "selected-first"
+        else ["off", comparison_mode]
+    )
+    for current_retrieval_mode in retrieval_modes:
         retrieval_enabled = current_retrieval_mode != "off"
         label = f"retrieval-{current_retrieval_mode}"
         config_trace_dir = trace_dir / "compare_retrieval" / label
@@ -318,7 +328,14 @@ def run_retrieval_comparison(
         )
         summaries.append(summarize_results(label, results))
     if json_output_path is not None:
-        write_eval_comparison_json_report(workspace, summaries, json_output_path)
+        write_eval_comparison_json_report(
+            workspace,
+            summaries,
+            json_output_path,
+            comparison_kind="retrieval",
+            execution_order=[summary.label for summary in summaries],
+            selected_retrieval_mode=comparison_mode,
+        )
     return build_eval_comparison_report(workspace, summaries)
 
 
@@ -2452,11 +2469,20 @@ def write_eval_comparison_json_report(
     workspace: Path,
     summaries: list[EvalRunSummary],
     output_path: Path,
+    comparison_kind: str | None = None,
+    execution_order: list[str] | None = None,
+    selected_retrieval_mode: str | None = None,
 ) -> None:
     payload = {
         "workspace": str(workspace),
         "comparison": [asdict(item) for item in summaries],
     }
+    if comparison_kind is not None:
+        payload["comparison_kind"] = comparison_kind
+    if execution_order is not None:
+        payload["execution_order"] = execution_order
+    if selected_retrieval_mode is not None:
+        payload["selected_retrieval_mode"] = selected_retrieval_mode
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 

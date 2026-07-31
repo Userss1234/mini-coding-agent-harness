@@ -5,7 +5,13 @@ from pathlib import Path
 
 from harness.agent import run_agent
 from harness.demo import run_demo
-from harness.eval_analysis import analyze_eval_reports, build_eval_history, build_failure_dashboard, build_stability_report
+from harness.eval_analysis import (
+    analyze_eval_reports,
+    build_eval_history,
+    build_failure_dashboard,
+    build_retrieval_stability_report,
+    build_stability_report,
+)
 from harness.evaluation import run_evaluation
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
@@ -80,6 +86,7 @@ def cmd_eval(args) -> None:
         retrieval_mode=args.retrieval,
         compare=args.compare,
         compare_retrieval=args.compare_retrieval,
+        retrieval_compare_order=args.retrieval_compare_order,
         json_output_path=Path(args.json_output) if args.json_output else None,
     )
     print(report)
@@ -127,6 +134,16 @@ def cmd_eval_stability(args) -> None:
     print(report)
     if args.output:
         print(f"Eval stability report written to {Path(args.output).resolve()}")
+
+
+def cmd_retrieval_stability(args) -> None:
+    report = build_retrieval_stability_report(
+        run_specs=args.run,
+        output_path=Path(args.output) if args.output else None,
+    )
+    print(report)
+    if args.output:
+        print(f"Retrieval stability report written to {Path(args.output).resolve()}")
 
 
 def cmd_trace_report(args) -> None:
@@ -261,6 +278,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Compare the selected on/auto retrieval strategy with retrieval-off using the same settings",
     )
+    eval_cmd.add_argument(
+        "--retrieval-compare-order",
+        choices=["selected-first", "off-first"],
+        default="selected-first",
+        help="Execution order for paired retrieval comparisons",
+    )
     eval_cmd.set_defaults(func=cmd_eval)
 
     analyze_eval = sub.add_parser("analyze-eval", help="Compare two JSON evaluation reports and summarize agent behavior changes")
@@ -300,6 +323,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eval_stability.add_argument("--output", help="Optional Markdown stability report path")
     eval_stability.set_defaults(func=cmd_eval_stability)
+
+    retrieval_stability = sub.add_parser(
+        "retrieval-stability",
+        help="Measure paired retrieval comparison stability across repeated JSON reports",
+    )
+    retrieval_stability.add_argument(
+        "--run",
+        action="append",
+        required=True,
+        help="Retrieval comparison JSON input, either PATH or LABEL=PATH; repeat for each paired run",
+    )
+    retrieval_stability.add_argument("--output", help="Optional Markdown stability report path")
+    retrieval_stability.set_defaults(func=cmd_retrieval_stability)
 
     return parser
 

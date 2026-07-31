@@ -106,6 +106,7 @@ def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> 
     (reports / "EVAL_HISTORY.md").write_text("# Eval History Report\n", encoding="utf-8")
     (reports / "FAILURE_MODES.md").write_text("# Eval Failure Dashboard\n", encoding="utf-8")
     (reports / "EVAL_STABILITY.md").write_text("# Eval Stability Report\n", encoding="utf-8")
+    (reports / "RETRIEVAL_GATING_STABILITY.md").write_text("# Retrieval Gating Stability Report\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
     listed = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "resources/list"})
@@ -128,13 +129,21 @@ def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> 
         "method": "resources/read",
         "params": {"uri": "harness://reports/eval-stability"},
     })
+    retrieval_stability = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "resources/read",
+        "params": {"uri": "harness://reports/retrieval-stability"},
+    })
 
     assert resources["harness://reports/eval-history"]["name"] == "EVAL_HISTORY"
     assert resources["harness://reports/failure-modes"]["name"] == "FAILURE_MODES"
     assert resources["harness://reports/eval-stability"]["name"] == "EVAL_STABILITY"
+    assert resources["harness://reports/retrieval-stability"]["name"] == "RETRIEVAL_GATING_STABILITY"
     assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
     assert stability["result"]["contents"][0]["text"] == "# Eval Stability Report\n"
+    assert retrieval_stability["result"]["contents"][0]["text"] == "# Retrieval Gating Stability Report\n"
 
 
 def test_mcp_exposes_rag_search_and_index_summary(tmp_path: Path) -> None:
@@ -319,6 +328,7 @@ def test_mcp_eval_analysis_prompt_reads_default_eval_report_set(tmp_path: Path) 
     assert "harness://reports/eval-history" in text
     assert "harness://reports/failure-modes" in text
     assert "harness://reports/eval-stability" in text
+    assert "harness://reports/retrieval-stability" in text
     assert "trend movement" in text
     assert "Tie each claim" in text
 
@@ -341,6 +351,7 @@ def test_mcp_eval_analysis_prompt_allows_single_report_override(tmp_path: Path) 
     assert "harness://reports/agent-eval" not in text
     assert "harness://reports/failure-modes" not in text
     assert "harness://reports/eval-stability" not in text
+    assert "harness://reports/retrieval-stability" not in text
 
 
 def test_mcp_repo_rag_maintenance_prompt_requires_rag_first(tmp_path: Path) -> None:

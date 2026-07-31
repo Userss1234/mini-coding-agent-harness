@@ -80,6 +80,18 @@ def build_stability_report(
     return report
 
 
+def build_retrieval_stability_report(
+    run_specs: Sequence[str],
+    output_path: Path | None = None,
+) -> str:
+    runs = [_load_retrieval_comparison_run(spec) for spec in run_specs]
+    report = build_retrieval_comparison_stability_report(runs)
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+    return report
+
+
 def build_eval_analysis_report(
     before: Mapping[str, Any],
     after: Mapping[str, Any],
@@ -202,6 +214,82 @@ This report checks whether repeated evaluation runs stay stable across the same 
 ## Interpretation
 
 For a resume or interview, one {common_task_count}/{common_task_count} run proves the common task set can pass end to end; two or more same-suite runs are stronger evidence because they show whether the result survives model randomness. When adding new runs, keep the same task set and model/provider settings unless the report is explicitly a comparison.
+"""
+
+
+def build_retrieval_comparison_stability_report(
+    runs: Sequence[Mapping[str, Any]],
+) -> str:
+    if not runs:
+        raise ValueError("At least one retrieval comparison run is required.")
+
+    records = [_retrieval_comparison_record(run) for run in runs]
+    run_rows = "\n".join(_retrieval_stability_run_row(record) for record in records)
+    metric_specs = [
+        ("Tool calls", "tool_delta"),
+        ("Direct read_file calls", "read_file_delta"),
+        ("Duration", "duration_delta"),
+        ("Input tokens", "input_token_delta"),
+        ("Output tokens", "output_token_delta"),
+        ("Estimated cost", "cost_delta"),
+    ]
+    metric_rows = "\n".join(
+        _retrieval_metric_stability_row(
+            label,
+            [record[key] for record in records],
+        )
+        for label, key in metric_specs
+    )
+    stable_direction_count = sum(
+        1
+        for _, key in metric_specs
+        if _direction_status([record[key] for record in records]) == "stable"
+    )
+    all_full_pass = all(record["selected_full_pass"] and record["off_full_pass"] for record in records)
+    orders = _dedupe([str(record["order"]) for record in records])
+    conclusion = (
+        "task outcomes and all measured efficiency directions are stable"
+        if all_full_pass and stable_direction_count == len(metric_specs)
+        else (
+            "task outcomes are stable, but at least one efficiency metric changes direction"
+            if all_full_pass
+            else "at least one paired configuration did not fully pass, so outcome stability is not established"
+        )
+    )
+
+    return f"""# Retrieval Gating Stability Report
+
+## Summary
+
+This report compares repeated retrieval-on/auto versus retrieval-off evaluations and checks whether paired conclusions survive a changed execution order.
+
+- Paired runs analyzed: **{len(records)}**
+- Execution orders covered: **{', '.join(f'`{order}`' for order in orders)}**
+- All selected/off configurations fully passed: **{'yes' if all_full_pass else 'no'}**
+- Metrics with a stable direction: **{stable_direction_count}/{len(metric_specs)}**
+- Overall conclusion: **{conclusion}**
+
+## Paired Runs
+
+All deltas are `(selected retrieval - retrieval off) / retrieval off`; negative values mean the selected retrieval strategy used less of that metric.
+
+| Run | Order | Selected | Off | Activation | Avg Schemas | Tool Calls | read_file | Duration | Input Tokens | Output Tokens | Cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+{run_rows}
+
+## Direction Stability
+
+| Metric | Mean Delta | Range | Direction |
+|---|---:|---:|---|
+{metric_rows}
+
+## Scope
+
+The comparison JSON stores configuration-level summaries, so this report measures aggregate paired stability rather than per-task paired variance. Keep the task set, model, provider settings, and prompts fixed when adding runs.
+
+## Interpretation
+
+Use pass-rate stability as the quality guardrail and treat efficiency deltas as noisy model-backed measurements. A resume claim should use the observed range or describe the result as directional unless repeated runs keep the same sign.
 """
 
 
@@ -381,6 +469,144 @@ def _failure_resolution_rows(runs: Sequence[Mapping[str, Any]]) -> str:
 
 def _task_list_text(items: Sequence[str]) -> str:
     return ", ".join(f"`{item}`" for item in items) if items else "none"
+
+
+def _load_retrieval_comparison_run(spec: str) -> dict[str, Any]:
+    label, path = _parse_history_spec(spec)
+    report = _load_eval_json(path)
+    comparison = report.get("comparison")
+    if not isinstance(comparison, list) or len(comparison) < 2:
+        raise ValueError(f"Retrieval comparison report must contain at least two rows: {path}")
+    return {
+        "label": label or path.stem,
+        "path": _display_path(path),
+        "report": report,
+    }
+
+
+def _retrieval_comparison_record(run: Mapping[str, Any]) -> dict[str, Any]:
+    report = run["report"]
+    rows = list(report.get("comparison", []))
+    off_rows = [row for row in rows if row.get("retrieval_mode") == "off"]
+    selected_rows = [row for row in rows if row.get("retrieval_mode") in {"on", "auto"}]
+    if len(off_rows) != 1 or len(selected_rows) != 1:
+        raise ValueError(
+            f"Retrieval comparison run {run['label']} must contain exactly one selected and one off row."
+        )
+    selected = selected_rows[0]
+    off = off_rows[0]
+    execution_order = report.get("execution_order")
+    if not isinstance(execution_order, list) or not execution_order:
+        execution_order = [str(row.get("label", row.get("retrieval_mode", "unknown"))) for row in rows]
+    order = (
+        "off-first"
+        if str(execution_order[0]).endswith("off")
+        else "selected-first"
+    )
+    return {
+        "label": str(run["label"]),
+        "path": str(run["path"]),
+        "order": order,
+        "selected_mode": str(selected.get("retrieval_mode", "selected")),
+        "selected_passed": int(selected.get("passed", 0) or 0),
+        "selected_tasks": int(selected.get("task_count", 0) or 0),
+        "off_passed": int(off.get("passed", 0) or 0),
+        "off_tasks": int(off.get("task_count", 0) or 0),
+        "selected_full_pass": _is_full_pass(selected),
+        "off_full_pass": _is_full_pass(off),
+        "activation_rate": _float_or_zero(selected.get("retrieval_activation_rate")),
+        "average_schemas": _float_or_zero(selected.get("average_retrieval_schema_count")),
+        "tool_delta": _relative_delta(selected.get("average_tool_calls"), off.get("average_tool_calls")),
+        "read_file_delta": _relative_delta(
+            selected.get("average_read_file_calls"),
+            off.get("average_read_file_calls"),
+        ),
+        "duration_delta": _relative_delta(selected.get("average_duration"), off.get("average_duration")),
+        "input_token_delta": _relative_delta(selected.get("total_input_tokens"), off.get("total_input_tokens")),
+        "output_token_delta": _relative_delta(selected.get("total_output_tokens"), off.get("total_output_tokens")),
+        "cost_delta": _relative_delta(selected.get("estimated_cost_usd"), off.get("estimated_cost_usd")),
+    }
+
+
+def _is_full_pass(summary: Mapping[str, Any]) -> bool:
+    task_count = int(summary.get("task_count", 0) or 0)
+    return task_count > 0 and int(summary.get("passed", 0) or 0) == task_count
+
+
+def _relative_delta(selected: Any, off: Any) -> float | None:
+    selected_value = _float_or_zero(selected)
+    off_value = _float_or_zero(off)
+    if off_value == 0:
+        return 0.0 if selected_value == 0 else None
+    return (selected_value - off_value) / off_value
+
+
+def _retrieval_stability_run_row(record: Mapping[str, Any]) -> str:
+    return (
+        "| {label} | `{order}` | {selected_passed}/{selected_tasks} | {off_passed}/{off_tasks} | "
+        "{activation} | {schemas} | {tools} | {reads} | {duration} | {input_tokens} | "
+        "{output_tokens} | {cost} |"
+    ).format(
+        label=record["label"],
+        order=record["order"],
+        selected_passed=record["selected_passed"],
+        selected_tasks=record["selected_tasks"],
+        off_passed=record["off_passed"],
+        off_tasks=record["off_tasks"],
+        activation=_percent(record["activation_rate"]),
+        schemas=_number(record["average_schemas"]),
+        tools=_signed_percent(record["tool_delta"]),
+        reads=_signed_percent(record["read_file_delta"]),
+        duration=_signed_percent(record["duration_delta"]),
+        input_tokens=_signed_percent(record["input_token_delta"]),
+        output_tokens=_signed_percent(record["output_token_delta"]),
+        cost=_signed_percent(record["cost_delta"]),
+    )
+
+
+def _retrieval_metric_stability_row(label: str, values: Sequence[float | None]) -> str:
+    known_values = [value for value in values if value is not None]
+    mean = sum(known_values) / len(known_values) if known_values else None
+    value_range = (
+        f"{min(known_values):+.2%} to {max(known_values):+.2%}"
+        if known_values else "n/a"
+    )
+    direction = _direction_text(values)
+    return f"| {label} | {_signed_percent(mean)} | {value_range} | {direction} |"
+
+
+def _direction_status(values: Sequence[float | None]) -> str:
+    signs = {_delta_direction(value) for value in values if value is not None}
+    return "stable" if len(signs) == 1 and signs else "mixed"
+
+
+def _direction_text(values: Sequence[float | None]) -> str:
+    directions = _dedupe([
+        _delta_direction(value)
+        for value in values
+        if value is not None
+    ])
+    if not directions:
+        return "`n/a`"
+    status = "stable" if len(directions) == 1 else "mixed"
+    return f"`{status}: {' -> '.join(directions)}`"
+
+
+def _delta_direction(value: float) -> str:
+    if value < -1e-12:
+        return "lower"
+    if value > 1e-12:
+        return "higher"
+    return "equal"
+
+
+def _signed_percent(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    try:
+        return f"{float(value):+.2%}"
+    except (TypeError, ValueError):
+        return "n/a"
 
 
 def _load_history_run(spec: str) -> dict[str, Any]:

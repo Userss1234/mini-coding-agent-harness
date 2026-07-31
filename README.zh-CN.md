@@ -28,9 +28,9 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Scripted benchmark：**40 个确定性代码仓库维护任务，当前提交快照 40/40 通过，并新增嵌套 package、跨文件、插件注册表和依赖/配置交互 fixture。
 - **真实 Agent eval：**将瞬时请求重试从 2 次提高到 4 次后，DeepSeek `deepseek-chat` 在第二次完整扩展 suite 中一次性通过 40/40。第一次运行仍诚实保留为 39/40，原因是 verifier 前的一次 provider HTTP 503；仓库已提交 39/40 -> 40/40 的重复运行证据。
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
-- **Ablation：**已提交 2 任务 memory/context 对比和三轮 8-task retrieval 配对实验。条件式 auto gate 在 4/8 任务启用 retrieval，将平均模型可见 schema 减半；auto/off 都为 8/8，auto 减少 7.41% 工具调用和 15.38% 直接读取，并把 input-token/成本溢价压到 2.68%/1.87%。
+- **Ablation：**已提交 2 任务 memory/context 对比和多轮 8-task retrieval 配对实验。两次提示对齐、顺序相反的 auto/off 运行中，四个配置行均为 8/8；auto 都只在 4/8 任务启用 retrieval，将平均模型可见 schema 减半，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，但 input-token 和成本方向仍有波动。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md)、[`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md) 和 [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)、[`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md) 和 [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md)。
 
 ## Portfolio Walkthrough
 
@@ -43,6 +43,7 @@ python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_T
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
+python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -59,6 +60,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md)：第二次同模型全量评估，35/36 通过并暴露 `error_recovery` 波动。
 - [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)：修复后的第三次同模型全量评估，36/36 通过。
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)：三次 36-task 运行的重复运行稳定性分析。
+- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序 retrieval 配对运行的稳定性分析，区分稳定的探索下降与不稳定的 token/成本方向。
 - [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
@@ -172,6 +174,8 @@ python main.py eval --mode scripted --compare --task syntax_check
 python main.py eval --mode scripted --compare-retrieval --task syntax_check
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --task python_bugfix --task multi_file_service_fix
+python main.py eval --mode agent --retrieval auto --compare-retrieval --retrieval-compare-order off-first --task python_bugfix --task multi_file_service_fix
+python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run current=reports/AGENT_EVAL_20_TASKS.json --output reports/EVAL_HISTORY.md
@@ -386,10 +390,11 @@ memory-off_context-off
 
 可以用 `--compare-retrieval` 在相同 memory/context 设置下，将选定的 `on` 或 `auto` 策略与 retrieval-off 对比。
 对比报告会包含平均 `retrieve_then_read`、`context_pack` 和 `read_file` 调用次数，以及 preflight 原始/实际注入的平均字符数，方便同时观察通过率、工具结构和证据预算。
+可以用 `--retrieval-compare-order selected-first|off-first` 控制配对执行顺序。retrieval 对比 JSON 会记录该顺序，`retrieval-stability` 可在只有一个模型 API 时汇总多次配对运行。
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 现在使用本地词法评分、区间合并、证据预算和条件式 schema gate。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。三轮 8-task retrieval 配对实验中，input-token/成本溢价从原始 always-on 的 34.38%/28.65%，降到证据预算后的 13.48%/11.53%，再降到提示对齐 auto gate 的 2.68%/1.87%。最终 auto/off 都通过 8/8；auto 只启用 4/8，平均暴露 2.5 个 retrieval schema，并减少工具调用、直接读取和时长，但成本仍略高。不同轮次存在模型/provider 方差，因此不声称成功率或成本优势。
+当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 现在使用本地词法评分、区间合并、证据预算和条件式 schema gate。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。两次提示对齐、顺序相反的 8-task auto/off 配对中，四个配置行均通过 8/8；auto 都只启用 4/8，平均暴露 2.5 个 retrieval schema，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，时长减少 7.43%-30.32%，输出 token 减少 2.21%-16.61%。input-token 和估算成本在两轮间方向相反，因此不声称稳定的成本优势。
 
 ## Git Baseline
 
@@ -413,10 +418,10 @@ git diff -- .
 
 ## 下一步
 
-1. 用不同运行顺序重复提示对齐后的 auto/off 实验，并在继续调整 gate 阈值前生成 retrieval 稳定性报告。
-2. 将 memory/context ablation 扩展到一组有代表性的跨文件任务。
-3. 增加可选 MCP HTTP/SSE transport 和更完整的 resource subscriptions。
-4. 为 shell execution 增加可选 OS 级沙箱。
-5. 跟踪自动注入 retry_plan 是否能提升 `eval --mode agent` 成功率并降低工具调用次数。
+1. 在 comparison JSON 中保留每个任务的结果，把 `retrieval-stability` 从配置汇总扩展到 task-level 配对方差。
+2. 增加 retrieval-off 会出现可测质量或探索劣势的 retrieval-dependent fixture，再做顺序受控对比后才调整 gate 阈值。
+3. 将 memory/context ablation 扩展到一组有代表性的跨文件任务。
+4. 在现有本地 retrieval 接口后增加可选 embedding/reranking backend，同时保留词法检索作为离线 baseline。
+5. 增加可选 MCP HTTP/SSE transport 和 OS 级沙箱。
 6. 再增加一次加固后的 40-task 全量运行；有第二个模型 API 后再做跨 provider/model 对比。
 

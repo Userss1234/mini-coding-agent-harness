@@ -16,11 +16,11 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Ran two complete 40-task DeepSeek real-agent evaluations at 39/40 and 40/40, traced the sole first-run interruption to provider HTTP 503, increased transient request retries from 2 to 4, and measured repeated-run stability with 39 stable-pass tasks and one provider-affected fail-to-pass task.
   Evidence: `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_RUN2.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `harness/agent.py`, `harness/evaluation.py`, `tests/test_agent.py`, `tests/test_evaluation.py`.
 
-- Added evaluation-analysis CLIs (`analyze-eval`, `eval-history`, `eval-failures`, `eval-stability`) that convert JSON eval outputs into comparison, trend, failure-mode, and repeated-run stability dashboards for debugging agent behavior beyond pass rate.
+- Added evaluation-analysis CLIs (`analyze-eval`, `eval-history`, `eval-failures`, `eval-stability`, `retrieval-stability`) that convert JSON eval outputs into comparison, trend, failure-mode, repeated-run, and order-varied retrieval dashboards for debugging agent behavior beyond pass rate.
   Evidence: `README.md`, `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`.
 
-- Implemented explainable conditional retrieval gating with bounded evidence, merged read ranges, deduplication, configurable thresholds, and model-facing schema suppression; in a prompt-aligned paired 8-task DeepSeek run, activated retrieval on 4/8 tasks, kept auto/off at 8/8, and narrowed measured input-token/cost premiums from the original 34.38%/28.65% to 2.68%/1.87%.
-  Evidence: `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `harness/agent.py`, `harness/evaluation.py`.
+- Implemented explainable conditional retrieval gating with bounded evidence, merged read ranges, configurable thresholds, and schema suppression; across two order-varied paired 8-task DeepSeek runs, kept all four auto/off rows at 8/8, activated retrieval on 4/8 tasks, and reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%.
+  Evidence: `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_STABILITY.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `harness/agent.py`, `harness/evaluation.py`.
 
 - Exposed the harness through a minimal MCP stdio server with permission-checked tools, safe read-only resources, prompt templates, workspace resource guards, and a committed protocol smoke transcript.
   Evidence: `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md`.
@@ -37,8 +37,8 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | Deterministic benchmark and CI | `README.md`, `.github/workflows/ci.yml`, `harness/evaluation.py`, `tests/test_evaluation.py` |
 | Real-agent evaluation | `reports/AGENT_EVAL_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_RUN2.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`, `reports/AGENT_EVAL_40_TASKS_PROVIDER_RETRY.md`, `reports/AGENT_EVAL_36_TASKS.md`, `reports/AGENT_EVAL_36_TASKS_RUN2.md`, `reports/AGENT_EVAL_36_TASKS_RUN3.md`, `reports/ERROR_RECOVERY_AGENT_FIX.md`, `reports/AGENT_EVAL_20_TASKS.md` |
 | Prompt-contract improvement | `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md` |
-| Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md` |
-| Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` |
+| Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
+| Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
 
 ## Claims To Avoid
@@ -46,4 +46,5 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Do not call it a full autonomous software engineer.
 - Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
+- Do not claim stable token or cost savings from retrieval gating; the two order-varied pairs changed direction on those metrics.
 - Do not claim OS-level sandboxing; the project implements harness-level permission controls.

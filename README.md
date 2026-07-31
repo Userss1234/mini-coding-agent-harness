@@ -28,9 +28,9 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
-- **Ablations:** Memory/context comparison over 2 tasks plus three paired 8-task retrieval iterations. Conditional auto gating activated retrieval on 4/8 tasks, halved average model-facing retrieval schemas, kept both rows at 8/8, reduced tool calls by 7.41% and direct reads by 15.38%, and narrowed the measured input-token/cost premiums to 2.68%/1.87%.
+- **Ablations:** Memory/context comparison over 2 tasks plus paired 8-task retrieval experiments. Two prompt-aligned, order-varied auto/off runs kept all four configuration rows at 8/8; auto activated retrieval on 4/8 tasks, halved average model-facing retrieval schemas, reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%, while input-token and cost direction remained variable.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
-- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md), [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md), and [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md), and [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md).
 
 ## Portfolio Walkthrough
 
@@ -43,6 +43,7 @@ python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_T
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
+python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -67,6 +68,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md): repeated-run stability report comparing three same-model 36-task runs.
 - [`reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`](reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md): before/after evidence-budget analysis with an offline replay and a new paired 8-task real-agent run.
 - [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md): conditional retrieval gate design, prompt-alignment finding, and paired auto/off validation.
+- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md): two order-varied paired runs showing stable task outcomes and stable exploration reductions, with mixed token/cost direction.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
 ## What It Does
@@ -179,6 +181,8 @@ python main.py eval --mode scripted --compare --task syntax_check
 python main.py eval --mode scripted --compare-retrieval --task syntax_check
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --task python_bugfix --task multi_file_service_fix
+python main.py eval --mode agent --retrieval auto --compare-retrieval --retrieval-compare-order off-first --task python_bugfix --task multi_file_service_fix
+python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py eval --mode scripted --category multi_file
 python main.py analyze-eval --before artifacts/AGENT_EVAL_BEFORE.json --after reports/AGENT_EVAL_20_TASKS.json --output artifacts/AGENT_EVAL_ANALYSIS.md --trace-root .
 python main.py eval-history --run baseline=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/EVAL_HISTORY.md
@@ -278,6 +282,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md` and `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md` compare retrieval preflight on eight ordinary maintenance tasks and document the measured exploration-versus-cost tradeoff.
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md` and `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` validate the bounded preflight on the same eight tasks and compare it with the original result.
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` and `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` validate prompt-aligned conditional gating against retrieval-off.
+- `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md` and `reports/RETRIEVAL_GATING_STABILITY.md` repeat the same pair in reverse order and summarize repeated-run variance.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` and `reports/AGENT_TRACE_retrieval_off_context_pack.html` show the successful and disabled-retrieval paths for the retrieval ablation.
 - `reports/README.md` explains the committed demo and real-agent evaluation artifacts.
@@ -392,10 +397,11 @@ Use `--retrieval on|auto|off` to always expose, conditionally gate, or hide retr
 
 Use `--compare-retrieval` to compare the selected `on` or `auto` strategy with retrieval-off under the same memory/context settings.
 Comparison reports include average `retrieve_then_read`, `context_pack`, and `read_file` calls plus average raw/injected preflight evidence characters, so retrieval changes can be inspected beyond pass rate.
+Use `--retrieval-compare-order selected-first|off-first` to control paired execution order. Retrieval comparison JSON records that order, and `retrieval-stability` aggregates repeated pairs without requiring a second model provider.
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer uses local lexical scoring, merges overlapping ranges, caps evidence, and can conditionally suppress preflight plus all five retrieval schemas. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification; retry hardening was followed by a complete 40/40 run. Across the retrieval iterations, paired 8-task input-token/cost premiums moved from 34.38%/28.65% with the original always-on preflight, to 13.48%/11.53% after evidence budgeting, to 2.68%/1.87% with prompt-aligned auto gating. The final auto/off rows both passed 8/8; auto activated 4/8 tasks, averaged 2.5 retrieval schemas, reduced tool calls, direct reads, and duration, but remained slightly more expensive. Separate runs are subject to model/provider variance, so no success-rate or cost-superiority claim is made.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer uses local lexical scoring, merges overlapping ranges, caps evidence, and can conditionally suppress preflight plus all five retrieval schemas. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification; retry hardening was followed by a complete 40/40 run. In two prompt-aligned, order-varied 8-task auto/off pairs, all four rows passed 8/8; auto activated 4/8 tasks, averaged 2.5 retrieval schemas, reduced tool calls by 7.41%-17.73%, direct reads by 14.29%-15.38%, duration by 7.43%-30.32%, and output tokens by 2.21%-16.61%. Input-token and estimated-cost direction changed between runs, so no stable cost-superiority claim is made.
 
 ## Git Baseline
 
@@ -420,8 +426,9 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Repeat the prompt-aligned auto/off experiment with varied run order and build a retrieval stability report before tuning the gate threshold.
-2. Expand memory/context ablation to a representative multi-file task set.
-3. Add optional MCP HTTP/SSE transport and richer resource subscriptions.
-4. Add optional OS-level sandboxing for shell execution.
-5. Add a third hardened 40-task run or a second provider/model when another API becomes available.
+1. Preserve per-task results inside comparison JSON and extend `retrieval-stability` from aggregate rows to task-level paired variance.
+2. Add retrieval-dependent fixtures where retrieval-off has a measurable quality or exploration disadvantage, then rerun the order-controlled comparison before tuning the gate threshold.
+3. Expand memory/context ablation to a representative multi-file task set.
+4. Add an optional embedding/reranking backend behind the existing local retrieval interface while retaining lexical retrieval as the offline baseline.
+5. Add optional MCP HTTP/SSE transport and OS-level sandboxing.
+6. Add a third hardened 40-task run or a second provider/model when another API becomes available.

@@ -553,6 +553,9 @@ def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
     assert (tmp_path / "eval_runs" / "compare_retrieval" / "retrieval-on" / "syntax_check.jsonl").exists()
     assert (tmp_path / "eval_runs" / "compare_retrieval" / "retrieval-off" / "syntax_check.jsonl").exists()
     compare_json = json.loads((tmp_path / "RETRIEVAL_COMPARE.json").read_text(encoding="utf-8"))
+    assert compare_json["comparison_kind"] == "retrieval"
+    assert compare_json["execution_order"] == ["retrieval-on", "retrieval-off"]
+    assert compare_json["selected_retrieval_mode"] == "on"
     assert len(compare_json["comparison"]) == 2
     assert compare_json["comparison"][0]["retrieval_enabled"] is True
     assert compare_json["comparison"][0]["retrieval_mode"] == "on"
@@ -580,6 +583,45 @@ def test_auto_retrieval_comparison_uses_auto_and_off_labels(tmp_path: Path) -> N
     )
     assert compare_json["comparison"][0]["retrieval_mode"] == "auto"
     assert compare_json["comparison"][1]["retrieval_mode"] == "off"
+    assert compare_json["execution_order"] == ["retrieval-auto", "retrieval-off"]
+
+
+def test_retrieval_comparison_can_run_off_first(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    report = run_evaluation(
+        workspace=tmp_path,
+        output_path=tmp_path / "RETRIEVAL_AUTO_COMPARE.md",
+        trace_dir=tmp_path / "eval_runs",
+        task_ids=["syntax_check"],
+        retrieval_mode="auto",
+        compare_retrieval=True,
+        retrieval_compare_order="off-first",
+        json_output_path=tmp_path / "RETRIEVAL_AUTO_COMPARE.json",
+    )
+
+    assert "retrieval-auto" in report
+    compare_json = json.loads(
+        (tmp_path / "RETRIEVAL_AUTO_COMPARE.json").read_text(encoding="utf-8")
+    )
+    assert compare_json["execution_order"] == ["retrieval-off", "retrieval-auto"]
+    assert compare_json["comparison"][0]["retrieval_mode"] == "off"
+    assert compare_json["comparison"][1]["retrieval_mode"] == "auto"
+
+
+def test_retrieval_comparison_rejects_unknown_execution_order(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="comparison order"):
+        run_evaluation(
+            workspace=tmp_path,
+            output_path=tmp_path / "RETRIEVAL_AUTO_COMPARE.md",
+            trace_dir=tmp_path / "eval_runs",
+            task_ids=["syntax_check"],
+            retrieval_mode="auto",
+            compare_retrieval=True,
+            retrieval_compare_order="random",
+        )
 
 
 def test_run_evaluation_rejects_two_comparison_modes(tmp_path: Path) -> None:

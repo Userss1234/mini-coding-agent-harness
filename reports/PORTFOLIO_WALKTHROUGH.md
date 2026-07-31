@@ -17,6 +17,7 @@ python main.py eval-history --run before-prompt-contract=reports/AGENT_EVAL_20_T
 python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_TASKS_BEFORE.json --run after-prompt-contract=reports/AGENT_EVAL_20_TASKS.json --run full-36-task=reports/AGENT_EVAL_36_TASKS.json --output reports/FAILURE_MODES.md --trace-root .
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
+python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -40,16 +41,16 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 6. Open `reports/EVAL_STABILITY_40_TASKS.md`.
    Explain that repeated same-model runs quantify variance without needing another provider API: the two complete expanded-suite runs passed 39/40 and 40/40, with 39 stable-pass tasks and one provider-affected fail-to-pass task.
 
-7. Open `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`.
-   Explain the measured retrieval iteration: evidence budgeting first narrowed the input-token/cost premiums, then an explainable gate suppressed preflight and five schemas for simple tasks. The prompt-aligned auto/off run kept both rows at 8/8, activated 4/8 tasks, reduced exploration and duration, and narrowed the measured premiums to 2.68%/1.87%. The remaining difference is below observed run variance, so the project does not claim cost superiority.
+7. Open `reports/RETRIEVAL_GATING_STABILITY.md`.
+   Explain the measured retrieval iteration: evidence budgeting came first, then an explainable gate suppressed preflight and five schemas for simple tasks. Two prompt-aligned pairs were run in opposite orders; all four rows passed 8/8, auto activated 4/8 tasks in both pairs, and tool calls/direct reads stayed lower. Input-token and cost direction changed, so the project reports stable exploration reduction but does not claim stable cost superiority.
 
 ## Key Architecture Points
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
 - `harness/tools.py` owns the permission-checked tool registry for file, shell, Git, test, memory, and reporting tools.
 - `harness/agent.py` resolves `on/auto/off`, records the gate decision, filters model-facing schemas, and preloads bounded evidence only when active.
-- `harness/evaluation.py` owns deterministic and model-backed benchmark execution.
-- `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, and stability dashboards.
+- `harness/evaluation.py` owns deterministic and model-backed benchmark execution, including controllable retrieval comparison order.
+- `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, repeated-run, and retrieval-stability dashboards.
 - `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
 
 ## Claims To Make
@@ -57,8 +58,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Built a coding-agent infrastructure project with retrieval preflight, tool calling, permission governance, planning, context compaction, memory, error recovery, traces, and evaluation.
 - Expanded the deterministic benchmark from 36 to 40 tasks with nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - Improved real-agent evaluation from an 18/20 baseline to 20/20, validated the earlier 36-task suite at 36/36, then ran the expanded suite twice at 39/40 and 40/40; traced the only first-run interruption to provider HTTP 503 and verified recovery in a complete hardened run.
-- Added a stability-report CLI so repeated same-model runs can be compared when only one model API is available.
-- Measured retrieval on eight ordinary maintenance tasks, added bounded evidence and conditional schema gating, and narrowed measured input-token/cost premiums while auto/off remained 8/8.
+- Added stability-report CLIs so repeated same-model runs and order-varied retrieval pairs can be compared when only one model API is available.
+- Measured retrieval on eight maintenance tasks across two opposite-order pairs; all four rows passed 8/8 while auto reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 
 ## Claims To Avoid
@@ -66,4 +67,5 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Do not claim this is a full autonomous software engineer.
 - Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
+- Do not claim stable retrieval token or cost savings; those metrics changed direction across the two paired runs.
 - Do not claim OS-level sandboxing; the project implements harness-level permission controls.

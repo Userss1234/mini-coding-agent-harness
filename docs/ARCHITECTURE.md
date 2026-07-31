@@ -46,7 +46,7 @@ flowchart TD
 6. Tool results are written to append-only JSONL through `TraceLogger`.
 7. Failed tools can trigger `retry_plan` feedback; long traces can be summarized with `compact_context`.
 8. Eval runs verify the final workspace state and write Markdown/JSON reports.
-9. Analysis CLIs convert JSON reports into trend, failure, and stability dashboards.
+9. Analysis CLIs convert JSON reports into trend, failure, repeated-run, and order-varied retrieval dashboards.
 
 ## Main Modules
 
@@ -56,8 +56,8 @@ flowchart TD
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
 | `harness/retrieval.py` | Local lexical chunk retrieval, read-plan generation, safe path filtering. |
-| `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, report generation. |
-| `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, and repeated-run stability reports. |
+| `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, order-controlled comparisons, report generation. |
+| `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
 | `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |

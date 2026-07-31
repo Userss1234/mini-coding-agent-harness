@@ -10,6 +10,8 @@ from harness.eval_analysis import (
     build_eval_stability_report,
     build_failure_dashboard,
     build_failure_dashboard_report,
+    build_retrieval_comparison_stability_report,
+    build_retrieval_stability_report,
     build_stability_report,
     classify_failure,
 )
@@ -278,6 +280,55 @@ def test_build_stability_report_loads_labeled_paths_and_writes_output(tmp_path: 
     assert output_path.read_text(encoding="utf-8") == report
 
 
+def test_build_retrieval_stability_report_measures_order_and_direction() -> None:
+    selected_first = _retrieval_comparison_report(
+        order=["retrieval-auto", "retrieval-off"],
+        auto_tools=15.0,
+        off_tools=16.0,
+        auto_reads=2.5,
+        off_reads=3.0,
+        auto_input=102,
+        off_input=100,
+    )
+    off_first = _retrieval_comparison_report(
+        order=["retrieval-off", "retrieval-auto"],
+        auto_tools=14.0,
+        off_tools=16.0,
+        auto_reads=2.0,
+        off_reads=3.0,
+        auto_input=98,
+        off_input=100,
+    )
+
+    report = build_retrieval_comparison_stability_report([
+        {"label": "selected-first", "path": "first.json", "report": selected_first},
+        {"label": "off-first", "path": "second.json", "report": off_first},
+    ])
+
+    assert "# Retrieval Gating Stability Report" in report
+    assert "Execution orders covered: **`selected-first`, `off-first`**" in report
+    assert "| selected-first | `selected-first` | 8/8 | 8/8 | 50.00% | 2.50 | -6.25%" in report
+    assert "| off-first | `off-first` | 8/8 | 8/8 | 50.00% | 2.50 | -12.50%" in report
+    assert "| Tool calls | -9.38% | -12.50% to -6.25% | `stable: lower` |" in report
+    assert "| Input tokens | +0.00% | -2.00% to +2.00% | `mixed: higher -> lower` |" in report
+    assert "task outcomes are stable, but at least one efficiency metric changes direction" in report
+
+
+def test_retrieval_stability_loads_legacy_json_and_writes_output(tmp_path: Path) -> None:
+    run_path = tmp_path / "legacy.json"
+    output_path = tmp_path / "retrieval-stability.md"
+    legacy_report = _retrieval_comparison_report(order=None)
+    run_path.write_text(json.dumps(legacy_report), encoding="utf-8")
+
+    report = build_retrieval_stability_report(
+        [f"legacy={run_path}"],
+        output_path=output_path,
+    )
+
+    assert "| legacy | `selected-first` | 8/8 | 8/8 |" in report
+    assert output_path.read_text(encoding="utf-8") == report
+
+
 def _history_report(
     passed: int,
     task_count: int,
@@ -322,3 +373,51 @@ def _history_report(
         },
         "tasks": tasks,
     }
+
+
+def _retrieval_comparison_report(
+    order: list[str] | None,
+    auto_tools: float = 15.0,
+    off_tools: float = 16.0,
+    auto_reads: float = 2.5,
+    off_reads: float = 3.0,
+    auto_input: int = 102,
+    off_input: int = 100,
+) -> dict:
+    rows = {
+        "retrieval-auto": {
+            "label": "retrieval-auto",
+            "retrieval_mode": "auto",
+            "retrieval_activation_rate": 0.5,
+            "average_retrieval_schema_count": 2.5,
+            "task_count": 8,
+            "passed": 8,
+            "average_tool_calls": auto_tools,
+            "average_read_file_calls": auto_reads,
+            "average_duration": 10.0,
+            "total_input_tokens": auto_input,
+            "total_output_tokens": 20,
+            "estimated_cost_usd": 0.12,
+        },
+        "retrieval-off": {
+            "label": "retrieval-off",
+            "retrieval_mode": "off",
+            "retrieval_activation_rate": 0.0,
+            "average_retrieval_schema_count": 0.0,
+            "task_count": 8,
+            "passed": 8,
+            "average_tool_calls": off_tools,
+            "average_read_file_calls": off_reads,
+            "average_duration": 11.0,
+            "total_input_tokens": off_input,
+            "total_output_tokens": 22,
+            "estimated_cost_usd": 0.13,
+        },
+    }
+    execution_order = order or ["retrieval-auto", "retrieval-off"]
+    report = {
+        "comparison": [rows[label] for label in execution_order],
+    }
+    if order is not None:
+        report["execution_order"] = order
+    return report
