@@ -33,6 +33,7 @@ def make_registry(
     fresh_trace: bool = False,
     allow_write: bool = False,
     enable_context_pack: bool = True,
+    retrieval_backend: str | None = None,
 ):
     if fresh_trace and trace_path.exists():
         trace_path.unlink()
@@ -43,6 +44,7 @@ def make_registry(
         trace,
         allow_write=allow_write,
         enable_context_pack=enable_context_pack,
+        retrieval_backend=retrieval_backend,
     )
 
 
@@ -73,6 +75,7 @@ def cmd_ask(args) -> None:
         args.fresh_trace,
         args.allow_write,
         enable_context_pack=args.retrieval != "off",
+        retrieval_backend=args.retrieval_backend,
     )
     print(run_agent(args.prompt, registry, retrieval_mode=args.retrieval))
     print(f"Trace written to {Path(args.trace).resolve()}")
@@ -90,9 +93,12 @@ def cmd_eval(args) -> None:
         context_enabled=args.context == "on",
         retrieval_enabled=args.retrieval != "off",
         retrieval_mode=args.retrieval,
+        retrieval_backend=args.retrieval_backend,
         compare=args.compare,
         compare_retrieval=args.compare_retrieval,
         retrieval_compare_order=args.retrieval_compare_order,
+        compare_retrieval_backends=args.compare_retrieval_backends,
+        retrieval_backend_compare_order=args.retrieval_backend_compare_order,
         json_output_path=Path(args.json_output) if args.json_output else None,
     )
     print(report)
@@ -290,6 +296,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="on",
         help="Always enable, conditionally gate, or disable retrieval preflight and model-facing schemas",
     )
+    ask.add_argument(
+        "--retrieval-backend",
+        choices=["lexical", "hybrid"],
+        default="lexical",
+        help="Default ranking backend for retrieval tools and preflight",
+    )
     ask.set_defaults(func=cmd_ask)
 
     eval_cmd = sub.add_parser("eval", help="Run the harness evaluation suite")
@@ -333,6 +345,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Always enable, conditionally gate, or disable retrieval support for agent runs",
     )
     eval_cmd.add_argument(
+        "--retrieval-backend",
+        choices=["lexical", "hybrid"],
+        default="lexical",
+        help="Ranking backend used by retrieval tools and preflight",
+    )
+    eval_cmd.add_argument(
         "--compare",
         action="store_true",
         help="Run four memory/context configurations using the selected retrieval setting and write a comparison report",
@@ -347,6 +365,17 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["selected-first", "off-first"],
         default="selected-first",
         help="Execution order for paired retrieval comparisons",
+    )
+    eval_cmd.add_argument(
+        "--compare-retrieval-backends",
+        action="store_true",
+        help="Compare lexical and hybrid ranking with the same retrieval strategy and tasks",
+    )
+    eval_cmd.add_argument(
+        "--retrieval-backend-compare-order",
+        choices=["lexical-first", "hybrid-first"],
+        default="lexical-first",
+        help="Execution order for paired lexical/hybrid comparisons",
     )
     eval_cmd.set_defaults(func=cmd_eval)
 

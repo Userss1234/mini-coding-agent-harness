@@ -69,7 +69,7 @@ Evidence:
 
 ## 7. How does RAG work in this project?
 
-The retrieval layer builds one safe local workspace chunk index. It skips sensitive/generated paths and workflow memories under `skills/`, returns path/line evidence, turns matches into read plans, and loads bounded line ranges. The default backend ranks chunks lexically. An optional local hybrid backend combines normalized lexical scores with MiniLM cosine similarity and incrementally caches document embeddings. On the same 10-query judgments, lexical reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5; hybrid reaches 0.9000 MRR and 0.70/1.00/1.00.
+The retrieval layer builds one safe local workspace chunk index. It skips sensitive/generated paths and workflow memories under `skills/`, returns path/line evidence, turns matches into read plans, and loads bounded line ranges. The default backend ranks chunks lexically. An optional local hybrid backend combines normalized lexical scores with MiniLM cosine similarity and incrementally caches document embeddings. On the same 10-query judgments, lexical reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5; hybrid reaches 0.9000 MRR and 0.70/1.00/1.00. A separate lexical-first 8-task agent comparison found no workflow-efficiency gain and exposed a lexical-only verifier assumption, which was fixed and validated in a targeted 1/1 pair.
 
 Evidence:
 
@@ -81,6 +81,7 @@ Evidence:
 - `benchmarks/retrieval/judgments.json`
 - `reports/RETRIEVAL_QUALITY_BASELINE.md`
 - `reports/RETRIEVAL_QUALITY_HYBRID.md`
+- `reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`
 - `reports/AGENT_EVAL_36_TASKS.md`
 
 ## 8. Is the RAG embedding-based?
@@ -177,7 +178,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval defaults to lexical; the optional embedding backend has only a 10-query project-specific ranking benchmark, no vector database, and no focused real-agent comparison yet. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
+The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval defaults to lexical; the optional embedding backend has a 10-query project-specific ranking benchmark, no vector database, and only one lexical-first focused agent pair. That pair found no hybrid efficiency gain and therefore does not support agent-level superiority claims. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
 
 Evidence:
 
@@ -186,7 +187,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating, task-level paired variance, Docker execution isolation, and the local hybrid RAG backend are complete. Retrieval now has shared safe indexing, lexical and MiniLM hybrid ranking, an incremental embedding cache, backend-specific MRR/Recall@K gates, and committed reports against the same judgments. The next stage is focused agent-level lexical/hybrid evidence, followed by MCP Streamable HTTP and one final Docker + hybrid RAG + MCP validation.
+Conditional gating, Docker execution isolation, local hybrid RAG, and focused backend agent evidence are complete. The agent pair did not justify more retrieval tuning: it found no hybrid workflow advantage and instead exposed a backend-biased verifier, which now has targeted post-fix evidence. The next stage is MCP Streamable HTTP, followed by one final Docker + hybrid RAG + MCP validation. Retrieval should only reopen for evidence-consumption work or a reverse-order stability pair.
 
 Evidence:
 
@@ -201,7 +202,7 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, incremental embedding caching, context compaction, workflow memory, execution traces, MCP resources/prompts, and a 40-task deterministic suite; improved the project-specific 10-query retrieval result from 0.8000 to 0.9000 MRR and ran complete DeepSeek real-agent evaluations at 39/40 and 40/40.
+Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, incremental embedding caching, backend-controlled paired agent evaluation, execution traces, MCP resources/prompts, and a 40-task deterministic suite; improved the project-specific 10-query retrieval result from 0.8000 to 0.9000 MRR, then used an 8-task agent pair to identify and fix a lexical-only verifier contract without overstating hybrid workflow gains.
 
 Evidence:
 

@@ -19,6 +19,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py retrieval-benchmark --backend hybrid
+python main.py eval --mode agent --retrieval on --compare-retrieval-backends --task rag_symbol_retrieval
 docker build --file docker/sandbox/Dockerfile --tag mini-coding-agent-harness-sandbox:latest .
 python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
@@ -51,7 +52,10 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
    Explain that shell, pytest, and syntax checks share one executor interface. The Docker backend fails closed, does not forward provider keys, and applies a non-root UID, disabled network, dropped capabilities, a read-only root filesystem, and resource limits. The committed CI report records `uid=10001 workspace=ok network=blocked`; Docker is still not presented as a VM or absolute security boundary.
 
 9. Open `reports/RETRIEVAL_QUALITY_BASELINE.md` and `reports/RETRIEVAL_QUALITY_HYBRID.md`.
-   Explain that both backends use the same safe chunks and 10-query judgments. The dependency-free lexical baseline reaches 0.8000 MRR and 0.80 Recall@3/5; optional local MiniLM fusion reaches 0.9000 MRR and 1.00 Recall@3/5, with both retained semantic cases at rank 2. Document embeddings are cached incrementally outside the repository. Keep the claim scoped to this project fixture and note that focused agent-level evidence is next.
+   Explain that both backends use the same safe chunks and 10-query judgments. The dependency-free lexical baseline reaches 0.8000 MRR and 0.80 Recall@3/5; optional local MiniLM fusion reaches 0.9000 MRR and 1.00 Recall@3/5, with both retained semantic cases at rank 2. Document embeddings are cached incrementally outside the repository. Keep the ranking claim scoped to this project fixture, then contrast it with the separate agent-level result.
+
+10. Open `reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`.
+   Explain that ranking gains were tested separately from agent workflow gains. The lexical-first 8-task pair did not show hybrid efficiency gains and exposed a verifier hardcoded to lexical metadata even though hybrid ranked the target first. The defect was fixed, a targeted pair passed on both backends, and the original report was preserved rather than rewritten.
 
 ## Key Architecture Points
 
@@ -74,6 +78,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
 - Added an optional Docker command backend and CI runtime proof for non-root execution, workspace visibility, and blocked outbound networking while preserving the tool permission layer.
 - Added optional local MiniLM hybrid retrieval with lexical/semantic fusion and incremental document-embedding caching; improved the same 10-query judged fixture from 0.8000 to 0.9000 MRR and recovered both retained semantic cases at rank 2.
+- Added order-controlled lexical/hybrid agent comparison with task-level pairs and cache metrics, then used the first focused run to find and fix a backend-biased verifier without claiming unsupported agent-efficiency gains.
 
 ## Claims To Avoid
 

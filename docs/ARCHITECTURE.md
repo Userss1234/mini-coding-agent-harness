@@ -65,7 +65,7 @@ flowchart TD
 | `harness/retrieval.py` | Shared safe chunk index, lexical retrieval, read-plan generation, and path filtering. |
 | `harness/hybrid_retrieval.py` | Optional local MiniLM embeddings, lexical/semantic score fusion, and incremental embedding cache. |
 | `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
-| `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, order-controlled comparisons, report generation. |
+| `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, backend-neutral verifiers, order-controlled retrieval/backend comparisons, report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
@@ -123,6 +123,8 @@ Retrieval ranking is evaluated independently from the agent loop against `benchm
 
 The hybrid backend normalizes lexical and cosine scores, combines them with configurable weights, and caches document embeddings by model plus chunk content identity. Cache files default outside the repository, unchanged chunks are reused, stale chunks are removed, and the model object is loaded once per process. Actual `rag_search`, `rag_explain`, `context_pack`, and `retrieve_then_read` tool calls can select `backend=hybrid` explicitly or through `HARNESS_RETRIEVAL_BACKEND`.
 
+Evaluation treats activation strategy and ranking backend as separate controls. `on/auto/off` decides whether retrieval is available; `lexical/hybrid` decides how active retrieval ranks chunks. Backend comparison runs preserve execution order, complete task results, hybrid-minus-lexical task pairs, and cache metrics from tool traces. The first focused 8-task lexical-first run did not show a hybrid workflow advantage and exposed a verifier that incorrectly required lexical metadata; the original result and targeted backend-neutral fix validation are both committed.
+
 ## Evaluation Pipeline
 
 ```mermaid
@@ -174,6 +176,6 @@ MCP exposes selected project documents and reports, including evaluation history
 
 - Permission checks are harness-level, not OS-level sandboxing.
 - Docker execution adds an optional container boundary, but the default backend remains host and the writable workspace mount is still in scope.
-- Retrieval defaults to lexical. Hybrid evidence is limited to a 10-query project fixture, uses an in-process scan rather than a vector database, and has not yet been compared in a focused real-agent run.
+- Retrieval defaults to lexical. Hybrid ranking evidence is limited to a 10-query project fixture and uses an in-process scan rather than a vector database. One lexical-first focused agent pair found no efficiency advantage; reverse-order repetition would be required for stability claims.
 - MCP is stdio-only.
 - The deterministic suite has 40 tasks. Two complete expanded-suite DeepSeek runs passed 39/40 and 40/40. The only first-run interruption was a provider HTTP 503 before verification; after transient model retries increased from 2 to 4, the second complete run passed all tasks. The stability report records 39 stable passes and one provider-affected fail-to-pass task.

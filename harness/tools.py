@@ -383,10 +383,18 @@ def build_registry(
     retry_delay: float = 0.05,
     enable_context_pack: bool = True,
     execution_backend: str | None = None,
+    retrieval_backend: str | None = None,
     executor: CommandExecutor | None = None,
 ) -> ToolRegistry:
     workspace = workspace.resolve()
     executor = executor or build_executor(workspace, execution_backend)
+    configured_retrieval_backend = str(
+        retrieval_backend or os.getenv("HARNESS_RETRIEVAL_BACKEND", "lexical")
+    ).strip().lower()
+    if configured_retrieval_backend not in {"lexical", "hybrid"}:
+        raise ValueError(
+            f"Unsupported retrieval backend: {configured_retrieval_backend}"
+        )
     registry = ToolRegistry(
         workspace,
         trace,
@@ -396,6 +404,7 @@ def build_registry(
     )
     registry.execution_backend = executor.backend
     registry.execution_policy = executor.describe()
+    registry.retrieval_backend = configured_retrieval_backend
     read_cache: dict[tuple[Any, ...], str] = {}
 
     def list_python_files(include_venv: bool = False) -> ToolResult:
@@ -626,6 +635,7 @@ def build_registry(
             overlap=0,
             max_chars_per_chunk=max(int(max_chars_per_file), 120),
             backend=backend,
+            default_backend=configured_retrieval_backend,
         )
         matches = result["matches"]
         output = _format_context_pack(query_text, matches, retrieval=result["retrieval"])
@@ -680,6 +690,7 @@ def build_registry(
             overlap=max(int(overlap), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
+            default_backend=configured_retrieval_backend,
         )
         return ToolResult(
             True,
@@ -721,6 +732,7 @@ def build_registry(
             overlap=max(int(overlap), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
+            default_backend=configured_retrieval_backend,
         )
         result["read_plan"] = build_read_plan(
             result.get("matches") or [],
@@ -768,6 +780,7 @@ def build_registry(
             overlap=max(int(overlap), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
+            default_backend=configured_retrieval_backend,
         )
         plan_result["read_plan"] = build_read_plan(
             plan_result.get("matches") or [],
@@ -1926,8 +1939,13 @@ def _search_workspace_backend(
     overlap: int,
     max_chars_per_chunk: int,
     backend: str | None,
+    default_backend: str | None = None,
 ) -> dict[str, Any]:
-    backend_name = str(backend or os.getenv("HARNESS_RETRIEVAL_BACKEND", "lexical")).strip().lower()
+    backend_name = str(
+        backend
+        or default_backend
+        or os.getenv("HARNESS_RETRIEVAL_BACKEND", "lexical")
+    ).strip().lower()
     if backend_name == "lexical":
         return search_workspace(
             workspace,

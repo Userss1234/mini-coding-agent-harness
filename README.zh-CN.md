@@ -38,9 +38,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
 - **Ablation：**已提交 2 任务 memory/context 对比和多轮 8-task retrieval 配对实验。两次提示对齐、顺序相反的 auto/off 运行中，四个配置行均为 8/8；auto 都只在 4/8 任务启用 retrieval，将平均模型可见 schema 减半，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，但 input-token 和成本方向仍有波动。
 - **检索质量：**提交了一套 10-query 相关性标注语料，在 agent loop 外独立评估排序。离线 lexical 基线为 MRR 0.8000，Recall@1/3/5 为 0.70/0.80/0.80；可选本地 MiniLM hybrid backend 达到 MRR 0.9000 和 Recall@1/3/5 0.70/1.00/1.00，无需模型 API，并把两个保留的语义案例都排到第 2 位。
+- **Backend agent 证据：**完成一次 lexical-first 8-task DeepSeek 对比，保留逐任务 pair 和 cache 指标。原始报告为 lexical 8/8、hybrid 7/8，原因是一个 verifier 硬编码 lexical metadata，虽然 hybrid 实际把目标排第 1。修复 backend 偏置后，定向复验两侧均为 1/1；hybrid 仍使用更多工具/token，因此不声称 agent 效率提升。
 - **Docker execution：**可插拔 host/Docker 后端让 Shell、pytest 和 Python 编译共用一个执行边界。Docker 模式默认非 root、关闭网络、移除 capabilities、限制资源、超时清理，并在未显式允许 host fallback 时 fail closed。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted 与 retrieval-quality benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md) 和 [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md)、[`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md) 和 [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)。
 
 ## Portfolio Walkthrough
 
@@ -56,6 +57,7 @@ python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json 
 python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py retrieval-benchmark
 python main.py retrieval-benchmark --backend hybrid
+python main.py eval --mode agent --retrieval on --compare-retrieval-backends --task rag_symbol_retrieval
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -75,6 +77,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序真实 agent 配对的聚合稳定性分析，区分稳定探索下降与不稳定 token/成本方向，并明确标记历史 JSON 尚未包含逐任务字段。
 - [`reports/RETRIEVAL_QUALITY_BASELINE.md`](reports/RETRIEVAL_QUALITY_BASELINE.md)：带相关性标注的 lexical 排序基线，包含 MRR、Recall@K、逐 query 路径和保留的语义漏检。
 - [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md)：本地 hybrid 排序结果，包含融合权重、embedding cache 指标和语义案例排名。
+- [`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md)：定向 agent-level lexical/hybrid 证据、verifier 偏置发现、修复复验和声明边界。
 - [`docs/HYBRID_RETRIEVAL.md`](docs/HYBRID_RETRIEVAL.md)：可选依赖、backend 配置、cache 设计、测量证据和限制。
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)：GitHub Actions 中真实验证非 root、workspace mount 和默认禁网的运行报告。
 - [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
@@ -322,7 +325,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 当前支持的 MCP 方法包括：`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`、`resources/list`、`resources/read`、`resources/templates/list`、`prompts/list` 和 `prompts/get`。`MCP.md` 里有消息示例和边界说明。
 
-server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/failure-modes`、`harness://reports/retrieval-quality`、`harness://reports/retrieval-hybrid` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
+server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/retrieval-quality`、`harness://reports/retrieval-hybrid`、`harness://reports/retrieval-backend-agent`、`harness://reports/retrieval-backend-analysis` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
 
 如果要接入支持 MCP 的客户端，可以复制 `examples/mcp_config.example.json`，把 `/absolute/path/to/mini-coding-agent-harness` 替换成本地项目绝对路径。
 
@@ -418,7 +421,7 @@ memory-off_context-off
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 默认使用无额外依赖的 lexical backend；可选本地 MiniLM hybrid backend 复用同一套安全 chunk，通过词法/语义加权融合和增量 hash cache 工作。在项目内 10-query 标注上，MRR 从 0.8000 提高到 0.9000，Recall@3/5 从 0.80 提高到 1.00，两个保留语义案例都排到第 2 位。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。两次提示对齐、顺序相反的 8-task auto/off 配对中，四个配置行均通过 8/8；auto 都只启用 4/8，平均暴露 2.5 个 retrieval schema，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%。input-token 和估算成本在两轮间方向相反，因此不声称稳定的成本优势。
+当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。可选本地 MiniLM fusion 在项目内 10-query 标注上把 MRR 从 0.8000 提高到 0.9000、Recall@3/5 从 0.80 提高到 1.00。但 lexical-first 8-task agent pair 没有显示 workflow 优势：原始报告 lexical 8/8、hybrid 7/8，失败来自 verifier 硬编码 lexical metadata；hybrid 工具调用多 8.09%、input token 多 13.78%、估算成本多 13.29%。修复后定向复验两侧均为 1/1，原始报告保留。40-task DeepSeek 结果仍为 39/40 和 40/40，retrieval on/auto/off 的 token/成本方向也仍然混合。
 
 历史 8-task comparison JSON 生成于逐任务结果保留功能之前，因此已提交的真实 agent stability 报告仍是聚合分析。新的 comparison 会自动保留逐任务数据；相反顺序的 scripted CLI 验证和测试覆盖 task-level 配对链路，但不会被包装成模型效率证据。
 
@@ -436,6 +439,7 @@ git diff -- .
 
 - 两次同模型 40-task 全量运行分别为 39/40 和 40/40。39 个任务稳定通过；`shell_no_shell_execution` 因首轮 provider 中断、第二轮通过而仍归类为不稳定。若要得到更强的方差结论，还需要更多重复运行或第二个 provider/model。
 - Workspace RAG 默认使用带路径/行号的本地分块 lexical retrieval。可选 hybrid backend 增加本地 MiniLM embedding 和加权融合，但仍是进程内扫描，不是向量数据库；MRR 0.9000 的证据只覆盖已提交的 10-query 项目 fixture。
+- lexical/hybrid agent 对比目前只有一次 lexical-first 8-task 运行，没有显示 agent 效率优势，并暴露一个已修复的 lexical-only verifier 契约；backend 稳定性结论仍需要 hybrid-first 复跑。
 - workflow memory 可以按 query 排序并注入 agent 评估提示，但排序仍然是词法匹配，还不是 embedding 检索。
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。
 - retry/backoff 已能以最多 4 次重试处理临时性模型/API 失败，并处理非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
@@ -445,8 +449,8 @@ git diff -- .
 
 ## 下一步
 
-1. 在 retrieval-dependent 任务上运行定向 lexical/hybrid real-agent 对比，保留任务结果、探索、延迟和 cache 指标。
-2. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
-3. 做一次 Docker + hybrid RAG + MCP 最终联合验证，然后更新简历证据。
+1. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
+2. 做一次 Docker + hybrid RAG + MCP 最终联合验证，然后更新简历证据。
+3. 只有在改进 agent evidence consumption 或运行 hybrid-first 稳定性 pair 时再回到 retrieval；不要根据一次 agent 结果调 fusion 权重。
 4. 需要本机 Windows 复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
 

@@ -110,6 +110,8 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
     (reports / "RETRIEVAL_GATING_STABILITY.md").write_text("# Retrieval Gating Stability Report\n", encoding="utf-8")
     (reports / "RETRIEVAL_QUALITY_BASELINE.md").write_text("# Retrieval Quality Baseline\n", encoding="utf-8")
     (reports / "RETRIEVAL_QUALITY_HYBRID.md").write_text("# Retrieval Quality Hybrid\n", encoding="utf-8")
+    (reports / "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md").write_text("# Retrieval Backend Agent\n", encoding="utf-8")
+    (reports / "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md").write_text("# Retrieval Backend Analysis\n", encoding="utf-8")
     (reports / "DOCKER_SANDBOX_SMOKE.md").write_text("# Docker Sandbox Smoke Report\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
@@ -164,6 +166,8 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
     assert resources["harness://reports/retrieval-stability"]["name"] == "RETRIEVAL_GATING_STABILITY"
     assert resources["harness://reports/retrieval-quality"]["name"] == "RETRIEVAL_QUALITY_BASELINE"
     assert resources["harness://reports/retrieval-hybrid"]["name"] == "RETRIEVAL_QUALITY_HYBRID"
+    assert resources["harness://reports/retrieval-backend-agent"]["name"] == "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS"
+    assert resources["harness://reports/retrieval-backend-analysis"]["name"] == "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS"
     assert resources["harness://reports/docker-sandbox"]["name"] == "DOCKER_SANDBOX_SMOKE"
     assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
@@ -359,6 +363,8 @@ def test_mcp_eval_analysis_prompt_reads_default_eval_report_set(tmp_path: Path) 
     assert "harness://reports/retrieval-stability" in text
     assert "harness://reports/retrieval-quality" in text
     assert "harness://reports/retrieval-hybrid" in text
+    assert "harness://reports/retrieval-backend-agent" in text
+    assert "harness://reports/retrieval-backend-analysis" in text
     assert "trend movement" in text
     assert "Tie each claim" in text
 
@@ -384,6 +390,8 @@ def test_mcp_eval_analysis_prompt_allows_single_report_override(tmp_path: Path) 
     assert "harness://reports/retrieval-stability" not in text
     assert "harness://reports/retrieval-quality" not in text
     assert "harness://reports/retrieval-hybrid" not in text
+    assert "harness://reports/retrieval-backend-agent" not in text
+    assert "harness://reports/retrieval-backend-analysis" not in text
 
 
 def test_mcp_repo_rag_maintenance_prompt_requires_rag_first(tmp_path: Path) -> None:

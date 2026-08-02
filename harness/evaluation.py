@@ -33,6 +33,7 @@ class EvalResult:
     context_enabled: bool
     retrieval_enabled: bool
     retrieval_mode: str
+    retrieval_backend: str
     retrieval_gate_evaluated: bool
     retrieval_activated: bool
     retrieval_schema_count: int
@@ -45,6 +46,9 @@ class EvalResult:
     output_tokens: int
     preflight_raw_chars: int
     preflight_injected_chars: int
+    retrieval_cache_hits: int
+    retrieval_cache_misses: int
+    retrieval_cache_writes: int
     estimated_cost_usd: float
     failure_categories: list[str]
     trace_path: str
@@ -58,6 +62,7 @@ class EvalRunSummary:
     context_enabled: bool
     retrieval_enabled: bool
     retrieval_mode: str
+    retrieval_backend: str
     retrieval_gate_decisions: int
     retrieval_activations: int
     retrieval_activation_rate: float
@@ -74,6 +79,9 @@ class EvalRunSummary:
     total_output_tokens: int
     average_preflight_raw_chars: float
     average_preflight_injected_chars: float
+    retrieval_cache_hits: int
+    retrieval_cache_misses: int
+    retrieval_cache_writes: int
     estimated_cost_usd: float
     tool_counts: dict[str, int]
     failure_categories: list[str]
@@ -90,9 +98,12 @@ def run_evaluation(
     context_enabled: bool = True,
     retrieval_enabled: bool = True,
     retrieval_mode: str | None = None,
+    retrieval_backend: str = "lexical",
     compare: bool = False,
     compare_retrieval: bool = False,
     retrieval_compare_order: str = "selected-first",
+    compare_retrieval_backends: bool = False,
+    retrieval_backend_compare_order: str = "lexical-first",
     json_output_path: Path | None = None,
 ) -> str:
     """Run a small deterministic benchmark and write a Markdown report."""
@@ -103,14 +114,23 @@ def run_evaluation(
         retrieval_mode,
     )
     retrieval_enabled = normalized_retrieval_mode != "off"
+    normalized_retrieval_backend = _normalize_retrieval_backend(retrieval_backend)
 
     workspace = workspace.resolve()
     trace_dir = trace_dir.resolve()
     trace_dir.mkdir(parents=True, exist_ok=True)
 
     tasks = select_tasks(default_tasks(), task_ids=task_ids, categories=categories)
-    if compare and compare_retrieval:
-        raise ValueError("Use either compare=True or compare_retrieval=True, not both.")
+    comparison_count = sum(bool(value) for value in (
+        compare,
+        compare_retrieval,
+        compare_retrieval_backends,
+    ))
+    if comparison_count > 1:
+        raise ValueError(
+            "Use only one of compare, compare_retrieval, or "
+            "compare_retrieval_backends."
+        )
     if compare:
         report = run_evaluation_comparison(
             workspace,
@@ -119,6 +139,7 @@ def run_evaluation(
             mode,
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=normalized_retrieval_mode,
+            retrieval_backend=normalized_retrieval_backend,
             json_output_path=json_output_path,
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +154,27 @@ def run_evaluation(
             memory_enabled=memory_enabled,
             context_enabled=context_enabled,
             active_retrieval_mode=normalized_retrieval_mode,
+            retrieval_backend=normalized_retrieval_backend,
             execution_order=retrieval_compare_order,
+            json_output_path=json_output_path,
+        )
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+        return report
+    if compare_retrieval_backends:
+        if not retrieval_enabled:
+            raise ValueError(
+                "Retrieval backend comparison requires retrieval mode on or auto."
+            )
+        report = run_retrieval_backend_comparison(
+            workspace,
+            trace_dir,
+            tasks,
+            mode,
+            memory_enabled=memory_enabled,
+            context_enabled=context_enabled,
+            retrieval_mode=normalized_retrieval_mode,
+            execution_order=retrieval_backend_compare_order,
             json_output_path=json_output_path,
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -149,6 +190,7 @@ def run_evaluation(
         context_enabled=context_enabled,
         retrieval_enabled=retrieval_enabled,
         retrieval_mode=normalized_retrieval_mode,
+        retrieval_backend=normalized_retrieval_backend,
     )
 
     report = build_eval_report(workspace, results)
@@ -168,12 +210,14 @@ def run_eval_tasks(
     context_enabled: bool,
     retrieval_enabled: bool,
     retrieval_mode: str | None = None,
+    retrieval_backend: str = "lexical",
 ) -> list[EvalResult]:
     normalized_retrieval_mode = _normalize_retrieval_mode(
         retrieval_enabled,
         retrieval_mode,
     )
     retrieval_enabled = normalized_retrieval_mode != "off"
+    normalized_retrieval_backend = _normalize_retrieval_backend(retrieval_backend)
     results: list[EvalResult] = []
     for task in tasks:
         trace_path = trace_dir / f"{task.task_id}.jsonl"
@@ -198,6 +242,7 @@ def run_eval_tasks(
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=normalized_retrieval_mode,
+            retrieval_backend=normalized_retrieval_backend,
             allow_write=True,
         )
         registry = build_registry(
@@ -205,6 +250,7 @@ def run_eval_tasks(
             trace,
             allow_write=True,
             enable_context_pack=retrieval_enabled if mode == "agent" else True,
+            retrieval_backend=normalized_retrieval_backend,
         )
         started = time.perf_counter()
         try:
@@ -233,6 +279,7 @@ def run_eval_tasks(
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=normalized_retrieval_mode,
+            retrieval_backend=normalized_retrieval_backend,
             retrieval_gate_evaluated=metrics["retrieval_gate_evaluated"],
             retrieval_activated=metrics["retrieval_activated"],
             retrieval_schema_count=metrics["retrieval_schema_count"],
@@ -245,6 +292,9 @@ def run_eval_tasks(
             output_tokens=metrics["output_tokens"],
             preflight_raw_chars=metrics["preflight_raw_chars"],
             preflight_injected_chars=metrics["preflight_injected_chars"],
+            retrieval_cache_hits=metrics["retrieval_cache_hits"],
+            retrieval_cache_misses=metrics["retrieval_cache_misses"],
+            retrieval_cache_writes=metrics["retrieval_cache_writes"],
             estimated_cost_usd=estimate_cost_usd(metrics["input_tokens"], metrics["output_tokens"]),
             failure_categories=metrics["failure_categories"],
             trace_path=str(trace_path.relative_to(workspace)),
@@ -259,6 +309,7 @@ def run_evaluation_comparison(
     mode: str,
     retrieval_enabled: bool = True,
     retrieval_mode: str | None = None,
+    retrieval_backend: str = "lexical",
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
@@ -281,6 +332,7 @@ def run_evaluation_comparison(
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=retrieval_mode,
+            retrieval_backend=retrieval_backend,
         )
         results_by_label[label] = results
         summaries.append(summarize_results(label, results))
@@ -302,6 +354,7 @@ def run_retrieval_comparison(
     memory_enabled: bool,
     context_enabled: bool,
     active_retrieval_mode: str = "on",
+    retrieval_backend: str = "lexical",
     execution_order: str = "selected-first",
     json_output_path: Path | None = None,
 ) -> str:
@@ -333,6 +386,7 @@ def run_retrieval_comparison(
             context_enabled=context_enabled,
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=current_retrieval_mode,
+            retrieval_backend=retrieval_backend,
         )
         results_by_label[label] = results
         summaries.append(summarize_results(label, results))
@@ -347,6 +401,61 @@ def run_retrieval_comparison(
             results_by_label=results_by_label,
         )
     return build_eval_comparison_report(workspace, summaries)
+
+
+def run_retrieval_backend_comparison(
+    workspace: Path,
+    trace_dir: Path,
+    tasks: list[EvalTask],
+    mode: str,
+    memory_enabled: bool,
+    context_enabled: bool,
+    retrieval_mode: str = "on",
+    execution_order: str = "lexical-first",
+    json_output_path: Path | None = None,
+) -> str:
+    if execution_order not in {"lexical-first", "hybrid-first"}:
+        raise ValueError(
+            f"Unsupported retrieval backend comparison order: {execution_order}"
+        )
+    backends = (
+        ["lexical", "hybrid"]
+        if execution_order == "lexical-first"
+        else ["hybrid", "lexical"]
+    )
+    summaries: list[EvalRunSummary] = []
+    results_by_label: dict[str, list[EvalResult]] = {}
+    for backend in backends:
+        label = f"retrieval-{backend}"
+        config_trace_dir = trace_dir / "compare_retrieval_backend" / label
+        config_trace_dir.mkdir(parents=True, exist_ok=True)
+        results = run_eval_tasks(
+            workspace=workspace,
+            trace_dir=config_trace_dir,
+            tasks=tasks,
+            mode=mode,
+            memory_enabled=memory_enabled,
+            context_enabled=context_enabled,
+            retrieval_enabled=True,
+            retrieval_mode=retrieval_mode,
+            retrieval_backend=backend,
+        )
+        results_by_label[label] = results
+        summaries.append(summarize_results(label, results))
+    if json_output_path is not None:
+        write_eval_comparison_json_report(
+            workspace,
+            summaries,
+            json_output_path,
+            comparison_kind="retrieval_backend",
+            execution_order=[summary.label for summary in summaries],
+            results_by_label=results_by_label,
+        )
+    return build_retrieval_backend_comparison_report(
+        workspace,
+        summaries,
+        results_by_label,
+    )
 
 
 def eval_config_label(memory_enabled: bool, context_enabled: bool) -> str:
@@ -365,6 +474,13 @@ def _normalize_retrieval_mode(
     if mode not in {"on", "auto", "off"}:
         raise ValueError(f"Unsupported retrieval mode: {retrieval_mode}")
     return mode
+
+
+def _normalize_retrieval_backend(retrieval_backend: str | None) -> str:
+    backend = "lexical" if retrieval_backend is None else str(retrieval_backend).strip().lower()
+    if backend not in {"lexical", "hybrid"}:
+        raise ValueError(f"Unsupported retrieval backend: {retrieval_backend}")
+    return backend
 
 
 def copy_eval_memories(source_workspace: Path, task_workspace: Path) -> None:
@@ -1029,7 +1145,8 @@ def run_rag_symbol_retrieval_task(registry: ToolRegistry) -> bool:
         and str(first.get("path", "")).endswith("billing/invoice.py")
         and int(first.get("start_line", 0)) == 1
         and "invoice_total" in result.output
-        and metadata.get("retrieval") == "local_chunk_lexical_scoring"
+        and metadata.get("retrieval")
+        == f"local_chunk_{registry.retrieval_backend}_scoring"
     )
 
 
@@ -2316,6 +2433,9 @@ def trace_metrics(trace_path: Path) -> dict:
     retrieval_gate_evaluated = False
     retrieval_activated = False
     retrieval_schema_count = 0
+    retrieval_cache_hits = 0
+    retrieval_cache_misses = 0
+    retrieval_cache_writes = 0
     tool_counts: dict[str, int] = {}
     failure_categories: list[str] = []
     in_agent_verifier = False
@@ -2359,6 +2479,11 @@ def trace_metrics(trace_path: Path) -> dict:
         data = event.get("data", {})
         tool_name = str(data.get("tool", "unknown"))
         tool_counts[tool_name] = tool_counts.get(tool_name, 0) + 1
+        hybrid = (data.get("metadata") or {}).get("hybrid") or {}
+        cache = hybrid.get("cache") or {}
+        retrieval_cache_hits += int(cache.get("hits", 0) or 0)
+        retrieval_cache_misses += int(cache.get("misses", 0) or 0)
+        retrieval_cache_writes += int(bool(cache.get("written", False)))
         if not data.get("ok", False):
             failed_tool_calls += 1
         if data.get("tool") == "recover_errors":
@@ -2377,6 +2502,9 @@ def trace_metrics(trace_path: Path) -> dict:
         "retrieval_gate_evaluated": retrieval_gate_evaluated,
         "retrieval_activated": retrieval_activated,
         "retrieval_schema_count": retrieval_schema_count,
+        "retrieval_cache_hits": retrieval_cache_hits,
+        "retrieval_cache_misses": retrieval_cache_misses,
+        "retrieval_cache_writes": retrieval_cache_writes,
         "failure_categories": failure_categories,
     }
 
@@ -2412,6 +2540,7 @@ def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
         context_enabled=results[0].context_enabled if results else False,
         retrieval_enabled=results[0].retrieval_enabled if results else False,
         retrieval_mode=results[0].retrieval_mode if results else "off",
+        retrieval_backend=results[0].retrieval_backend if results else "lexical",
         retrieval_gate_decisions=retrieval_gate_decisions,
         retrieval_activations=retrieval_activations,
         retrieval_activation_rate=(
@@ -2446,6 +2575,9 @@ def summarize_results(label: str, results: list[EvalResult]) -> EvalRunSummary:
             sum(item.preflight_injected_chars for item in results) / total
             if total else 0.0
         ),
+        retrieval_cache_hits=sum(item.retrieval_cache_hits for item in results),
+        retrieval_cache_misses=sum(item.retrieval_cache_misses for item in results),
+        retrieval_cache_writes=sum(item.retrieval_cache_writes for item in results),
         estimated_cost_usd=sum(item.estimated_cost_usd for item in results),
         tool_counts=tool_counts,
         failure_categories=failure_categories,
@@ -2507,6 +2639,10 @@ def write_eval_comparison_json_report(
             selected_label=selected_label,
             off_label="retrieval-off",
         )
+    if comparison_kind == "retrieval_backend" and results_by_label is not None:
+        payload["paired_tasks"] = build_retrieval_backend_task_pairs(
+            results_by_label
+        )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -2541,11 +2677,39 @@ def build_retrieval_task_pairs(
     return pairs
 
 
+def build_retrieval_backend_task_pairs(
+    results_by_label: Mapping[str, list[EvalResult]],
+) -> list[dict[str, Any]]:
+    lexical_label = "retrieval-lexical"
+    hybrid_label = "retrieval-hybrid"
+    lexical_results = {
+        item.task_id: item for item in results_by_label.get(lexical_label, [])
+    }
+    hybrid_results = {
+        item.task_id: item for item in results_by_label.get(hybrid_label, [])
+    }
+    task_ids = sorted(set(lexical_results) | set(hybrid_results))
+    pairs: list[dict[str, Any]] = []
+    for task_id in task_ids:
+        lexical = _retrieval_task_metrics(lexical_results.get(task_id))
+        hybrid = _retrieval_task_metrics(hybrid_results.get(task_id))
+        pairs.append({
+            "task_id": task_id,
+            "lexical_label": lexical_label,
+            "hybrid_label": hybrid_label,
+            "lexical": lexical,
+            "hybrid": hybrid,
+            "deltas": _retrieval_task_deltas(hybrid, lexical),
+        })
+    return pairs
+
+
 def _retrieval_task_metrics(result: EvalResult | None) -> dict[str, Any] | None:
     if result is None:
         return None
     return {
         "success": result.success,
+        "retrieval_backend": result.retrieval_backend,
         "retrieval_activated": result.retrieval_activated,
         "retrieval_schema_count": result.retrieval_schema_count,
         "tool_calls": result.tool_calls,
@@ -2556,6 +2720,9 @@ def _retrieval_task_metrics(result: EvalResult | None) -> dict[str, Any] | None:
         "input_tokens": result.input_tokens,
         "output_tokens": result.output_tokens,
         "estimated_cost_usd": result.estimated_cost_usd,
+        "retrieval_cache_hits": result.retrieval_cache_hits,
+        "retrieval_cache_misses": result.retrieval_cache_misses,
+        "retrieval_cache_writes": result.retrieval_cache_writes,
         "trace_path": result.trace_path,
     }
 
@@ -2575,6 +2742,9 @@ def _retrieval_task_deltas(
         "input_tokens",
         "output_tokens",
         "estimated_cost_usd",
+        "retrieval_cache_hits",
+        "retrieval_cache_misses",
+        "retrieval_cache_writes",
     ]
     return {
         metric: float(selected.get(metric, 0) or 0) - float(off.get(metric, 0) or 0)
@@ -2591,6 +2761,7 @@ def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:
     context_enabled = results[0].context_enabled if results else True
     retrieval_enabled = results[0].retrieval_enabled if results else True
     retrieval_mode = results[0].retrieval_mode if results else "off"
+    retrieval_backend = results[0].retrieval_backend if results else "lexical"
     retrieval_gate_decisions = sum(
         1 for item in results if item.retrieval_gate_evaluated
     )
@@ -2624,6 +2795,9 @@ def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:
         sum(item.preflight_injected_chars for item in results) / total
         if total else 0.0
     )
+    retrieval_cache_hits = sum(item.retrieval_cache_hits for item in results)
+    retrieval_cache_misses = sum(item.retrieval_cache_misses for item in results)
+    retrieval_cache_writes = sum(item.retrieval_cache_writes for item in results)
     estimated_cost = sum(item.estimated_cost_usd for item in results)
     tool_counts = merge_tool_counts(results)
     tool_mix_text = _format_tool_mix(tool_counts)
@@ -2663,7 +2837,9 @@ Workspace: `{workspace}`
 - Context compaction: **{_enabled_text(context_enabled)}**
 - Context retrieval: **{_enabled_text(retrieval_enabled)}**
 - Retrieval strategy: **{retrieval_mode}**
+- Retrieval backend: **{retrieval_backend}**
 - Retrieval gate activations: **{retrieval_activations}/{retrieval_gate_decisions} ({retrieval_activation_rate:.2%})**
+- Retrieval embedding cache (hits/misses/writes): **{retrieval_cache_hits}/{retrieval_cache_misses}/{retrieval_cache_writes}**
 - Average exposed retrieval schemas: **{average_retrieval_schema_count:.2f}**
 - Categories: **{selected_category_text}**
 - Tasks: **{total}**
@@ -2714,17 +2890,21 @@ def _format_tool_mix(tool_counts: dict[str, int], limit: int = 8) -> str:
 def build_eval_comparison_report(workspace: Path, summaries: list[EvalRunSummary]) -> str:
     generated = datetime.now().isoformat(timespec="seconds")
     rows = "\n".join(
-        "| {label} | {mode} | {memory} | {context} | {retrieval} | {retrieval_mode} | {activations}/{gate_decisions} | {activation_rate:.2%} | {retrieval_schemas:.2f} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {preflight_raw_chars:.2f} | {preflight_injected_chars:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
+        "| {label} | {mode} | {memory} | {context} | {retrieval} | {retrieval_mode} | {retrieval_backend} | {activations}/{gate_decisions} | {activation_rate:.2%} | {retrieval_schemas:.2f} | {cache_hits}/{cache_misses}/{cache_writes} | {passed}/{total} | {success_rate:.2%} | {tool_calls:.2f} | {retrieve_then_read_calls:.2f} | {context_pack_calls:.2f} | {read_file_calls:.2f} | {preflight_raw_chars:.2f} | {preflight_injected_chars:.2f} | {duration:.2f}s | {input_tokens} | {output_tokens} | ${cost:.6f} | {failures} |".format(
             label=item.label,
             mode=item.mode,
             memory=_enabled_text(item.memory_enabled),
             context=_enabled_text(item.context_enabled),
             retrieval=_enabled_text(item.retrieval_enabled),
             retrieval_mode=item.retrieval_mode,
+            retrieval_backend=item.retrieval_backend,
             activations=item.retrieval_activations,
             gate_decisions=item.retrieval_gate_decisions,
             activation_rate=item.retrieval_activation_rate,
             retrieval_schemas=item.average_retrieval_schema_count,
+            cache_hits=item.retrieval_cache_hits,
+            cache_misses=item.retrieval_cache_misses,
+            cache_writes=item.retrieval_cache_writes,
             passed=item.passed,
             total=item.task_count,
             success_rate=item.success_rate,
@@ -2750,10 +2930,10 @@ Workspace: `{workspace}`
 
 ## Summary
 
-This report compares selected evaluation configurations on the same task set. The Memory, Context Compaction, and Context Retrieval columns show which supports were enabled for each run.
+This report compares selected evaluation configurations on the same task set. The Memory, Context Compaction, Context Retrieval, Retrieval Strategy, and Retrieval Backend columns show the controlled settings for each run.
 
-| Config | Mode | Memory | Context Compaction | Context Retrieval | Retrieval Strategy | Gate Active | Activation Rate | Avg Retrieval Schemas | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Preflight Raw Chars | Avg Preflight Injected Chars | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
-|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Config | Mode | Memory | Context Compaction | Context Retrieval | Retrieval Strategy | Retrieval Backend | Gate Active | Activation Rate | Avg Retrieval Schemas | Cache H/M/W | Passed | Success Rate | Avg Tool Calls | Avg retrieve_then_read | Avg context_pack | Avg read_file | Avg Preflight Raw Chars | Avg Preflight Injected Chars | Avg Duration | Input Tokens | Output Tokens | Est. Cost | Failure Categories |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 {rows}
 
 ## Notes
@@ -2763,6 +2943,54 @@ This report compares selected evaluation configurations on the same task set. Th
 - In agent mode context compaction controls whether the run produces a compact trace summary before final verification.
 - In agent mode the retrieval strategy can always expose, conditionally gate, or fully disable retrieval schemas and preflight evidence.
 - Cost is estimated from traced model usage with a configurable placeholder rate in the code.
+"""
+
+
+def build_retrieval_backend_comparison_report(
+    workspace: Path,
+    summaries: list[EvalRunSummary],
+    results_by_label: Mapping[str, list[EvalResult]],
+) -> str:
+    report = build_eval_comparison_report(workspace, summaries).rstrip()
+    pairs = build_retrieval_backend_task_pairs(results_by_label)
+    rows = []
+    for pair in pairs:
+        lexical = pair.get("lexical") or {}
+        hybrid = pair.get("hybrid") or {}
+        deltas = pair.get("deltas") or {}
+        rows.append(
+            "| {task} | {lexical_status} | {hybrid_status} | {lexical_tools:.0f} | "
+            "{hybrid_tools:.0f} | {tool_delta:+.0f} | {lexical_reads:.0f} | "
+            "{hybrid_reads:.0f} | {read_delta:+.0f} | {lexical_duration:.2f}s | "
+            "{hybrid_duration:.2f}s | {duration_delta:+.2f}s | {cache_hits:.0f}/"
+            "{cache_misses:.0f}/{cache_writes:.0f} |".format(
+                task=pair["task_id"],
+                lexical_status="pass" if lexical.get("success") else "fail",
+                hybrid_status="pass" if hybrid.get("success") else "fail",
+                lexical_tools=float(lexical.get("tool_calls", 0) or 0),
+                hybrid_tools=float(hybrid.get("tool_calls", 0) or 0),
+                tool_delta=float(deltas.get("tool_calls", 0) or 0),
+                lexical_reads=float(lexical.get("read_file_calls", 0) or 0),
+                hybrid_reads=float(hybrid.get("read_file_calls", 0) or 0),
+                read_delta=float(deltas.get("read_file_calls", 0) or 0),
+                lexical_duration=float(lexical.get("duration_seconds", 0) or 0),
+                hybrid_duration=float(hybrid.get("duration_seconds", 0) or 0),
+                duration_delta=float(deltas.get("duration_seconds", 0) or 0),
+                cache_hits=float(hybrid.get("retrieval_cache_hits", 0) or 0),
+                cache_misses=float(hybrid.get("retrieval_cache_misses", 0) or 0),
+                cache_writes=float(hybrid.get("retrieval_cache_writes", 0) or 0),
+            )
+        )
+    task_table = "\n".join(rows) or "| (none) | n/a | n/a | 0 | 0 | +0 | 0 | 0 | +0 | 0.00s | 0.00s | +0.00s | 0/0/0 |"
+    return f"""{report}
+
+## Paired Task Results
+
+All deltas are hybrid minus lexical. Cache H/M/W is reported for the hybrid side.
+
+| Task | Lexical | Hybrid | Lexical Tools | Hybrid Tools | Delta | Lexical Reads | Hybrid Reads | Delta | Lexical Duration | Hybrid Duration | Delta | Hybrid Cache H/M/W |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+{task_table}
 """
 
 

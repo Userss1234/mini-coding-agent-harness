@@ -10,10 +10,11 @@ from harness.evaluation import (
     _agent_eval_max_turns,
     build_agent_eval_prompt,
     build_agent_support_prompt,
+    run_rag_symbol_retrieval_task,
     run_evaluation,
     trace_metrics,
 )
-from harness.tools import build_registry
+from harness.tools import ToolResult, build_registry
 from harness.trace import TraceLogger
 
 
@@ -41,6 +42,7 @@ def test_run_evaluation_writes_report_and_task_traces(tmp_path: Path) -> None:
     assert "Memory: **enabled**" in report
     assert "Context compaction: **enabled**" in report
     assert "Context retrieval: **enabled**" in report
+    assert "Retrieval backend: **lexical**" in report
     assert "Categories: **agent_loop, code_maintenance, code_quality, configuration, documentation, memory, multi_file, recovery, retrieval, security, tests, trace**" in report
     assert "Tasks: **40**" in report
     assert "Success rate: **100.00%**" in report
@@ -244,6 +246,43 @@ def test_trace_metrics_collects_retrieval_preflight_evidence_chars(tmp_path: Pat
     assert metrics["retrieval_gate_evaluated"] is True
     assert metrics["retrieval_activated"] is True
     assert metrics["retrieval_schema_count"] == 5
+
+
+def test_trace_metrics_collects_hybrid_embedding_cache_stats(tmp_path: Path) -> None:
+    trace_path = tmp_path / "trace.jsonl"
+    trace_path.write_text(
+        '{"event":"tool_call","data":{"tool":"retrieve_then_read","ok":true,'
+        '"metadata":{"hybrid":{"cache":{"hits":3,"misses":2,"written":true}}}}}\n',
+        encoding="utf-8",
+    )
+
+    metrics = trace_metrics(trace_path)
+
+    assert metrics["retrieval_cache_hits"] == 3
+    assert metrics["retrieval_cache_misses"] == 2
+    assert metrics["retrieval_cache_writes"] == 1
+
+
+def test_rag_symbol_verifier_accepts_configured_hybrid_backend() -> None:
+    class HybridRegistry:
+        retrieval_backend = "hybrid"
+
+        @staticmethod
+        def call(_tool: str, **_kwargs) -> ToolResult:
+            return ToolResult(
+                True,
+                "invoice_total",
+                {
+                    "count": 1,
+                    "matches": [{
+                        "path": "billing/invoice.py",
+                        "start_line": 1,
+                    }],
+                    "retrieval": "local_chunk_hybrid_scoring",
+                },
+            )
+
+    assert run_rag_symbol_retrieval_task(HybridRegistry()) is True
 
 
 def test_build_agent_eval_prompt_constrains_tool_exploration() -> None:
@@ -628,6 +667,58 @@ def test_retrieval_comparison_can_run_off_first(tmp_path: Path) -> None:
     assert compare_json["comparison"][1]["retrieval_mode"] == "auto"
     assert compare_json["paired_tasks"][0]["selected_label"] == "retrieval-auto"
     assert compare_json["paired_tasks"][0]["off_label"] == "retrieval-off"
+
+
+def test_retrieval_backend_comparison_preserves_order_and_task_pairs(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    report = run_evaluation(
+        workspace=tmp_path,
+        output_path=tmp_path / "RETRIEVAL_BACKEND_COMPARE.md",
+        trace_dir=tmp_path / "eval_runs",
+        task_ids=["syntax_check"],
+        compare_retrieval_backends=True,
+        retrieval_backend_compare_order="hybrid-first",
+        json_output_path=tmp_path / "RETRIEVAL_BACKEND_COMPARE.json",
+    )
+
+    assert "Retrieval Backend" in report
+    assert "## Paired Task Results" in report
+    assert "All deltas are hybrid minus lexical" in report
+    assert "retrieval-lexical" in report
+    assert "retrieval-hybrid" in report
+    payload = json.loads(
+        (tmp_path / "RETRIEVAL_BACKEND_COMPARE.json").read_text(encoding="utf-8")
+    )
+    assert payload["comparison_kind"] == "retrieval_backend"
+    assert payload["execution_order"] == ["retrieval-hybrid", "retrieval-lexical"]
+    assert payload["comparison"][0]["retrieval_backend"] == "hybrid"
+    assert payload["comparison"][1]["retrieval_backend"] == "lexical"
+    pair = payload["paired_tasks"][0]
+    assert pair["lexical"]["success"] is True
+    assert pair["hybrid"]["success"] is True
+    assert "retrieval_cache_misses" in pair["deltas"]
+    assert (
+        tmp_path
+        / "eval_runs"
+        / "compare_retrieval_backend"
+        / "retrieval-hybrid"
+        / "syntax_check.jsonl"
+    ).exists()
+
+
+def test_retrieval_backend_comparison_requires_active_retrieval(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="requires retrieval mode"):
+        run_evaluation(
+            workspace=tmp_path,
+            output_path=tmp_path / "COMPARE.md",
+            trace_dir=tmp_path / "eval_runs",
+            task_ids=["syntax_check"],
+            retrieval_mode="off",
+            compare_retrieval_backends=True,
+        )
 
 
 def test_retrieval_comparison_rejects_unknown_execution_order(tmp_path: Path) -> None:

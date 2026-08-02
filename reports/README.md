@@ -24,6 +24,9 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `RETRIEVAL_QUALITY_BASELINE.json`: machine-readable copy used for future lexical-versus-hybrid comparisons.
 - `RETRIEVAL_QUALITY_HYBRID.md`: optional local MiniLM hybrid result with fusion weights, cache metrics, backend-specific gates, and semantic-case rankings.
 - `RETRIEVAL_QUALITY_HYBRID.json`: machine-readable hybrid result generated against the same judgments as the lexical baseline.
+- `AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md` / `.json`: lexical-first focused real-agent backend pair with complete task results, hybrid-minus-lexical pairs, and cache metrics.
+- `AGENT_RETRIEVAL_BACKEND_RAG_SYMBOL_FIX.md` / `.json`: targeted post-fix pair for the backend-biased `rag_symbol_retrieval` verifier.
+- `RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`: honest interpretation separating ranking gains from the missing agent-workflow gain.
 
 ## Real Agent Eval
 

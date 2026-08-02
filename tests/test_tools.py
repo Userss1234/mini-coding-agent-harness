@@ -553,6 +553,36 @@ def test_rag_search_can_route_to_hybrid_backend(tmp_path: Path, monkeypatch) -> 
     assert "local_chunk_hybrid_scoring" in result.output
 
 
+def test_registry_default_hybrid_backend_routes_without_tool_override(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    (tmp_path / "service.py").write_text("def service(): pass\n", encoding="utf-8")
+
+    def fake_hybrid(*_args, **_kwargs):
+        return {
+            "query": "semantic service",
+            "tokens": ["semantic", "service"],
+            "matches": [],
+            "index": {"files_indexed": 1},
+            "retrieval": "local_chunk_hybrid_scoring",
+            "hybrid": {"embedding_model": "fake", "cache": {"hits": 2}},
+        }
+
+    monkeypatch.setattr("harness.hybrid_retrieval.search_workspace_hybrid", fake_hybrid)
+    registry = build_registry(
+        tmp_path,
+        TraceLogger(tmp_path / "trace.jsonl"),
+        retrieval_backend="hybrid",
+    )
+
+    result = registry.call("rag_search", query="semantic service")
+
+    assert registry.retrieval_backend == "hybrid"
+    assert result.ok
+    assert result.metadata["retrieval"] == "local_chunk_hybrid_scoring"
+
+
 def test_rag_search_rejects_unknown_backend(tmp_path: Path) -> None:
     registry = make_registry(tmp_path)
 
