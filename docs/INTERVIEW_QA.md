@@ -69,26 +69,31 @@ Evidence:
 
 ## 7. How does RAG work in this project?
 
-The retrieval layer is local lexical retrieval over safe workspace text chunks. It indexes allowed text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks by query terms, turns matches into read plans, and can load the planned line ranges as evidence. A separate 10-query relevance-judged benchmark measures ranking independently from the agent loop; the current lexical baseline is MRR 0.8000 and Recall@1/3/5 of 0.70/0.80/0.80.
+The retrieval layer builds one safe local workspace chunk index. It skips sensitive/generated paths and workflow memories under `skills/`, returns path/line evidence, turns matches into read plans, and loads bounded line ranges. The default backend ranks chunks lexically. An optional local hybrid backend combines normalized lexical scores with MiniLM cosine similarity and incrementally caches document embeddings. On the same 10-query judgments, lexical reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5; hybrid reaches 0.9000 MRR and 0.70/1.00/1.00.
 
 Evidence:
 
 - `harness/retrieval.py`
+- `harness/hybrid_retrieval.py`
 - `retrieve_then_read`, `rag_search`, and `rag_explain` in `harness/tools.py`
 - `tests/test_retrieval.py`
+- `tests/test_hybrid_retrieval.py`
 - `benchmarks/retrieval/judgments.json`
 - `reports/RETRIEVAL_QUALITY_BASELINE.md`
+- `reports/RETRIEVAL_QUALITY_HYBRID.md`
 - `reports/AGENT_EVAL_36_TASKS.md`
 
 ## 8. Is the RAG embedding-based?
 
-No. Current retrieval is lexical, not vector-based and not embedding-based. The judged benchmark deliberately retains two paraphrased queries whose relevant paths receive no lexical match. Those failures define the acceptance target for a future hybrid backend; they are not hidden or described as semantic retrieval.
+The default backend is not embedding-based: it remains dependency-free lexical retrieval. The optional hybrid backend is embedding-based and runs `sentence-transformers/all-MiniLM-L6-v2` locally, then fuses semantic and lexical scores. It is not a vector database and does not call a model API. The judged corpus deliberately retained two lexical semantic misses; hybrid recovers both relevant paths at rank 2. That result is project-specific rather than evidence of general retrieval superiority.
 
 Evidence:
 
-- `README.md` Current Limitations
+- `docs/HYBRID_RETRIEVAL.md`
 - `harness/retrieval.py`
+- `harness/hybrid_retrieval.py`
 - `reports/RETRIEVAL_QUALITY_BASELINE.md`
+- `reports/RETRIEVAL_QUALITY_HYBRID.md`
 
 ## 9. What is retrieval preflight?
 
@@ -172,7 +177,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval is lexical, not embedding-based. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
+The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval defaults to lexical; the optional embedding backend has only a 10-query project-specific ranking benchmark, no vector database, and no focused real-agent comparison yet. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
 
 Evidence:
 
@@ -181,7 +186,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating, task-level paired variance, Docker execution isolation, and the first RAG 2.0 stage are complete. Retrieval now has a committed judged corpus, MRR/Recall@K reporting, and CI regression gates. The next major stage is an optional local hybrid backend evaluated against exactly the same judgments, followed by focused agent-level lexical/hybrid evidence, MCP Streamable HTTP, and one final cross-feature validation.
+Conditional gating, task-level paired variance, Docker execution isolation, and the local hybrid RAG backend are complete. Retrieval now has shared safe indexing, lexical and MiniLM hybrid ranking, an incremental embedding cache, backend-specific MRR/Recall@K gates, and committed reports against the same judgments. The next stage is focused agent-level lexical/hybrid evidence, followed by MCP Streamable HTTP and one final Docker + hybrid RAG + MCP validation.
 
 Evidence:
 
@@ -196,7 +201,7 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with a permission-checked tool registry, retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, interactive execution-trace reports, MCP resources/prompts, and a 40-task deterministic suite; ran two complete DeepSeek real-agent evaluations at 39/40 and 40/40, traced the sole first-run interruption to provider HTTP 503, and verified the retry hardening in the full second run.
+Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, incremental embedding caching, context compaction, workflow memory, execution traces, MCP resources/prompts, and a 40-task deterministic suite; improved the project-specific 10-query retrieval result from 0.8000 to 0.9000 MRR and ran complete DeepSeek real-agent evaluations at 39/40 and 40/40.
 
 Evidence:
 

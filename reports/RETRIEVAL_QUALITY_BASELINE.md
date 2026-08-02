@@ -9,6 +9,7 @@
 - Zero-result queries: **0**
 - Quality gate: **pass**
 
+
 | Metric | Value |
 |---|---:|
 | MRR | 0.8000 |
@@ -50,4 +51,4 @@
 
 ## Interpretation
 
-This is an offline lexical retrieval baseline over committed relevance judgments. It measures ranking quality independently from the agent loop and does not claim embedding or semantic retrieval. Misses are retained as targets for the optional hybrid backend; future backends must run against the same corpus and judgments.
+This is an offline lexical retrieval baseline over committed relevance judgments. It measures ranking quality independently from the agent loop and does not claim embedding or semantic retrieval. Its retained misses are fixed comparison targets for the optional hybrid report; future backends must use the same corpus and judgments.

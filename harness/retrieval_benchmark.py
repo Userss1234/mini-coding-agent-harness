@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import math
 from pathlib import Path
+from functools import partial
 from typing import Any, Callable, Mapping, Sequence
 
 from .retrieval import search_workspace
@@ -17,15 +18,17 @@ def run_retrieval_benchmark(
     *,
     backend: str = "lexical",
     search_fn: SearchFunction | None = None,
+    backend_options: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     judgments_path = judgments_path.resolve()
     spec = load_retrieval_judgments(judgments_path)
     corpus_root = _resolve_corpus_root(judgments_path, str(spec["corpus_root"]))
     k_values = _normalize_k_values(spec.get("k_values", [1, 3, 5]))
     cases = list(spec["cases"])
-    active_search = search_fn or _search_backend(backend)
+    active_search = search_fn or _search_backend(backend, backend_options or {})
     max_k = max(k_values)
     case_results = []
+    backend_runtime_samples = []
 
     for case in cases:
         search_result = active_search(
@@ -37,6 +40,8 @@ def run_retrieval_benchmark(
             overlap=int(case.get("overlap") or spec.get("overlap") or 5),
             max_chars_per_chunk=int(spec.get("max_chars_per_chunk") or 1200),
         )
+        if isinstance(search_result.get("hybrid"), Mapping):
+            backend_runtime_samples.append(search_result["hybrid"])
         ranked_paths = _dedupe_ranked_paths(search_result.get("matches") or [])
         relevant_paths = [str(path).replace("\\", "/") for path in case["relevant_paths"]]
         relevant_set = set(relevant_paths)
@@ -68,9 +73,10 @@ def run_retrieval_benchmark(
         })
 
     summary = _summarize_cases(case_results, k_values)
-    quality_gate = _evaluate_quality_gate(summary, spec.get("quality_gate") or {})
+    quality_gate = _evaluate_quality_gate(summary, _quality_gate_for_backend(spec, backend))
     summary["quality_gate_passed"] = quality_gate["passed"]
     summary["quality_gate_checks"] = quality_gate["checks"]
+    backend_runtime = _summarize_backend_runtime(backend_runtime_samples)
     return {
         "schema_version": 1,
         "generated": datetime.now().isoformat(timespec="seconds"),
@@ -83,6 +89,8 @@ def run_retrieval_benchmark(
             "overlap": int(spec.get("overlap") or 5),
             "k_values": k_values,
             "ranking_unit": "deduplicated_path",
+            "backend_options": _display_backend_options(backend_options or {}),
+            "backend_runtime": backend_runtime,
         },
         "summary": summary,
         "cases": case_results,
@@ -110,15 +118,14 @@ def load_retrieval_judgments(path: Path) -> dict[str, Any]:
     quality_gate = payload.get("quality_gate", {})
     if not isinstance(quality_gate, dict):
         raise ValueError("Retrieval quality_gate must be an object.")
-    for metric, minimum in quality_gate.items():
-        if not isinstance(metric, str) or not metric:
-            raise ValueError("Retrieval quality gate metric names must be non-empty strings.")
-        try:
-            value = float(minimum)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"Retrieval quality gate minimum must be numeric: {metric}") from exc
-        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
-            raise ValueError(f"Retrieval quality gate minimum must be between 0 and 1: {metric}")
+    _validate_quality_gate_values(quality_gate)
+    quality_gates = payload.get("quality_gates", {})
+    if not isinstance(quality_gates, dict):
+        raise ValueError("Retrieval quality_gates must be an object.")
+    for backend, gate in quality_gates.items():
+        if not isinstance(backend, str) or not backend or not isinstance(gate, dict):
+            raise ValueError("Each retrieval quality_gates entry must map a backend to an object.")
+        _validate_quality_gate_values(gate)
     cases = payload.get("cases")
     if not isinstance(cases, list) or not cases:
         raise ValueError("Retrieval judgments must contain at least one case.")
@@ -187,7 +194,30 @@ def build_retrieval_benchmark_report(result: Mapping[str, Any]) -> str:
         )
         for case in failures
     ) or "- None."
-    return f"""# Retrieval Quality Baseline
+    runtime = result["configuration"].get("backend_runtime") or {}
+    runtime_lines = ""
+    if runtime:
+        cache = runtime.get("cache") or {}
+        runtime_lines = (
+            f"- Embedding model: **{runtime.get('embedding_model')}**\n"
+            f"- Embedding dimension: **{runtime.get('embedding_dimension')}**\n"
+            f"- Fusion weights (lexical/semantic): **{float(runtime.get('lexical_weight', 0)):.2f}/"
+            f"{float(runtime.get('semantic_weight', 0)):.2f}**\n"
+            f"- Document embedding cache (hits/misses/writes): **{cache.get('hits', 0)}/"
+            f"{cache.get('misses', 0)}/{cache.get('writes', 0)}**\n"
+        )
+    title = "Retrieval Quality Baseline" if result["backend"] == "lexical" else "Retrieval Quality Benchmark"
+    interpretation = (
+        "This is an offline lexical retrieval baseline over committed relevance judgments. "
+        "It measures ranking quality independently from the agent loop and does not claim embedding or semantic retrieval. "
+        "Its retained misses are fixed comparison targets for the optional hybrid report; future backends must use the same corpus and judgments."
+        if result["backend"] == "lexical"
+        else
+        "This is a local hybrid run over the same committed corpus and relevance judgments as the lexical baseline. "
+        "It fuses normalized lexical scores with Sentence Transformers cosine similarity, uses no model API, "
+        "and records document-embedding cache behavior. Its gains are project-fixture evidence, not a broad retrieval benchmark claim."
+    )
+    return f"""# {title}
 
 ## Summary
 
@@ -197,6 +227,7 @@ def build_retrieval_benchmark_report(result: Mapping[str, Any]) -> str:
 - Mean reciprocal rank: **{float(summary['mrr']):.4f}**
 - Zero-result queries: **{summary['zero_result_queries']}**
 - Quality gate: **{'pass' if summary['quality_gate_passed'] else 'fail'}**
+{runtime_lines}
 
 | Metric | Value |
 |---|---:|
@@ -223,7 +254,7 @@ def build_retrieval_benchmark_report(result: Mapping[str, Any]) -> str:
 
 ## Interpretation
 
-This is an offline lexical retrieval baseline over committed relevance judgments. It measures ranking quality independently from the agent loop and does not claim embedding or semantic retrieval. Misses are retained as targets for the optional hybrid backend; future backends must run against the same corpus and judgments.
+{interpretation}
 """
 
 
@@ -242,10 +273,65 @@ def write_retrieval_benchmark_outputs(
     return report
 
 
-def _search_backend(name: str) -> SearchFunction:
+def _search_backend(name: str, options: Mapping[str, Any]) -> SearchFunction:
     if name == "lexical":
         return search_workspace
+    if name == "hybrid":
+        from .hybrid_retrieval import search_workspace_hybrid
+
+        return partial(
+            search_workspace_hybrid,
+            embedding_model=str(options.get("embedding_model") or "sentence-transformers/all-MiniLM-L6-v2"),
+            cache_dir=(Path(str(options["cache_dir"])) if options.get("cache_dir") else None),
+            lexical_weight=float(options.get("lexical_weight", 0.35)),
+            semantic_weight=float(options.get("semantic_weight", 0.65)),
+        )
     raise ValueError(f"Unsupported retrieval benchmark backend: {name}")
+
+
+def _quality_gate_for_backend(spec: Mapping[str, Any], backend: str) -> Mapping[str, Any]:
+    backend_gates = spec.get("quality_gates") or {}
+    if backend in backend_gates:
+        return backend_gates[backend]
+    return spec.get("quality_gate") or {}
+
+
+def _validate_quality_gate_values(quality_gate: Mapping[str, Any]) -> None:
+    for metric, minimum in quality_gate.items():
+        if not isinstance(metric, str) or not metric:
+            raise ValueError("Retrieval quality gate metric names must be non-empty strings.")
+        try:
+            value = float(minimum)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Retrieval quality gate minimum must be numeric: {metric}") from exc
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError(f"Retrieval quality gate minimum must be between 0 and 1: {metric}")
+
+
+def _display_backend_options(options: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        str(key): str(value) if isinstance(value, Path) else value
+        for key, value in options.items()
+    }
+
+
+def _summarize_backend_runtime(samples: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    if not samples:
+        return {}
+    first = samples[0]
+    caches = [sample.get("cache") or {} for sample in samples]
+    return {
+        "embedding_model": first.get("embedding_model"),
+        "embedding_dimension": first.get("embedding_dimension"),
+        "lexical_weight": first.get("lexical_weight"),
+        "semantic_weight": first.get("semantic_weight"),
+        "cache": {
+            "hits": sum(int(cache.get("hits", 0)) for cache in caches),
+            "misses": sum(int(cache.get("misses", 0)) for cache in caches),
+            "writes": sum(1 for cache in caches if cache.get("written")),
+            "entries": max((int(cache.get("entries", 0)) for cache in caches), default=0),
+        },
+    }
 
 
 def _resolve_corpus_root(judgments_path: Path, corpus_value: str) -> Path:

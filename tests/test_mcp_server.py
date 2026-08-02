@@ -34,6 +34,7 @@ def test_mcp_initialize_and_list_tools(tmp_path: Path) -> None:
     assert tools["context_pack"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_explain"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_search"]["inputSchema"]["required"] == ["query"]
+    assert tools["rag_search"]["inputSchema"]["properties"]["backend"]["enum"] == ["lexical", "hybrid"]
     assert tools["retrieve_then_read"]["inputSchema"]["required"] == ["query"]
     assert tools["read_file"]["annotations"]["readOnlyHint"] is True
     assert tools["write_file"]["annotations"]["destructiveHint"] is True
@@ -108,6 +109,7 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
     (reports / "EVAL_STABILITY.md").write_text("# Eval Stability Report\n", encoding="utf-8")
     (reports / "RETRIEVAL_GATING_STABILITY.md").write_text("# Retrieval Gating Stability Report\n", encoding="utf-8")
     (reports / "RETRIEVAL_QUALITY_BASELINE.md").write_text("# Retrieval Quality Baseline\n", encoding="utf-8")
+    (reports / "RETRIEVAL_QUALITY_HYBRID.md").write_text("# Retrieval Quality Hybrid\n", encoding="utf-8")
     (reports / "DOCKER_SANDBOX_SMOKE.md").write_text("# Docker Sandbox Smoke Report\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
@@ -149,18 +151,26 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
         "method": "resources/read",
         "params": {"uri": "harness://reports/retrieval-quality"},
     })
+    retrieval_hybrid = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "resources/read",
+        "params": {"uri": "harness://reports/retrieval-hybrid"},
+    })
 
     assert resources["harness://reports/eval-history"]["name"] == "EVAL_HISTORY"
     assert resources["harness://reports/failure-modes"]["name"] == "FAILURE_MODES"
     assert resources["harness://reports/eval-stability"]["name"] == "EVAL_STABILITY"
     assert resources["harness://reports/retrieval-stability"]["name"] == "RETRIEVAL_GATING_STABILITY"
     assert resources["harness://reports/retrieval-quality"]["name"] == "RETRIEVAL_QUALITY_BASELINE"
+    assert resources["harness://reports/retrieval-hybrid"]["name"] == "RETRIEVAL_QUALITY_HYBRID"
     assert resources["harness://reports/docker-sandbox"]["name"] == "DOCKER_SANDBOX_SMOKE"
     assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
     assert stability["result"]["contents"][0]["text"] == "# Eval Stability Report\n"
     assert retrieval_stability["result"]["contents"][0]["text"] == "# Retrieval Gating Stability Report\n"
     assert retrieval_quality["result"]["contents"][0]["text"] == "# Retrieval Quality Baseline\n"
+    assert retrieval_hybrid["result"]["contents"][0]["text"] == "# Retrieval Quality Hybrid\n"
     assert docker_sandbox["result"]["contents"][0]["text"] == "# Docker Sandbox Smoke Report\n"
 
 
@@ -348,6 +358,7 @@ def test_mcp_eval_analysis_prompt_reads_default_eval_report_set(tmp_path: Path) 
     assert "harness://reports/eval-stability" in text
     assert "harness://reports/retrieval-stability" in text
     assert "harness://reports/retrieval-quality" in text
+    assert "harness://reports/retrieval-hybrid" in text
     assert "trend movement" in text
     assert "Tie each claim" in text
 
@@ -372,6 +383,7 @@ def test_mcp_eval_analysis_prompt_allows_single_report_override(tmp_path: Path) 
     assert "harness://reports/eval-stability" not in text
     assert "harness://reports/retrieval-stability" not in text
     assert "harness://reports/retrieval-quality" not in text
+    assert "harness://reports/retrieval-hybrid" not in text
 
 
 def test_mcp_repo_rag_maintenance_prompt_requires_rag_first(tmp_path: Path) -> None:

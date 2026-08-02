@@ -89,6 +89,15 @@ def test_search_workspace_does_not_return_code_without_query_overlap(tmp_path: P
     assert result["matches"] == []
 
 
+def test_lexical_zero_limit_returns_backend_metadata(tmp_path: Path) -> None:
+    (tmp_path / "sample.py").write_text("payment idempotency\n", encoding="utf-8")
+
+    result = search_workspace(tmp_path, "payment idempotency", limit=0)
+
+    assert result["matches"] == []
+    assert result["retrieval"] == "local_chunk_lexical_scoring"
+
+
 def test_explain_retrieval_plan_builds_read_file_arguments(tmp_path: Path) -> None:
     (tmp_path / "billing.py").write_text(
         "class BillingService:\n"

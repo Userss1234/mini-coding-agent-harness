@@ -22,6 +22,8 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 - `RETRIEVAL_QUALITY_BASELINE.md`: relevance-judged 10-query lexical baseline with path-level MRR, Recall@K, per-case rankings, and CI quality gates.
 - `RETRIEVAL_QUALITY_BASELINE.json`: machine-readable copy used for future lexical-versus-hybrid comparisons.
+- `RETRIEVAL_QUALITY_HYBRID.md`: optional local MiniLM hybrid result with fusion weights, cache metrics, backend-specific gates, and semantic-case rankings.
+- `RETRIEVAL_QUALITY_HYBRID.json`: machine-readable hybrid result generated against the same judgments as the lexical baseline.
 
 ## Real Agent Eval
 

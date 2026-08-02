@@ -18,6 +18,13 @@ python main.py retrieval-benchmark
 python main.py demo --task python_bugfix
 ```
 
+The lexical backend has no optional model dependency. To run the local hybrid benchmark, install the retrieval extra and select the backend explicitly:
+
+```powershell
+python -m pip install -e ".[retrieval]"
+python main.py retrieval-benchmark --backend hybrid
+```
+
 For a model-backed smoke run, copy `.env.example` to `.env`, set a DeepSeek/OpenAI-compatible or Anthropic-compatible API key, then run:
 
 ```powershell
@@ -30,10 +37,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks plus paired 8-task retrieval experiments. Two prompt-aligned, order-varied auto/off runs kept all four configuration rows at 8/8; auto activated retrieval on 4/8 tasks, halved average model-facing retrieval schemas, reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%, while input-token and cost direction remained variable.
-- **Retrieval quality:** a committed 10-query relevance-judged corpus measures ranking independently from the agent loop. The lexical baseline reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5, with CI gates at MRR 0.80 and Recall@5 0.80.
+- **Retrieval quality:** a committed 10-query relevance-judged corpus measures ranking independently from the agent loop. The offline lexical baseline reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5. The optional local MiniLM hybrid backend reaches 0.9000 MRR and 0.70/1.00/1.00 Recall@1/3/5, recovering both retained semantic cases at rank 2 without a model API.
 - **Docker execution:** pluggable host/Docker command backends route shell, pytest, and compilation through one execution boundary. Docker mode is non-root, network-disabled, capability-dropped, resource-limited, timeout-cleaned, and fail-closed unless host fallback is explicitly enabled.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted and retrieval-quality benchmarks, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke.
-- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_QUALITY_BASELINE.md`](reports/RETRIEVAL_QUALITY_BASELINE.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), and [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), and [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md).
 
 ## Portfolio Walkthrough
 
@@ -48,6 +55,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
 python main.py retrieval-benchmark
+python main.py retrieval-benchmark --backend hybrid
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -74,6 +82,8 @@ Show these committed artifacts while explaining the system:
 - [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md): conditional retrieval gate design, prompt-alignment finding, and paired auto/off validation.
 - [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md): two order-varied real-agent pairs showing stable aggregate outcomes/exploration reductions and mixed token/cost direction; the report explicitly marks their historical JSON as pre-task-detail.
 - [`reports/RETRIEVAL_QUALITY_BASELINE.md`](reports/RETRIEVAL_QUALITY_BASELINE.md): judged lexical ranking baseline with MRR, Recall@K, per-query paths, and retained semantic misses.
+- [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md): judged local hybrid result with fusion weights, embedding-cache metrics, and semantic-case rankings.
+- [`docs/HYBRID_RETRIEVAL.md`](docs/HYBRID_RETRIEVAL.md): optional dependency, backend configuration, cache design, measured evidence, and honest limits.
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
@@ -142,7 +152,7 @@ When retrieval tools are enabled, `harness.agent.run_agent()` performs a retriev
 | `list_python_files` | List Python files while ignoring caches and evaluation workspaces. |
 | `read_file` | Read workspace files with optional line ranges, line/character limits, and read-cache metadata. |
 | `index_workspace` | Build a safe local retrieval index summary for workspace text chunks. |
-| `rag_search` | Search code and docs using local chunked lexical retrieval with path and line metadata. |
+| `rag_search` | Search code and docs with the default lexical or optional local hybrid backend, returning path and line metadata. |
 | `rag_explain` | Convert RAG matches into a concrete `read_file` path and line-range plan. |
 | `retrieve_then_read` | Run RAG, build a read plan, and return the loaded line-range evidence pack. |
 | `context_pack` | Retrieve task-relevant workspace snippets using the same local retrieval layer. |
@@ -295,6 +305,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` and `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` validate prompt-aligned conditional gating against retrieval-off.
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md` and `reports/RETRIEVAL_GATING_STABILITY.md` repeat the same pair in reverse order and summarize repeated-run variance.
 - `reports/RETRIEVAL_QUALITY_BASELINE.md` and `.json` are generated by `python main.py retrieval-benchmark` from the committed corpus and relevance judgments.
+- `reports/RETRIEVAL_QUALITY_HYBRID.md` and `.json` are generated by `python main.py retrieval-benchmark --backend hybrid` against the same judgments.
 - `reports/DOCKER_SANDBOX_SMOKE.md` is the committed GitHub Actions runtime report for the Docker execution boundary.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` and `reports/AGENT_TRACE_retrieval_off_context_pack.html` show the successful and disabled-retrieval paths for the retrieval ablation.
@@ -320,7 +331,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/retrieval-quality`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/retrieval-quality`, `harness://reports/retrieval-hybrid`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 
@@ -416,7 +427,7 @@ Use `--retrieval-compare-order selected-first|off-first` to control paired execu
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
-Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. Retrieval remains lexical, but it now has an independent 10-query judged benchmark at 0.8000 MRR and 0.80 Recall@5, including two retained semantic misses. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification; retry hardening was followed by a complete 40/40 run. In two prompt-aligned, order-varied 8-task auto/off pairs, all four rows passed 8/8; auto activated 4/8 tasks, averaged 2.5 retrieval schemas, reduced tool calls by 7.41%-17.73%, direct reads by 14.29%-15.38%, duration by 7.43%-30.32%, and output tokens by 2.21%-16.61%. Input-token and estimated-cost direction changed between runs, so no stable cost-superiority claim is made.
+Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. Retrieval defaults to the dependency-free lexical backend; an optional local MiniLM hybrid backend uses the same safe chunks, weighted lexical/semantic fusion, and an incremental hash cache. On the project-specific 10-query judgments it improves MRR from 0.8000 to 0.9000 and Recall@3/5 from 0.80 to 1.00, with both retained semantic cases ranked second. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification; retry hardening was followed by a complete 40/40 run. In two prompt-aligned, order-varied 8-task auto/off pairs, all four rows passed 8/8; auto activated 4/8 tasks, averaged 2.5 retrieval schemas, reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%. Input-token and estimated-cost direction changed between runs, so no stable cost-superiority claim is made.
 
 The historical 8-task comparison JSON predates task-result retention, so its committed stability report remains an aggregate real-agent analysis. New comparison runs preserve per-task rows automatically; deterministic opposite-order CLI validation and tests cover the task-level pairing path without rewriting the historical model evidence.
 
@@ -433,7 +444,7 @@ After the initial baseline commit, future tool changes and generated report chan
 ## Current Limitations
 
 - The two same-model 40-task full runs are 39/40 and 40/40. Thirty-nine tasks are stable passes; `shell_no_shell_execution` is still classified as unstable because its first-run provider interruption became a second-run pass. More repeats or another provider/model would be needed for a stronger variance estimate.
-- Workspace RAG is local chunked lexical retrieval with path/line metadata; it is not embedding-based and does not use a vector database. The 10-query judged baseline exposes two semantic queries whose relevant paths are absent from the lexical results.
+- Workspace RAG defaults to local chunked lexical retrieval. The optional hybrid backend adds local MiniLM embeddings and weighted fusion, but still performs an in-process scan rather than using a vector database. Its 0.9000 MRR result is limited to the committed 10-query project fixture; broader relevance and latency evidence is still missing.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
 - Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
@@ -443,8 +454,7 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Add an optional local embedding/hybrid reranking backend while retaining lexical retrieval as the offline baseline; evaluate both against the same 10-query judgments.
-2. Require the hybrid path to improve the retained semantic cases and report Recall@K/MRR plus focused agent-level evidence.
-3. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, session handling, and transport parity tests.
-4. Run one final Docker + RAG + MCP cross-feature validation and update resume evidence.
-5. Install Docker Desktop when local Windows reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.
+1. Run a focused real-agent lexical/hybrid comparison on retrieval-dependent tasks, preserving task-level outcomes, exploration, latency, and cache metrics.
+2. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, session handling, and transport parity tests.
+3. Run one final Docker + hybrid RAG + MCP cross-feature validation and update resume evidence.
+4. Install Docker Desktop when local Windows reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.

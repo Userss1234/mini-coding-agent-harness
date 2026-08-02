@@ -74,6 +74,23 @@ def test_benchmark_reports_failed_quality_gate(tmp_path: Path) -> None:
     assert [check["passed"] for check in result["summary"]["quality_gate_checks"]] == [False, True]
 
 
+def test_benchmark_selects_backend_specific_quality_gate(tmp_path: Path) -> None:
+    path = _write_fixture(tmp_path, quality_gate={"mrr": 0.4})
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["quality_gates"] = {
+        "lexical": {"mrr": 0.4},
+        "hybrid": {"mrr": 0.6},
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = run_retrieval_benchmark(path, backend="hybrid", search_fn=_fake_search)
+
+    assert result["summary"]["quality_gate_passed"] is False
+    assert result["summary"]["quality_gate_checks"] == [
+        {"metric": "mrr", "actual": 0.5, "minimum": 0.6, "passed": False}
+    ]
+
+
 @pytest.mark.parametrize("k_values", [[1.5], [True], [0], []])
 def test_judgments_reject_invalid_k_values(tmp_path: Path, k_values: list) -> None:
     path = _write_fixture(tmp_path)

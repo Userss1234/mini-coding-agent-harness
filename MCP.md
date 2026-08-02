@@ -57,11 +57,11 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
-`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, `reports/RETRIEVAL_QUALITY_BASELINE.md`, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, the lexical and hybrid retrieval quality reports, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
-`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/eval-stability`, `harness://reports/retrieval-stability`, and `harness://reports/retrieval-quality`; pass `report_uri` to analyze one specific report instead.
+`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to the committed agent, history, failure, stability, lexical retrieval, and hybrid retrieval report resources; pass `report_uri` to analyze one specific report instead.
 
 ## Example Messages
 
@@ -122,19 +122,23 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 ```
 
 ```json
-{"jsonrpc":"2.0","id":15,"method":"resources/read","params":{"uri":"harness://reports/docker-sandbox"}}
+{"jsonrpc":"2.0","id":15,"method":"resources/read","params":{"uri":"harness://reports/retrieval-hybrid"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":16,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
+{"jsonrpc":"2.0","id":16,"method":"resources/read","params":{"uri":"harness://reports/docker-sandbox"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":17,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+{"jsonrpc":"2.0","id":17,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":18,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
+{"jsonrpc":"2.0","id":18,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":19,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
 ```
 
 ## Boundaries
@@ -142,7 +146,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 - This is a stdio MCP server, not an HTTP/SSE server.
 - It exposes local harness tools, selected read-only resources, and prompt templates.
 - Tool calls keep the harness permission policy.
-- RAG is local chunked lexical retrieval with path and line metadata; it is not embedding-based and does not use a vector database.
+- Lexical retrieval is the base-install default. Optional hybrid retrieval uses a local Sentence Transformers model and an incremental JSON embedding cache; it does not call a model API or require a vector database.
 - Write tools still require `--allow-write` for existing files.
 - Shell and Git commands still use the existing allowlist and `shell=False`.
 - Host execution is policy-only. Optional Docker execution adds a container boundary for shell, pytest, and syntax checks, but it is not a VM or absolute security sandbox.

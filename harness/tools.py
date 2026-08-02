@@ -5,6 +5,7 @@ import difflib
 import fnmatch
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
 import shlex
@@ -15,8 +16,8 @@ from typing import Any, Callable
 
 from .execution import CommandExecutor, ExecutionResult, build_executor
 from .retrieval import (
+    build_read_plan,
     build_workspace_index,
-    explain_retrieval_plan,
     format_index_summary,
     format_retrieval_explanation,
     format_retrieved_context,
@@ -607,6 +608,7 @@ def build_registry(
         limit: int = 5,
         max_chars_per_file: int = 1200,
         window: int = 2,
+        backend: str | None = None,
     ) -> ToolResult:
         query_text = str(query).strip()
         if not query_text:
@@ -615,7 +617,7 @@ def build_registry(
         if not tokens:
             return ToolResult(False, "query must contain at least one searchable token")
 
-        result = search_workspace(
+        result = _search_workspace_backend(
             workspace=workspace,
             query=query_text,
             glob_pattern=str(glob or "*"),
@@ -623,9 +625,10 @@ def build_registry(
             chunk_lines=max((max(int(window), 0) * 2) + 1, 1),
             overlap=0,
             max_chars_per_chunk=max(int(max_chars_per_file), 120),
+            backend=backend,
         )
         matches = result["matches"]
-        output = _format_context_pack(query_text, matches)
+        output = _format_context_pack(query_text, matches, retrieval=result["retrieval"])
         return ToolResult(
             True,
             output,
@@ -636,7 +639,8 @@ def build_registry(
                 "count": len(matches),
                 "matches": matches,
                 "index": result["index"],
-                "retrieval": "local_chunk_lexical_scoring",
+                "retrieval": result["retrieval"],
+                "hybrid": result.get("hybrid"),
             },
         )
 
@@ -659,6 +663,7 @@ def build_registry(
         chunk_lines: int = 80,
         overlap: int = 10,
         max_chars_per_chunk: int = 1200,
+        backend: str | None = None,
     ) -> ToolResult:
         query_text = str(query).strip()
         if not query_text:
@@ -666,7 +671,7 @@ def build_registry(
         tokens = tokenize_query(query_text)
         if not tokens:
             return ToolResult(False, "query must contain at least one searchable token")
-        result = search_workspace(
+        result = _search_workspace_backend(
             workspace,
             query_text,
             glob_pattern=str(glob or "*"),
@@ -674,6 +679,7 @@ def build_registry(
             chunk_lines=max(int(chunk_lines), 1),
             overlap=max(int(overlap), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
+            backend=backend,
         )
         return ToolResult(
             True,
@@ -686,6 +692,7 @@ def build_registry(
                 "matches": result["matches"],
                 "index": result["index"],
                 "retrieval": result["retrieval"],
+                "hybrid": result.get("hybrid"),
             },
         )
 
@@ -697,6 +704,7 @@ def build_registry(
         overlap: int = 10,
         read_window: int = 20,
         max_chars_per_chunk: int = 1200,
+        backend: str | None = None,
     ) -> ToolResult:
         query_text = str(query).strip()
         if not query_text:
@@ -704,15 +712,19 @@ def build_registry(
         tokens = tokenize_query(query_text)
         if not tokens:
             return ToolResult(False, "query must contain at least one searchable token")
-        result = explain_retrieval_plan(
+        result = _search_workspace_backend(
             workspace,
             query_text,
             glob_pattern=str(glob or "*"),
             limit=max(int(limit), 0),
             chunk_lines=max(int(chunk_lines), 1),
             overlap=max(int(overlap), 0),
-            read_window=max(int(read_window), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
+            backend=backend,
+        )
+        result["read_plan"] = build_read_plan(
+            result.get("matches") or [],
+            read_window=max(int(read_window), 0),
         )
         return ToolResult(
             True,
@@ -726,6 +738,7 @@ def build_registry(
                 "read_plan": result["read_plan"],
                 "index": result["index"],
                 "retrieval": result["retrieval"],
+                "hybrid": result.get("hybrid"),
             },
         )
 
@@ -738,6 +751,7 @@ def build_registry(
         read_window: int = 20,
         max_chars_per_read: int = 4000,
         max_chars_per_chunk: int = 1200,
+        backend: str | None = None,
     ) -> ToolResult:
         query_text = str(query).strip()
         if not query_text:
@@ -745,15 +759,19 @@ def build_registry(
         tokens = tokenize_query(query_text)
         if not tokens:
             return ToolResult(False, "query must contain at least one searchable token")
-        plan_result = explain_retrieval_plan(
+        plan_result = _search_workspace_backend(
             workspace,
             query_text,
             glob_pattern=str(glob or "*"),
             limit=max(int(limit), 0),
             chunk_lines=max(int(chunk_lines), 1),
             overlap=max(int(overlap), 0),
-            read_window=max(int(read_window), 0),
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
+            backend=backend,
+        )
+        plan_result["read_plan"] = build_read_plan(
+            plan_result.get("matches") or [],
+            read_window=max(int(read_window), 0),
         )
         reads: list[dict[str, Any]] = []
         for item in plan_result["read_plan"]:
@@ -806,6 +824,7 @@ def build_registry(
                 "reads": reads,
                 "index": plan_result["index"],
                 "retrieval": plan_result["retrieval"],
+                "hybrid": plan_result.get("hybrid"),
             },
         )
 
@@ -1511,7 +1530,7 @@ def build_registry(
         ))
         registry.register(Tool(
             "rag_search",
-            "Search workspace code and docs using local chunked lexical retrieval with path and line metadata.",
+            "Search workspace code and docs using the configured lexical or local hybrid retrieval backend.",
             {
                 "type": "object",
                 "properties": {
@@ -1521,6 +1540,7 @@ def build_registry(
                     "chunk_lines": {"type": "integer"},
                     "overlap": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
                 },
                 "required": ["query"],
             },
@@ -1539,6 +1559,7 @@ def build_registry(
                     "overlap": {"type": "integer"},
                     "read_window": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
                 },
                 "required": ["query"],
             },
@@ -1558,6 +1579,7 @@ def build_registry(
                     "read_window": {"type": "integer"},
                     "max_chars_per_read": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
                 },
                 "required": ["query"],
             },
@@ -1565,7 +1587,7 @@ def build_registry(
         ))
         registry.register(Tool(
             "context_pack",
-            "Retrieve the most relevant workspace file snippets for a task query using local chunked lexical retrieval.",
+            "Retrieve workspace snippets using the configured lexical or local hybrid backend.",
             {
                 "type": "object",
                 "properties": {
@@ -1574,6 +1596,7 @@ def build_registry(
                     "limit": {"type": "integer"},
                     "max_chars_per_file": {"type": "integer"},
                     "window": {"type": "integer"},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
                 },
                 "required": ["query"],
             },
@@ -1859,7 +1882,12 @@ def _path_context_score(query_tokens: list[str], path: str) -> int:
     return score
 
 
-def _format_context_pack(query: str, matches: list[dict[str, Any]]) -> str:
+def _format_context_pack(
+    query: str,
+    matches: list[dict[str, Any]],
+    *,
+    retrieval: str = "local_chunk_lexical_scoring",
+) -> str:
     if not matches:
         return f"# Context Pack\n\n- Query: {query}\n- Matches: 0\n\n(no matching context)"
 
@@ -1875,10 +1903,62 @@ def _format_context_pack(query: str, matches: list[dict[str, Any]]) -> str:
                 snippet=item["snippet"],
             )
         )
-    return "# Context Pack\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: lexical path and line scoring\n\n{sections}\n".format(
+    label = (
+        "lexical path and line scoring"
+        if retrieval == "local_chunk_lexical_scoring"
+        else retrieval
+    )
+    return "# Context Pack\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: {retrieval}\n\n{sections}\n".format(
         query=query,
         count=len(matches),
+        retrieval=label,
         sections="\n\n".join(sections),
+    )
+
+
+def _search_workspace_backend(
+    workspace: Path,
+    query: str,
+    *,
+    glob_pattern: str,
+    limit: int,
+    chunk_lines: int,
+    overlap: int,
+    max_chars_per_chunk: int,
+    backend: str | None,
+) -> dict[str, Any]:
+    backend_name = str(backend or os.getenv("HARNESS_RETRIEVAL_BACKEND", "lexical")).strip().lower()
+    if backend_name == "lexical":
+        return search_workspace(
+            workspace,
+            query,
+            glob_pattern=glob_pattern,
+            limit=limit,
+            chunk_lines=chunk_lines,
+            overlap=overlap,
+            max_chars_per_chunk=max_chars_per_chunk,
+        )
+    if backend_name != "hybrid":
+        raise ValueError(f"Unsupported retrieval backend: {backend_name}")
+
+    from .hybrid_retrieval import search_workspace_hybrid
+
+    cache_value = os.getenv("HARNESS_RETRIEVAL_CACHE_DIR", "").strip()
+    return search_workspace_hybrid(
+        workspace,
+        query,
+        glob_pattern=glob_pattern,
+        limit=limit,
+        chunk_lines=chunk_lines,
+        overlap=overlap,
+        max_chars_per_chunk=max_chars_per_chunk,
+        embedding_model=os.getenv(
+            "HARNESS_RETRIEVAL_EMBEDDING_MODEL",
+            "sentence-transformers/all-MiniLM-L6-v2",
+        ),
+        cache_dir=Path(cache_value) if cache_value else None,
+        lexical_weight=float(os.getenv("HARNESS_RETRIEVAL_LEXICAL_WEIGHT", "0.35")),
+        semantic_weight=float(os.getenv("HARNESS_RETRIEVAL_SEMANTIC_WEIGHT", "0.65")),
     )
 
 

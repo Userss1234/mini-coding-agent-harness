@@ -144,16 +144,37 @@ def search_workspace(
     overlap: int = 10,
     max_chars_per_chunk: int = 1200,
 ) -> dict[str, Any]:
-    query_text = str(query).strip()
-    tokens = tokenize_query(query_text)
     index = build_workspace_index(
         workspace,
         glob_pattern=glob_pattern,
         chunk_lines=chunk_lines,
         overlap=overlap,
     )
+    return search_retrieval_index(
+        index,
+        query,
+        limit=limit,
+        max_chars_per_chunk=max_chars_per_chunk,
+    )
+
+
+def search_retrieval_index(
+    index: RetrievalIndex,
+    query: str,
+    *,
+    limit: int = 5,
+    max_chars_per_chunk: int = 1200,
+) -> dict[str, Any]:
+    query_text = str(query).strip()
+    tokens = tokenize_query(query_text)
     if not tokens or limit <= 0:
-        return {"query": query_text, "tokens": tokens, "matches": [], "index": index.metadata()}
+        return {
+            "query": query_text,
+            "tokens": tokens,
+            "matches": [],
+            "index": index.metadata(),
+            "retrieval": "local_chunk_lexical_scoring",
+        }
 
     doc_freq: dict[str, int] = {}
     for chunk in index.chunks:
@@ -303,9 +324,10 @@ def format_search_results(result: dict[str, Any]) -> str:
                 snippet=item["snippet"],
             )
         )
-    return "# RAG Search\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: local chunk lexical scoring\n\n{sections}\n".format(
+    return "# RAG Search\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: {retrieval}\n\n{sections}\n".format(
         query=query,
         count=len(matches),
+        retrieval=result.get("retrieval", "local_chunk_lexical_scoring"),
         sections="\n\n".join(sections),
     )
 
@@ -340,9 +362,10 @@ def format_retrieval_explanation(result: dict[str, Any]) -> str:
                 score=item.get("score"),
             )
         )
-    return "# RAG Read Plan\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: local chunk lexical scoring\n\n## Read Plan\n\n{plan}\n\n## Matched Chunks\n\n{chunks}\n".format(
+    return "# RAG Read Plan\n\n- Query: {query}\n- Matches: {count}\n- Retrieval: {retrieval}\n\n## Read Plan\n\n{plan}\n\n## Matched Chunks\n\n{chunks}\n".format(
         query=query,
         count=len(matches),
+        retrieval=result.get("retrieval", "local_chunk_lexical_scoring"),
         plan="\n".join(plan_rows) or "(no read plan)",
         chunks="\n".join(chunk_rows),
     )
@@ -379,9 +402,10 @@ def format_retrieved_context(result: dict[str, Any]) -> str:
                     error=item.get("error", "unknown error"),
                 )
             )
-    return "# Retrieved Context\n\n- Query: {query}\n- Reads: {count}\n- Retrieval: local chunk lexical scoring\n\n{sections}\n".format(
+    return "# Retrieved Context\n\n- Query: {query}\n- Reads: {count}\n- Retrieval: {retrieval}\n\n{sections}\n".format(
         query=query,
         count=len(reads),
+        retrieval=result.get("retrieval", "local_chunk_lexical_scoring"),
         sections="\n\n".join(sections),
     )
 

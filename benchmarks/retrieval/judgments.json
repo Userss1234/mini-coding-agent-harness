@@ -6,9 +6,16 @@
   "overlap": 5,
   "max_chars_per_chunk": 1200,
   "k_values": [1, 3, 5],
-  "quality_gate": {
-    "mrr": 0.8,
-    "recall_at_5": 0.8
+  "quality_gates": {
+    "lexical": {
+      "mrr": 0.8,
+      "recall_at_5": 0.8
+    },
+    "hybrid": {
+      "mrr": 0.9,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0
+    }
   },
   "cases": [
     {

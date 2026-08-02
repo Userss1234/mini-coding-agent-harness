@@ -62,8 +62,9 @@ flowchart TD
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
 | `harness/execution.py` | Host and Docker command executors, resource policy, environment filtering, and timeout cleanup. |
 | `harness/docker_smoke.py` | Runtime verification for non-root execution, workspace mounting, and disabled networking. |
-| `harness/retrieval.py` | Local lexical chunk retrieval, read-plan generation, safe path filtering. |
-| `harness/retrieval_benchmark.py` | Relevance-judged retrieval benchmark, path-level Recall@K/MRR, quality gates, and reports. |
+| `harness/retrieval.py` | Shared safe chunk index, lexical retrieval, read-plan generation, and path filtering. |
+| `harness/hybrid_retrieval.py` | Optional local MiniLM embeddings, lexical/semantic score fusion, and incremental embedding cache. |
+| `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, order-controlled comparisons, report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
@@ -94,7 +95,7 @@ Docker is an additional containment layer, not an absolute sandbox. Tool permiss
 
 ## Retrieval Boundary
 
-Retrieval is local and lexical. It is not embedding-based and does not use a vector database.
+Retrieval is local. The default backend is dependency-free lexical search; the optional hybrid backend adds local embeddings without introducing a model API or vector database.
 
 ```mermaid
 flowchart TD
@@ -102,8 +103,14 @@ flowchart TD
     Gate -->|inactive| Direct["Direct file and test tools only"]
     Gate -->|active| Index["Index safe text files"]
     Index --> Filter["Skip .env, .git, artifacts, eval_runs, skills"]
-    Filter --> Score["Lexical chunk scoring"]
-    Score --> Plan["rag_explain read plan"]
+    Filter --> Backend{"lexical or hybrid"}
+    Backend -->|lexical| Lexical["Token overlap score"]
+    Backend -->|hybrid| Cache["Incremental embedding cache"]
+    Cache --> Semantic["MiniLM cosine score"]
+    Semantic --> Fuse["Weighted lexical/semantic fusion"]
+    Lexical --> Rank["Rank chunks"]
+    Fuse --> Rank
+    Rank --> Plan["rag_explain read plan"]
     Plan --> Merge["Merge overlapping or adjacent ranges"]
     Merge --> Read["read_file bounded line ranges"]
     Read --> Deduplicate["Remove exact duplicate reads"]
@@ -112,7 +119,9 @@ flowchart TD
 
 This makes retrieval explainable and measurable: reports and traces show the gate score/reasons, exposed or suppressed schemas, selected paths and line ranges, raw and injected evidence characters, merged reads, omissions, and truncation. The default auto threshold is 2. The preflight selects two chunks, uses a 48-line chunk size and 8-line read window, caps each read at 1,400 characters, and caps total injected evidence at 2,400 characters. These values can be overridden through the `AGENT_RETRIEVAL_GATE_THRESHOLD` and `AGENT_RETRIEVAL_PREFLIGHT_*` variables documented in `.env.example`.
 
-Retrieval ranking is evaluated independently from the agent loop against `benchmarks/retrieval/judgments.json`. The committed 10-query lexical baseline deduplicates chunk hits to paths, measures MRR plus Recall/Hit Rate at 1, 3, and 5, and enforces MRR >= 0.80 and Recall@5 >= 0.80 in CI. The two retained semantic misses are concrete targets for the optional hybrid backend rather than evidence of semantic retrieval.
+Retrieval ranking is evaluated independently from the agent loop against `benchmarks/retrieval/judgments.json`. Both backends reuse the same safe chunks, deduplicate hits to paths, and report MRR plus Recall/Hit Rate at 1, 3, and 5. The committed lexical baseline is 0.8000 MRR with 0.80 Recall@3/5. The optional MiniLM hybrid result is 0.9000 MRR with 1.00 Recall@3/5 and ranks both retained semantic cases second. Lexical gates remain in base CI; hybrid has its own gates and is reproducible after installing the optional retrieval dependencies and local model.
+
+The hybrid backend normalizes lexical and cosine scores, combines them with configurable weights, and caches document embeddings by model plus chunk content identity. Cache files default outside the repository, unchanged chunks are reused, stale chunks are removed, and the model object is loaded once per process. Actual `rag_search`, `rag_explain`, `context_pack`, and `retrieve_then_read` tool calls can select `backend=hybrid` explicitly or through `HARNESS_RETRIEVAL_BACKEND`.
 
 ## Evaluation Pipeline
 
@@ -165,6 +174,6 @@ MCP exposes selected project documents and reports, including evaluation history
 
 - Permission checks are harness-level, not OS-level sandboxing.
 - Docker execution adds an optional container boundary, but the default backend remains host and the writable workspace mount is still in scope.
-- Retrieval is lexical, not embedding-based.
+- Retrieval defaults to lexical. Hybrid evidence is limited to a 10-query project fixture, uses an in-process scan rather than a vector database, and has not yet been compared in a focused real-agent run.
 - MCP is stdio-only.
 - The deterministic suite has 40 tasks. Two complete expanded-suite DeepSeek runs passed 39/40 and 40/40. The only first-run interruption was a provider HTTP 503 before verification; after transient model retries increased from 2 to 4, the second complete run passed all tasks. The stability report records 39 stable passes and one provider-affected fail-to-pass task.

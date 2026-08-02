@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated": "2026-08-02T16:22:29",
-  "backend": "lexical",
+  "generated": "2026-08-02T16:23:11",
+  "backend": "hybrid",
   "judgments": "benchmarks\\retrieval\\judgments.json",
   "corpus_root": "benchmarks\\retrieval\\corpus",
   "configuration": {
@@ -14,35 +14,57 @@
       5
     ],
     "ranking_unit": "deduplicated_path",
-    "backend_options": {},
-    "backend_runtime": {}
+    "backend_options": {
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "cache_dir": "artifacts/hybrid-cache-evidence-stage2",
+      "lexical_weight": 0.35,
+      "semantic_weight": 0.65
+    },
+    "backend_runtime": {
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "embedding_dimension": 384,
+      "lexical_weight": 0.35,
+      "semantic_weight": 0.65,
+      "cache": {
+        "hits": 144,
+        "misses": 16,
+        "writes": 1,
+        "entries": 16
+      }
+    }
   },
   "summary": {
     "case_count": 10,
-    "mrr": 0.8,
+    "mrr": 0.9,
     "recall_at_k": {
       "1": 0.7,
-      "3": 0.8,
-      "5": 0.8
+      "3": 1.0,
+      "5": 1.0
     },
     "hit_rate_at_k": {
       "1": 0.8,
-      "3": 0.8,
-      "5": 0.8
+      "3": 1.0,
+      "5": 1.0
     },
     "zero_result_queries": 0,
     "quality_gate_passed": true,
     "quality_gate_checks": [
       {
         "metric": "mrr",
-        "actual": 0.8,
-        "minimum": 0.8,
+        "actual": 0.9,
+        "minimum": 0.9,
+        "passed": true
+      },
+      {
+        "metric": "recall_at_3",
+        "actual": 1.0,
+        "minimum": 1.0,
         "passed": true
       },
       {
         "metric": "recall_at_5",
-        "actual": 0.8,
-        "minimum": 0.8,
+        "actual": 1.0,
+        "minimum": 1.0,
         "passed": true
       }
     ]
@@ -57,7 +79,10 @@
       ],
       "ranked_paths": [
         "src/billing/totals.py",
-        "docs/invoice_copy.md"
+        "docs/invoice_copy.md",
+        "docs/traffic_guide.md",
+        "src/payments/idempotency.py",
+        "src/retry/policy.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -83,7 +108,9 @@
       "ranked_paths": [
         "src/security/redaction.py",
         "src/auth/tokens.py",
-        "src/auth/middleware.py"
+        "src/auth/middleware.py",
+        "docs/plugin_authoring.md",
+        "docs/card_support.md"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -108,7 +135,10 @@
       ],
       "ranked_paths": [
         "src/plugins/discovery.py",
-        "docs/plugin_authoring.md"
+        "docs/plugin_authoring.md",
+        "docs/traffic_guide.md",
+        "src/config/precedence.py",
+        "src/payments/idempotency.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -134,7 +164,10 @@
       ],
       "ranked_paths": [
         "src/orders/service.py",
-        "src/orders/repository.py"
+        "src/orders/repository.py",
+        "src/retry/policy.py",
+        "src/payments/idempotency.py",
+        "docs/traffic_guide.md"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -158,23 +191,25 @@
         "src/payments/idempotency.py"
       ],
       "ranked_paths": [
-        "docs/card_support.md"
+        "docs/card_support.md",
+        "src/payments/idempotency.py",
+        "src/retry/policy.py",
+        "docs/traffic_guide.md",
+        "docs/invoice_copy.md"
       ],
-      "first_relevant_rank": null,
-      "reciprocal_rank": 0.0,
+      "first_relevant_rank": 2,
+      "reciprocal_rank": 0.5,
       "recall_at_k": {
         "1": 0.0,
-        "3": 0.0,
-        "5": 0.0
+        "3": 1.0,
+        "5": 1.0
       },
       "hit_at_k": {
         "1": false,
-        "3": false,
-        "5": false
+        "3": true,
+        "5": true
       },
-      "missing_relevant_at_max_k": [
-        "src/payments/idempotency.py"
-      ]
+      "missing_relevant_at_max_k": []
     },
     {
       "case_id": "timezone_formatting",
@@ -184,7 +219,11 @@
         "src/timezone/formatter.py"
       ],
       "ranked_paths": [
-        "src/timezone/formatter.py"
+        "src/timezone/formatter.py",
+        "src/config/precedence.py",
+        "docs/invoice_copy.md",
+        "src/billing/totals.py",
+        "src/security/redaction.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -208,7 +247,11 @@
         "src/retry/policy.py"
       ],
       "ranked_paths": [
-        "src/retry/policy.py"
+        "src/retry/policy.py",
+        "docs/card_support.md",
+        "src/orders/service.py",
+        "src/orders/repository.py",
+        "src/payments/idempotency.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -233,7 +276,10 @@
       ],
       "ranked_paths": [
         "src/config/precedence.py",
-        "docs/traffic_guide.md"
+        "src/timezone/formatter.py",
+        "docs/plugin_authoring.md",
+        "src/plugins/discovery.py",
+        "src/auth/tokens.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -260,7 +306,9 @@
       "ranked_paths": [
         "src/auth/middleware.py",
         "src/auth/tokens.py",
-        "src/security/redaction.py"
+        "src/security/redaction.py",
+        "src/payments/idempotency.py",
+        "src/orders/service.py"
       ],
       "first_relevant_rank": 1,
       "reciprocal_rank": 1.0,
@@ -284,23 +332,25 @@
         "src/cache/coalescing.py"
       ],
       "ranked_paths": [
-        "docs/traffic_guide.md"
+        "docs/traffic_guide.md",
+        "src/cache/coalescing.py",
+        "docs/card_support.md",
+        "src/payments/idempotency.py",
+        "src/retry/policy.py"
       ],
-      "first_relevant_rank": null,
-      "reciprocal_rank": 0.0,
+      "first_relevant_rank": 2,
+      "reciprocal_rank": 0.5,
       "recall_at_k": {
         "1": 0.0,
-        "3": 0.0,
-        "5": 0.0
+        "3": 1.0,
+        "5": 1.0
       },
       "hit_at_k": {
         "1": false,
-        "3": false,
-        "5": false
+        "3": true,
+        "5": true
       },
-      "missing_relevant_at_max_k": [
-        "src/cache/coalescing.py"
-      ]
+      "missing_relevant_at_max_k": []
     }
   ]
 }

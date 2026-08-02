@@ -153,17 +153,33 @@ def cmd_retrieval_stability(args) -> None:
 
 
 def cmd_retrieval_benchmark(args) -> None:
+    backend_options = {}
+    if args.backend == "hybrid":
+        backend_options = {
+            "embedding_model": args.embedding_model,
+            "cache_dir": args.cache_dir,
+            "lexical_weight": args.lexical_weight,
+            "semantic_weight": args.semantic_weight,
+        }
     result = run_retrieval_benchmark(
         Path(args.judgments),
         backend=args.backend,
+        backend_options=backend_options,
     )
+    default_stem = (
+        "RETRIEVAL_QUALITY_BASELINE"
+        if args.backend == "lexical"
+        else "RETRIEVAL_QUALITY_HYBRID"
+    )
+    output_path = Path(args.output or f"reports/{default_stem}.md")
+    json_output_path = Path(args.json_output or f"reports/{default_stem}.json")
     report = write_retrieval_benchmark_outputs(
         result,
-        output_path=Path(args.output),
-        json_output_path=Path(args.json_output) if args.json_output else None,
+        output_path=output_path,
+        json_output_path=json_output_path,
     )
     print(report)
-    print(f"Retrieval benchmark written to {Path(args.output).resolve()}")
+    print(f"Retrieval benchmark written to {output_path.resolve()}")
     if not result["summary"]["quality_gate_passed"]:
         raise SystemExit("Retrieval quality gate failed.")
 
@@ -396,19 +412,38 @@ def build_parser() -> argparse.ArgumentParser:
     )
     retrieval_benchmark.add_argument(
         "--backend",
-        choices=["lexical"],
+        choices=["lexical", "hybrid"],
         default="lexical",
         help="Retrieval backend to evaluate",
     )
     retrieval_benchmark.add_argument(
         "--output",
-        default="reports/RETRIEVAL_QUALITY_BASELINE.md",
-        help="Markdown benchmark report path",
+        help="Markdown benchmark report path; defaults by backend",
     )
     retrieval_benchmark.add_argument(
         "--json-output",
-        default="reports/RETRIEVAL_QUALITY_BASELINE.json",
-        help="Machine-readable benchmark report path",
+        help="Machine-readable benchmark report path; defaults by backend",
+    )
+    retrieval_benchmark.add_argument(
+        "--embedding-model",
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        help="Local Sentence Transformers model used by the hybrid backend",
+    )
+    retrieval_benchmark.add_argument(
+        "--cache-dir",
+        help="Optional document embedding cache directory",
+    )
+    retrieval_benchmark.add_argument(
+        "--lexical-weight",
+        type=float,
+        default=0.35,
+        help="Normalized lexical score weight for hybrid retrieval",
+    )
+    retrieval_benchmark.add_argument(
+        "--semantic-weight",
+        type=float,
+        default=0.65,
+        help="Normalized semantic score weight for hybrid retrieval",
     )
     retrieval_benchmark.set_defaults(func=cmd_retrieval_benchmark)
 
