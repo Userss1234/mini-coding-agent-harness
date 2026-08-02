@@ -18,6 +18,8 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
+docker build --file docker/sandbox/Dockerfile --tag mini-coding-agent-harness-sandbox:latest .
+python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -44,6 +46,9 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 7. Open `reports/RETRIEVAL_GATING_STABILITY.md`.
    Explain the measured retrieval iteration: evidence budgeting came first, then an explainable gate suppressed preflight and five schemas for simple tasks. Two prompt-aligned pairs were run in opposite orders; all four rows passed 8/8, auto activated 4/8 tasks in both pairs, and tool calls/direct reads stayed lower. Input-token and cost direction changed, so the project reports stable exploration reduction but does not claim stable cost superiority.
 
+8. Open `reports/DOCKER_SANDBOX_SMOKE.md`.
+   Explain that shell, pytest, and syntax checks share one executor interface. The Docker backend fails closed, does not forward provider keys, and applies a non-root UID, disabled network, dropped capabilities, a read-only root filesystem, and resource limits. The committed CI report records `uid=10001 workspace=ok network=blocked`; Docker is still not presented as a VM or absolute security boundary.
+
 ## Key Architecture Points
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
@@ -51,6 +56,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - `harness/agent.py` resolves `on/auto/off`, records the gate decision, filters model-facing schemas, and preloads bounded evidence only when active.
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution, including controllable retrieval comparison order.
 - `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, repeated-run, and retrieval-stability dashboards.
+- `harness/execution.py` implements the host/Docker executor boundary, resource policy, environment filtering, and timeout cleanup.
 - `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
 
 ## Claims To Make
@@ -61,6 +67,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Added stability-report CLIs so repeated same-model runs and order-varied retrieval pairs can be compared when only one model API is available.
 - Measured retrieval on eight maintenance tasks across two opposite-order pairs; all four rows passed 8/8 while auto reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
+- Added an optional Docker command backend and CI runtime proof for non-root execution, workspace visibility, and blocked outbound networking while preserving the tool permission layer.
 
 ## Claims To Avoid
 
@@ -68,4 +75,4 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
 - Do not claim stable retrieval token or cost savings; those metrics changed direction across the two paired runs.
-- Do not claim OS-level sandboxing; the project implements harness-level permission controls.
+- Do not describe Docker as a VM or absolute security sandbox. Host mode remains policy-only, and the Docker workspace mount is writable by design.

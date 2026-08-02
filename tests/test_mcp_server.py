@@ -100,13 +100,14 @@ def test_mcp_resources_list_and_read_whitelisted_docs(tmp_path: Path) -> None:
     }]
 
 
-def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> None:
+def test_mcp_resources_expose_eval_and_docker_reports(tmp_path: Path) -> None:
     reports = tmp_path / "reports"
     reports.mkdir()
     (reports / "EVAL_HISTORY.md").write_text("# Eval History Report\n", encoding="utf-8")
     (reports / "FAILURE_MODES.md").write_text("# Eval Failure Dashboard\n", encoding="utf-8")
     (reports / "EVAL_STABILITY.md").write_text("# Eval Stability Report\n", encoding="utf-8")
     (reports / "RETRIEVAL_GATING_STABILITY.md").write_text("# Retrieval Gating Stability Report\n", encoding="utf-8")
+    (reports / "DOCKER_SANDBOX_SMOKE.md").write_text("# Docker Sandbox Smoke Report\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
     listed = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "resources/list"})
@@ -135,15 +136,23 @@ def test_mcp_resources_expose_eval_history_and_failure_modes(tmp_path: Path) -> 
         "method": "resources/read",
         "params": {"uri": "harness://reports/retrieval-stability"},
     })
+    docker_sandbox = server.handle_message({
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "resources/read",
+        "params": {"uri": "harness://reports/docker-sandbox"},
+    })
 
     assert resources["harness://reports/eval-history"]["name"] == "EVAL_HISTORY"
     assert resources["harness://reports/failure-modes"]["name"] == "FAILURE_MODES"
     assert resources["harness://reports/eval-stability"]["name"] == "EVAL_STABILITY"
     assert resources["harness://reports/retrieval-stability"]["name"] == "RETRIEVAL_GATING_STABILITY"
+    assert resources["harness://reports/docker-sandbox"]["name"] == "DOCKER_SANDBOX_SMOKE"
     assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
     assert stability["result"]["contents"][0]["text"] == "# Eval Stability Report\n"
     assert retrieval_stability["result"]["contents"][0]["text"] == "# Retrieval Gating Stability Report\n"
+    assert docker_sandbox["result"]["contents"][0]["text"] == "# Docker Sandbox Smoke Report\n"
 
 
 def test_mcp_exposes_rag_search_and_index_summary(tmp_path: Path) -> None:

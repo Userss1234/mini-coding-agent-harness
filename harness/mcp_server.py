@@ -273,6 +273,7 @@ def _build_resource_catalog(workspace: Path) -> list[dict[str, Any]]:
         ("harness://reports/failure-modes", "FAILURE_MODES", "Committed failure-mode dashboard for agent eval runs.", workspace / "reports" / "FAILURE_MODES.md"),
         ("harness://reports/eval-stability", "EVAL_STABILITY", "Committed repeated-run stability report for agent eval runs.", workspace / "reports" / "EVAL_STABILITY.md"),
         ("harness://reports/retrieval-stability", "RETRIEVAL_GATING_STABILITY", "Committed order-varied retrieval comparison stability report.", workspace / "reports" / "RETRIEVAL_GATING_STABILITY.md"),
+        ("harness://reports/docker-sandbox", "DOCKER_SANDBOX_SMOKE", "Committed CI runtime verification for the Docker execution boundary.", workspace / "reports" / "DOCKER_SANDBOX_SMOKE.md"),
         ("harness://reports/agent-compare", "AGENT_COMPARE_2_TASKS", "Committed memory/context ablation report.", workspace / "reports" / "AGENT_COMPARE_2_TASKS.md"),
         ("harness://reports/demo-python-bugfix", "DEMO_python_bugfix", "Committed deterministic local demo report.", workspace / "reports" / "DEMO_python_bugfix.md"),
     ]

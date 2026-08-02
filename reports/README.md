@@ -14,6 +14,10 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 - `MCP_SMOKE.md`: in-process MCP protocol smoke report covering initialize, tools, resources, resource templates, prompts, and a permission-policy tool call.
 
+## Execution Isolation
+
+- `DOCKER_SANDBOX_SMOKE.md`: GitHub Actions runtime report proving non-root execution, workspace visibility, and blocked outbound networking for the configured Docker backend.
+
 ## Real Agent Eval
 
 - `AGENT_EVAL_40_TASKS.md`: expanded full 40-task DeepSeek `deepseek-chat` run, 39/40 because one task hit a terminal provider HTTP 503 before verification.

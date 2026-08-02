@@ -25,9 +25,12 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Exposed the harness through a minimal MCP stdio server with permission-checked tools, safe read-only resources, prompt templates, workspace resource guards, and a committed protocol smoke transcript.
   Evidence: `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md`.
 
+- Designed a pluggable command-execution layer for shell, pytest, and Python syntax checks, adding an opt-in Docker backend with non-root execution, default-deny networking, dropped capabilities, CPU/memory/PID limits, filtered environment forwarding, fail-closed startup, and forced timeout cleanup; validated the runtime boundary in GitHub Actions.
+  Evidence: `harness/execution.py`, `harness/tools.py`, `docker/sandbox/Dockerfile`, `tests/test_execution.py`, `.github/workflows/ci.yml`, `reports/DOCKER_SANDBOX_SMOKE.md`.
+
 ## Short Version
 
-- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, RAG retrieval preflight, task planning, context compaction, workflow memory, semantic retry planning, error recovery, interactive execution tracing, MCP resources/prompts, and a 40-task deterministic benchmark validated by a complete 40/40 real-agent run.
+- Built a lightweight Coding Agent Harness for codebase maintenance, integrating a permission-checked tool registry, optional Docker-isolated command execution, RAG retrieval preflight, task planning, context compaction, workflow memory, error recovery, interactive traces, MCP resources/prompts, and a 40-task benchmark validated by a complete 40/40 real-agent run.
 
 ## Evidence Map
 
@@ -40,6 +43,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
 | Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
+| Docker execution boundary | `harness/execution.py`, `harness/tools.py`, `docker/sandbox/Dockerfile`, `tests/test_execution.py`, `.github/workflows/ci.yml`, `reports/DOCKER_SANDBOX_SMOKE.md` |
 
 ## Claims To Avoid
 
@@ -47,4 +51,4 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Do not claim broad benchmark superiority from this project-specific 40-task suite.
 - Do not claim embedding-based retrieval; current retrieval and memory ranking are lexical.
 - Do not claim stable token or cost savings from retrieval gating; the two order-varied pairs changed direction on those metrics.
-- Do not claim OS-level sandboxing; the project implements harness-level permission controls.
+- Do not describe Docker as a VM or absolute security sandbox. Host mode remains policy-only, and Docker mode intentionally retains a writable workspace mount.

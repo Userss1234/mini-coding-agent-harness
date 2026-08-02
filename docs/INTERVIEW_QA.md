@@ -65,6 +65,7 @@ Evidence:
 - `harness/execution.py`
 - `docs/DOCKER_SANDBOX.md`
 - `tests/test_execution.py`
+- `reports/DOCKER_SANDBOX_SMOKE.md`
 
 ## 7. How does RAG work in this project?
 

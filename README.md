@@ -31,7 +31,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Ablations:** Memory/context comparison over 2 tasks plus paired 8-task retrieval experiments. Two prompt-aligned, order-varied auto/off runs kept all four configuration rows at 8/8; auto activated retrieval on 4/8 tasks, halved average model-facing retrieval schemas, reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%, while input-token and cost direction remained variable.
 - **Docker execution:** pluggable host/Docker command backends route shell, pytest, and compilation through one execution boundary. Docker mode is non-root, network-disabled, capability-dropped, resource-limited, timeout-cleaned, and fail-closed unless host fallback is explicitly enabled.
 - **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke.
-- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md), and [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md).
+- **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md), and [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md).
 
 ## Portfolio Walkthrough
 
@@ -70,6 +70,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`](reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md): before/after evidence-budget analysis with an offline replay and a new paired 8-task real-agent run.
 - [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md): conditional retrieval gate design, prompt-alignment finding, and paired auto/off validation.
 - [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md): two order-varied paired runs showing stable task outcomes and stable exploration reductions, with mixed token/cost direction.
+- [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
 ## What It Does
@@ -289,6 +290,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md` and `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` validate the bounded preflight on the same eight tasks and compare it with the original result.
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` and `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` validate prompt-aligned conditional gating against retrieval-off.
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md` and `reports/RETRIEVAL_GATING_STABILITY.md` repeat the same pair in reverse order and summarize repeated-run variance.
+- `reports/DOCKER_SANDBOX_SMOKE.md` is the committed GitHub Actions runtime report for the Docker execution boundary.
 - `reports/AGENT_TRACE_python_add_tests.html` and `reports/AGENT_TRACE_multi_file_service_fix.html` are committed sample trace viewer outputs from that real-agent run.
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` and `reports/AGENT_TRACE_retrieval_off_context_pack.html` show the successful and disabled-retrieval paths for the retrieval ablation.
 - `reports/README.md` explains the committed demo and real-agent evaluation artifacts.
@@ -313,7 +315,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/eval-stability`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 

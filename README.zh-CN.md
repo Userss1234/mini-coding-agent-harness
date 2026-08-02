@@ -31,7 +31,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Ablation：**已提交 2 任务 memory/context 对比和多轮 8-task retrieval 配对实验。两次提示对齐、顺序相反的 auto/off 运行中，四个配置行均为 8/8；auto 都只在 4/8 任务启用 retrieval，将平均模型可见 schema 减半，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，但 input-token 和成本方向仍有波动。
 - **Docker execution：**可插拔 host/Docker 后端让 Shell、pytest 和 Python 编译共用一个执行边界。Docker 模式默认非 root、关闭网络、移除 capabilities、限制资源、超时清理，并在未显式允许 host fallback 时 fail closed。
 - **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)、[`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md) 和 [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md)。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)、[`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md) 和 [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md)。
 
 ## Portfolio Walkthrough
 
@@ -62,6 +62,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)：修复后的第三次同模型全量评估，36/36 通过。
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)：三次 36-task 运行的重复运行稳定性分析。
 - [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序 retrieval 配对运行的稳定性分析，区分稳定的探索下降与不稳定的 token/成本方向。
+- [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)：GitHub Actions 中真实验证非 root、workspace mount 和默认禁网的运行报告。
 - [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
@@ -280,6 +281,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md` 和 `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md` 对比 8 个普通维护任务的 retrieval preflight，并记录工具探索与 token/成本之间的权衡。
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md` 和 `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` 在同一组 8 个任务上验证受预算约束的 preflight，并与原始结果对比。
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` 和 `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` 验证提示对齐后的条件式 retrieval gate。
+- `reports/DOCKER_SANDBOX_SMOKE.md` 是 Docker execution boundary 在 GitHub Actions 中的真实运行证据。
 - `reports/AGENT_TRACE_python_add_tests.html` 和 `reports/AGENT_TRACE_multi_file_service_fix.html` 是这次真实 agent 运行生成并提交的 trace viewer 示例。
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` 和 `reports/AGENT_TRACE_retrieval_off_context_pack.html` 展示 retrieval ablation 中开启和关闭 `context_pack` 的两条路径。
 - `reports/README.md` 说明已提交的 demo 和真实 agent evaluation 展示文件。
@@ -304,7 +306,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 当前支持的 MCP 方法包括：`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`、`resources/list`、`resources/read`、`resources/templates/list`、`prompts/list` 和 `prompts/get`。`MCP.md` 里有消息示例和边界说明。
 
-server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history` 和 `harness://reports/failure-modes`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
+server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/failure-modes` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
 
 如果要接入支持 MCP 的客户端，可以复制 `examples/mcp_config.example.json`，把 `/absolute/path/to/mini-coding-agent-harness` 替换成本地项目绝对路径。
 
