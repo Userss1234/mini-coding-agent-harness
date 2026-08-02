@@ -429,9 +429,13 @@ def _score_chunk(
             text_score += body_count * idf
         if token in path_text:
             path_score += 3.0 * idf
-    if query and query.lower() in body_text:
+    matched_query_term = text_score > 0 or path_score > 0
+    if matched_query_term and query and query.lower() in body_text:
         text_score += 5.0
-    if any(marker in body_text for marker in ("def ", "class ", "function ", "describe(", "it(")):
+    if matched_query_term and any(
+        marker in body_text
+        for marker in ("def ", "class ", "function ", "describe(", "it(")
+    ):
         text_score += 0.5
     return text_score + path_score, {"text_score": text_score, "path_score": path_score}
 

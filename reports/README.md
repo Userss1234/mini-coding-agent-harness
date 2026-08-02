@@ -18,6 +18,11 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 - `DOCKER_SANDBOX_SMOKE.md`: GitHub Actions runtime report proving non-root execution, workspace visibility, and blocked outbound networking for the configured Docker backend.
 
+## Retrieval Quality
+
+- `RETRIEVAL_QUALITY_BASELINE.md`: relevance-judged 10-query lexical baseline with path-level MRR, Recall@K, per-case rankings, and CI quality gates.
+- `RETRIEVAL_QUALITY_BASELINE.json`: machine-readable copy used for future lexical-versus-hybrid comparisons.
+
 ## Real Agent Eval
 
 - `AGENT_EVAL_40_TASKS.md`: expanded full 40-task DeepSeek `deepseek-chat` run, 39/40 because one task hit a terminal provider HTTP 503 before verification.

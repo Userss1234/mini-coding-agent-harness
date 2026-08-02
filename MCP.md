@@ -57,11 +57,11 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
-`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, `reports/RETRIEVAL_QUALITY_BASELINE.md`, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
-`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/eval-stability`, and `harness://reports/retrieval-stability`; pass `report_uri` to analyze one specific report instead.
+`prompts/list` exposes reusable prompts for repository maintenance, RAG-first maintenance, and evaluation analysis. `prompts/get` fills those prompt templates with caller-provided arguments. The `repo-rag-maintenance` prompt requires a `retrieve_then_read` call before follow-up exact file reads. The `eval-analysis` prompt defaults to `harness://reports/agent-eval`, `harness://reports/eval-history`, `harness://reports/failure-modes`, `harness://reports/eval-stability`, `harness://reports/retrieval-stability`, and `harness://reports/retrieval-quality`; pass `report_uri` to analyze one specific report instead.
 
 ## Example Messages
 
@@ -118,19 +118,23 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 ```
 
 ```json
-{"jsonrpc":"2.0","id":14,"method":"resources/read","params":{"uri":"harness://reports/docker-sandbox"}}
+{"jsonrpc":"2.0","id":14,"method":"resources/read","params":{"uri":"harness://reports/retrieval-quality"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":15,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
+{"jsonrpc":"2.0","id":15,"method":"resources/read","params":{"uri":"harness://reports/docker-sandbox"}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":16,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+{"jsonrpc":"2.0","id":16,"method":"prompts/get","params":{"name":"code-maintenance-task","arguments":{"task":"Fix the failing calculator test and show evidence."}}}
 ```
 
 ```json
-{"jsonrpc":"2.0","id":17,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
+{"jsonrpc":"2.0","id":17,"method":"prompts/get","params":{"name":"repo-rag-maintenance","arguments":{"task":"Fix the failing calculator test and show evidence.","query":"calculator failing pytest assertion"}}}
+```
+
+```json
+{"jsonrpc":"2.0","id":18,"method":"prompts/get","params":{"name":"eval-analysis","arguments":{}}}
 ```
 
 ## Boundaries

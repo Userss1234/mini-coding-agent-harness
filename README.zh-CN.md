@@ -14,6 +14,7 @@
 python -m pip install -r requirements.txt
 python -m pytest
 python main.py eval --mode scripted
+python main.py retrieval-benchmark
 python main.py demo --task python_bugfix
 ```
 
@@ -29,9 +30,10 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **真实 Agent eval：**将瞬时请求重试从 2 次提高到 4 次后，DeepSeek `deepseek-chat` 在第二次完整扩展 suite 中一次性通过 40/40。第一次运行仍诚实保留为 39/40，原因是 verifier 前的一次 provider HTTP 503；仓库已提交 39/40 -> 40/40 的重复运行证据。
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
 - **Ablation：**已提交 2 任务 memory/context 对比和多轮 8-task retrieval 配对实验。两次提示对齐、顺序相反的 auto/off 运行中，四个配置行均为 8/8；auto 都只在 4/8 任务启用 retrieval，将平均模型可见 schema 减半，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，但 input-token 和成本方向仍有波动。
+- **检索质量：**提交了一套 10-query 相关性标注语料，在 agent loop 外独立评估排序。lexical 基线为 MRR 0.8000，Recall@1/3/5 为 0.70/0.80/0.80；CI 门槛为 MRR 0.80 和 Recall@5 0.80。
 - **Docker execution：**可插拔 host/Docker 后端让 Shell、pytest 和 Python 编译共用一个执行边界。Docker 模式默认非 root、关闭网络、移除 capabilities、限制资源、超时清理，并在未显式允许 host fallback 时 fail closed。
-- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
-- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)、[`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md) 和 [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md)。
+- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted 与 retrieval-quality benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
+- **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_QUALITY_BASELINE.md`](reports/RETRIEVAL_QUALITY_BASELINE.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md) 和 [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)。
 
 ## Portfolio Walkthrough
 
@@ -45,6 +47,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json --run full-36-v2=reports/AGENT_EVAL_36_TASKS_RUN2.json --run full-36-v3-postfix=reports/AGENT_EVAL_36_TASKS_RUN3.json --output reports/EVAL_STABILITY.md
 python main.py eval-stability --run full-40-v1=reports/AGENT_EVAL_40_TASKS.json --run full-40-v2-hardened=reports/AGENT_EVAL_40_TASKS_RUN2.json --output reports/EVAL_STABILITY_40_TASKS.md
 python main.py retrieval-stability --run selected-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.json --run off-first=reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.json --output reports/RETRIEVAL_GATING_STABILITY.md
+python main.py retrieval-benchmark
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 ```
 
@@ -62,6 +65,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)：修复后的第三次同模型全量评估，36/36 通过。
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)：三次 36-task 运行的重复运行稳定性分析。
 - [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序真实 agent 配对的聚合稳定性分析，区分稳定探索下降与不稳定 token/成本方向，并明确标记历史 JSON 尚未包含逐任务字段。
+- [`reports/RETRIEVAL_QUALITY_BASELINE.md`](reports/RETRIEVAL_QUALITY_BASELINE.md)：带相关性标注的 lexical 排序基线，包含 MRR、Recall@K、逐 query 路径和保留的语义漏检。
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)：GitHub Actions 中真实验证非 root、workspace mount 和默认禁网的运行报告。
 - [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
@@ -281,6 +285,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md` 和 `reports/AGENT_RETRIEVAL_ABLATION_8_TASKS_ANALYSIS.md` 对比 8 个普通维护任务的 retrieval preflight，并记录工具探索与 token/成本之间的权衡。
 - `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md` 和 `reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md` 在同一组 8 个任务上验证受预算约束的 preflight，并与原始结果对比。
 - `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md` 和 `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md` 验证提示对齐后的条件式 retrieval gate。
+- `reports/RETRIEVAL_QUALITY_BASELINE.md` 和 `.json` 由 `python main.py retrieval-benchmark` 基于已提交语料和相关性标注生成。
 - `reports/DOCKER_SANDBOX_SMOKE.md` 是 Docker execution boundary 在 GitHub Actions 中的真实运行证据。
 - `reports/AGENT_TRACE_python_add_tests.html` 和 `reports/AGENT_TRACE_multi_file_service_fix.html` 是这次真实 agent 运行生成并提交的 trace viewer 示例。
 - `reports/AGENT_TRACE_retrieval_on_context_pack.html` 和 `reports/AGENT_TRACE_retrieval_off_context_pack.html` 展示 retrieval ablation 中开启和关闭 `context_pack` 的两条路径。
@@ -306,7 +311,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 
 当前支持的 MCP 方法包括：`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`、`resources/list`、`resources/read`、`resources/templates/list`、`prompts/list` 和 `prompts/get`。`MCP.md` 里有消息示例和边界说明。
 
-server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/failure-modes` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
+server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/failure-modes`、`harness://reports/retrieval-quality` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
 
 如果要接入支持 MCP 的客户端，可以复制 `examples/mcp_config.example.json`，把 `/absolute/path/to/mini-coding-agent-harness` 替换成本地项目绝对路径。
 
@@ -318,6 +323,7 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 - 编译 `main.py`、`harness/` 和 `tests/`
 - 运行 `python -m pytest`
 - 运行完整 scripted benchmark，并生成 Markdown 和 JSON artifact
+- 运行带相关性标注的 lexical retrieval benchmark，并执行 MRR/Recall@5 门槛
 - 将一个 sample trace 渲染成 `TRACE.html`
 - 运行 MCP 协议 smoke 检查，并上传 `MCP_SMOKE.md`
 - 构建 Docker sandbox 镜像，并要求非 root/workspace/network runtime smoke 通过
@@ -401,7 +407,7 @@ memory-off_context-off
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
-当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 现在使用本地词法评分、区间合并、证据预算和条件式 schema gate。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。两次提示对齐、顺序相反的 8-task auto/off 配对中，四个配置行均通过 8/8；auto 都只启用 4/8，平均暴露 2.5 个 retrieval schema，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，时长减少 7.43%-30.32%，输出 token 减少 2.21%-16.61%。input-token 和估算成本在两轮间方向相反，因此不声称稳定的成本优势。
+当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 仍是 lexical，但现在已有独立的 10-query 相关性标注评测，基线为 MRR 0.8000、Recall@5 0.80，并保留两个语义漏检。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。两次提示对齐、顺序相反的 8-task auto/off 配对中，四个配置行均通过 8/8；auto 都只启用 4/8，平均暴露 2.5 个 retrieval schema，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，时长减少 7.43%-30.32%，输出 token 减少 2.21%-16.61%。input-token 和估算成本在两轮间方向相反，因此不声称稳定的成本优势。
 
 历史 8-task comparison JSON 生成于逐任务结果保留功能之前，因此已提交的真实 agent stability 报告仍是聚合分析。新的 comparison 会自动保留逐任务数据；相反顺序的 scripted CLI 验证和测试覆盖 task-level 配对链路，但不会被包装成模型效率证据。
 
@@ -418,6 +424,7 @@ git diff -- .
 ## 当前限制
 
 - 两次同模型 40-task 全量运行分别为 39/40 和 40/40。39 个任务稳定通过；`shell_no_shell_execution` 因首轮 provider 中断、第二轮通过而仍归类为不稳定。若要得到更强的方差结论，还需要更多重复运行或第二个 provider/model。
+- Workspace RAG 是带路径/行号的本地分块 lexical retrieval，不是 embedding 或向量数据库；10-query 标注基线中有两个语义 query 没有返回 relevant path。
 - workflow memory 可以按 query 排序并注入 agent 评估提示，但排序仍然是词法匹配，还不是 embedding 检索。
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。
 - retry/backoff 已能以最多 4 次重试处理临时性模型/API 失败，并处理非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
@@ -427,10 +434,9 @@ git diff -- .
 
 ## 下一步
 
-1. 增加 retrieval-dependent fixture，让检索质量可以直接测量，而不只是可选工具。
-2. 增加可选本地 embedding/hybrid reranking backend，同时保留 lexical baseline。
-3. 使用 Recall@K/MRR 和聚焦的 agent-level 证据衡量新 retrieval 路径；只为此目的扩展 ablation。
-4. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
-5. 做一次 Docker + RAG + MCP 最终联合验证，然后更新简历证据。
-6. 需要本机 Windows 复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
+1. 增加可选本地 embedding/hybrid reranking backend，同时保留 lexical baseline，并在同一套 10-query 标注上对比。
+2. 要求 hybrid 改善保留的语义案例，并报告 Recall@K/MRR 与聚焦的 agent-level 证据。
+3. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
+4. 做一次 Docker + RAG + MCP 最终联合验证，然后更新简历证据。
+5. 需要本机 Windows 复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
 

@@ -69,23 +69,26 @@ Evidence:
 
 ## 7. How does RAG work in this project?
 
-The retrieval layer is local lexical retrieval over safe workspace text chunks. It indexes allowed text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks by query terms, turns matches into read plans, and can load the planned line ranges as evidence.
+The retrieval layer is local lexical retrieval over safe workspace text chunks. It indexes allowed text files, skips sensitive/generated paths and workflow memories under `skills/`, ranks chunks by query terms, turns matches into read plans, and can load the planned line ranges as evidence. A separate 10-query relevance-judged benchmark measures ranking independently from the agent loop; the current lexical baseline is MRR 0.8000 and Recall@1/3/5 of 0.70/0.80/0.80.
 
 Evidence:
 
 - `harness/retrieval.py`
 - `retrieve_then_read`, `rag_search`, and `rag_explain` in `harness/tools.py`
 - `tests/test_retrieval.py`
+- `benchmarks/retrieval/judgments.json`
+- `reports/RETRIEVAL_QUALITY_BASELINE.md`
 - `reports/AGENT_EVAL_36_TASKS.md`
 
 ## 8. Is the RAG embedding-based?
 
-No. Current retrieval is lexical, not vector-based and not embedding-based. The project is honest about this limitation. The current goal is explainable local retrieval with path and line metadata, not semantic vector search.
+No. Current retrieval is lexical, not vector-based and not embedding-based. The judged benchmark deliberately retains two paraphrased queries whose relevant paths receive no lexical match. Those failures define the acceptance target for a future hybrid backend; they are not hidden or described as semantic retrieval.
 
 Evidence:
 
 - `README.md` Current Limitations
 - `harness/retrieval.py`
+- `reports/RETRIEVAL_QUALITY_BASELINE.md`
 
 ## 9. What is retrieval preflight?
 
@@ -178,7 +181,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating, order-varied aggregate stability, per-task comparison retention, and task-level paired variance support are complete. The historical 8-task real-agent JSON remains summary-only and is not rewritten; current runs automatically store `task_results` and `paired_tasks`, while legacy inputs receive an explicit unavailable marker. Docker execution isolation is also implemented. The next major stage is RAG 2.0: retrieval-dependent fixtures, optional hybrid reranking, and Recall@K/MRR, followed by MCP Streamable HTTP and one final cross-feature validation.
+Conditional gating, task-level paired variance, Docker execution isolation, and the first RAG 2.0 stage are complete. Retrieval now has a committed judged corpus, MRR/Recall@K reporting, and CI regression gates. The next major stage is an optional local hybrid backend evaluated against exactly the same judgments, followed by focused agent-level lexical/hybrid evidence, MCP Streamable HTTP, and one final cross-feature validation.
 
 Evidence:
 
@@ -187,6 +190,7 @@ Evidence:
 - `reports/RETRIEVAL_GATING_STABILITY.md`
 - `tests/test_eval_analysis.py`
 - `tests/test_evaluation.py`
+- `reports/RETRIEVAL_QUALITY_BASELINE.md`
 
 ## 18. How should you summarize this on a resume?
 

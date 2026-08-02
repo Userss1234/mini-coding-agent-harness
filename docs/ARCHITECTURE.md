@@ -63,6 +63,7 @@ flowchart TD
 | `harness/execution.py` | Host and Docker command executors, resource policy, environment filtering, and timeout cleanup. |
 | `harness/docker_smoke.py` | Runtime verification for non-root execution, workspace mounting, and disabled networking. |
 | `harness/retrieval.py` | Local lexical chunk retrieval, read-plan generation, safe path filtering. |
+| `harness/retrieval_benchmark.py` | Relevance-judged retrieval benchmark, path-level Recall@K/MRR, quality gates, and reports. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, order-controlled comparisons, report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
@@ -110,6 +111,8 @@ flowchart TD
 ```
 
 This makes retrieval explainable and measurable: reports and traces show the gate score/reasons, exposed or suppressed schemas, selected paths and line ranges, raw and injected evidence characters, merged reads, omissions, and truncation. The default auto threshold is 2. The preflight selects two chunks, uses a 48-line chunk size and 8-line read window, caps each read at 1,400 characters, and caps total injected evidence at 2,400 characters. These values can be overridden through the `AGENT_RETRIEVAL_GATE_THRESHOLD` and `AGENT_RETRIEVAL_PREFLIGHT_*` variables documented in `.env.example`.
+
+Retrieval ranking is evaluated independently from the agent loop against `benchmarks/retrieval/judgments.json`. The committed 10-query lexical baseline deduplicates chunk hits to paths, measures MRR plus Recall/Hit Rate at 1, 3, and 5, and enforces MRR >= 0.80 and Recall@5 >= 0.80 in CI. The two retained semantic misses are concrete targets for the optional hybrid backend rather than evidence of semantic retrieval.
 
 ## Evaluation Pipeline
 

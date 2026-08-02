@@ -18,6 +18,10 @@ from harness.evaluation import run_evaluation
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
 from harness.review import inspect_repo
+from harness.retrieval_benchmark import (
+    run_retrieval_benchmark,
+    write_retrieval_benchmark_outputs,
+)
 from harness.tools import build_registry
 from harness.trace import TraceLogger
 from harness.trace_viewer import build_trace_report
@@ -146,6 +150,22 @@ def cmd_retrieval_stability(args) -> None:
     print(report)
     if args.output:
         print(f"Retrieval stability report written to {Path(args.output).resolve()}")
+
+
+def cmd_retrieval_benchmark(args) -> None:
+    result = run_retrieval_benchmark(
+        Path(args.judgments),
+        backend=args.backend,
+    )
+    report = write_retrieval_benchmark_outputs(
+        result,
+        output_path=Path(args.output),
+        json_output_path=Path(args.json_output) if args.json_output else None,
+    )
+    print(report)
+    print(f"Retrieval benchmark written to {Path(args.output).resolve()}")
+    if not result["summary"]["quality_gate_passed"]:
+        raise SystemExit("Retrieval quality gate failed.")
 
 
 def cmd_trace_report(args) -> None:
@@ -364,6 +384,33 @@ def build_parser() -> argparse.ArgumentParser:
     )
     retrieval_stability.add_argument("--output", help="Optional Markdown stability report path")
     retrieval_stability.set_defaults(func=cmd_retrieval_stability)
+
+    retrieval_benchmark = sub.add_parser(
+        "retrieval-benchmark",
+        help="Measure retrieval Recall@K and MRR over committed relevance judgments",
+    )
+    retrieval_benchmark.add_argument(
+        "--judgments",
+        default="benchmarks/retrieval/judgments.json",
+        help="Retrieval corpus and relevance judgments JSON path",
+    )
+    retrieval_benchmark.add_argument(
+        "--backend",
+        choices=["lexical"],
+        default="lexical",
+        help="Retrieval backend to evaluate",
+    )
+    retrieval_benchmark.add_argument(
+        "--output",
+        default="reports/RETRIEVAL_QUALITY_BASELINE.md",
+        help="Markdown benchmark report path",
+    )
+    retrieval_benchmark.add_argument(
+        "--json-output",
+        default="reports/RETRIEVAL_QUALITY_BASELINE.json",
+        help="Machine-readable benchmark report path",
+    )
+    retrieval_benchmark.set_defaults(func=cmd_retrieval_benchmark)
 
     return parser
 

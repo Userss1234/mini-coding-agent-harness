@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "generated": "2026-08-02T15:36:23",
+  "backend": "lexical",
+  "judgments": "benchmarks\\retrieval\\judgments.json",
+  "corpus_root": "benchmarks\\retrieval\\corpus",
+  "configuration": {
+    "glob": "*.py,*.md",
+    "chunk_lines": 40,
+    "overlap": 5,
+    "k_values": [
+      1,
+      3,
+      5
+    ],
+    "ranking_unit": "deduplicated_path"
+  },
+  "summary": {
+    "case_count": 10,
+    "mrr": 0.8,
+    "recall_at_k": {
+      "1": 0.7,
+      "3": 0.8,
+      "5": 0.8
+    },
+    "hit_rate_at_k": {
+      "1": 0.8,
+      "3": 0.8,
+      "5": 0.8
+    },
+    "zero_result_queries": 0,
+    "quality_gate_passed": true,
+    "quality_gate_checks": [
+      {
+        "metric": "mrr",
+        "actual": 0.8,
+        "minimum": 0.8,
+        "passed": true
+      },
+      {
+        "metric": "recall_at_5",
+        "actual": 0.8,
+        "minimum": 0.8,
+        "passed": true
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "invoice_rounding",
+      "query": "invoice subtotal tax rounding total",
+      "rationale": "The billing total implementation owns tax calculation and currency rounding.",
+      "relevant_paths": [
+        "src/billing/totals.py"
+      ],
+      "ranked_paths": [
+        "src/billing/totals.py",
+        "docs/invoice_copy.md"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "secret_redaction",
+      "query": "redact api token diagnostic logs",
+      "rationale": "The redaction helper removes API tokens before diagnostic data is logged.",
+      "relevant_paths": [
+        "src/security/redaction.py"
+      ],
+      "ranked_paths": [
+        "src/security/redaction.py",
+        "src/auth/tokens.py",
+        "src/auth/middleware.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "plugin_discovery",
+      "query": "discover plugins entry points load plugin",
+      "rationale": "Plugin entry-point enumeration and loading are implemented in discovery.py.",
+      "relevant_paths": [
+        "src/plugins/discovery.py"
+      ],
+      "ranked_paths": [
+        "src/plugins/discovery.py",
+        "docs/plugin_authoring.md"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "order_status_persistence",
+      "query": "order status transition persist repository service",
+      "rationale": "The status transition spans business validation in the service and persistence in the repository.",
+      "relevant_paths": [
+        "src/orders/service.py",
+        "src/orders/repository.py"
+      ],
+      "ranked_paths": [
+        "src/orders/service.py",
+        "src/orders/repository.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 0.5,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "payment_duplicate_semantic",
+      "query": "stop charging a card twice",
+      "rationale": "This intentionally paraphrased query should resolve to payment idempotency despite weak lexical overlap.",
+      "relevant_paths": [
+        "src/payments/idempotency.py"
+      ],
+      "ranked_paths": [
+        "docs/card_support.md"
+      ],
+      "first_relevant_rank": null,
+      "reciprocal_rank": 0.0,
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "hit_at_k": {
+        "1": false,
+        "3": false,
+        "5": false
+      },
+      "missing_relevant_at_max_k": [
+        "src/payments/idempotency.py"
+      ]
+    },
+    {
+      "case_id": "timezone_formatting",
+      "query": "timezone UTC timestamp formatting",
+      "rationale": "The formatter normalizes timestamps to UTC before display.",
+      "relevant_paths": [
+        "src/timezone/formatter.py"
+      ],
+      "ranked_paths": [
+        "src/timezone/formatter.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "provider_retry",
+      "query": "transient provider failure exponential backoff retry",
+      "rationale": "The retry policy classifies transient provider failures and computes exponential backoff.",
+      "relevant_paths": [
+        "src/retry/policy.py"
+      ],
+      "ranked_paths": [
+        "src/retry/policy.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "config_precedence",
+      "query": "environment variables override config file defaults",
+      "rationale": "Configuration precedence is defined in one resolver.",
+      "relevant_paths": [
+        "src/config/precedence.py"
+      ],
+      "ranked_paths": [
+        "src/config/precedence.py",
+        "docs/traffic_guide.md"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "auth_validation_flow",
+      "query": "authentication bearer token validation middleware",
+      "rationale": "Authentication crosses bearer extraction in middleware and token validation in tokens.py.",
+      "relevant_paths": [
+        "src/auth/middleware.py",
+        "src/auth/tokens.py"
+      ],
+      "ranked_paths": [
+        "src/auth/middleware.py",
+        "src/auth/tokens.py",
+        "src/security/redaction.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 0.5,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "request_coalescing_semantic",
+      "query": "combine simultaneous identical requests",
+      "rationale": "This semantic alias for single-flight request coalescing is an intentional lexical stress case.",
+      "relevant_paths": [
+        "src/cache/coalescing.py"
+      ],
+      "ranked_paths": [
+        "docs/traffic_guide.md"
+      ],
+      "first_relevant_rank": null,
+      "reciprocal_rank": 0.0,
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "hit_at_k": {
+        "1": false,
+        "3": false,
+        "5": false
+      },
+      "missing_relevant_at_max_k": [
+        "src/cache/coalescing.py"
+      ]
+    }
+  ]
+}

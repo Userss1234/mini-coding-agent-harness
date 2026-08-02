@@ -38,6 +38,10 @@ jobs:
         run: |
           python main.py eval --mode scripted --output artifacts/EVAL.md --json-output artifacts/EVAL.json --trace-dir artifacts/eval_runs
 
+      - name: Run retrieval quality baseline
+        run: |
+          python main.py retrieval-benchmark --output artifacts/RETRIEVAL_QUALITY_BASELINE.md --json-output artifacts/RETRIEVAL_QUALITY_BASELINE.json
+
       - name: Render trace HTML sample
         run: |
           python main.py trace-report --input artifacts/eval_runs/syntax_check.jsonl --output artifacts/TRACE.html

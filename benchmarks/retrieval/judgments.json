@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "corpus_root": "corpus",
+  "glob": "*.py,*.md",
+  "chunk_lines": 40,
+  "overlap": 5,
+  "max_chars_per_chunk": 1200,
+  "k_values": [1, 3, 5],
+  "quality_gate": {
+    "mrr": 0.8,
+    "recall_at_5": 0.8
+  },
+  "cases": [
+    {
+      "case_id": "invoice_rounding",
+      "query": "invoice subtotal tax rounding total",
+      "relevant_paths": ["src/billing/totals.py"],
+      "rationale": "The billing total implementation owns tax calculation and currency rounding."
+    },
+    {
+      "case_id": "secret_redaction",
+      "query": "redact api token diagnostic logs",
+      "relevant_paths": ["src/security/redaction.py"],
+      "rationale": "The redaction helper removes API tokens before diagnostic data is logged."
+    },
+    {
+      "case_id": "plugin_discovery",
+      "query": "discover plugins entry points load plugin",
+      "relevant_paths": ["src/plugins/discovery.py"],
+      "rationale": "Plugin entry-point enumeration and loading are implemented in discovery.py."
+    },
+    {
+      "case_id": "order_status_persistence",
+      "query": "order status transition persist repository service",
+      "relevant_paths": [
+        "src/orders/service.py",
+        "src/orders/repository.py"
+      ],
+      "rationale": "The status transition spans business validation in the service and persistence in the repository."
+    },
+    {
+      "case_id": "payment_duplicate_semantic",
+      "query": "stop charging a card twice",
+      "relevant_paths": ["src/payments/idempotency.py"],
+      "rationale": "This intentionally paraphrased query should resolve to payment idempotency despite weak lexical overlap."
+    },
+    {
+      "case_id": "timezone_formatting",
+      "query": "timezone UTC timestamp formatting",
+      "relevant_paths": ["src/timezone/formatter.py"],
+      "rationale": "The formatter normalizes timestamps to UTC before display."
+    },
+    {
+      "case_id": "provider_retry",
+      "query": "transient provider failure exponential backoff retry",
+      "relevant_paths": ["src/retry/policy.py"],
+      "rationale": "The retry policy classifies transient provider failures and computes exponential backoff."
+    },
+    {
+      "case_id": "config_precedence",
+      "query": "environment variables override config file defaults",
+      "relevant_paths": ["src/config/precedence.py"],
+      "rationale": "Configuration precedence is defined in one resolver."
+    },
+    {
+      "case_id": "auth_validation_flow",
+      "query": "authentication bearer token validation middleware",
+      "relevant_paths": [
+        "src/auth/middleware.py",
+        "src/auth/tokens.py"
+      ],
+      "rationale": "Authentication crosses bearer extraction in middleware and token validation in tokens.py."
+    },
+    {
+      "case_id": "request_coalescing_semantic",
+      "query": "combine simultaneous identical requests",
+      "relevant_paths": ["src/cache/coalescing.py"],
+      "rationale": "This semantic alias for single-flight request coalescing is an intentional lexical stress case."
+    }
+  ]
+}

@@ -22,6 +22,9 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Implemented explainable conditional retrieval gating with bounded evidence, merged read ranges, configurable thresholds, and schema suppression; across two order-varied paired 8-task DeepSeek runs, kept all four auto/off rows at 8/8, activated retrieval on 4/8 tasks, and reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%.
   Evidence: `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_STABILITY.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `harness/agent.py`, `harness/evaluation.py`.
 
+- Built a relevance-judged 10-query code retrieval benchmark with path-deduplicated MRR, Recall@K, Hit Rate@K, per-query diagnostics, and CI regression gates; established the lexical baseline at 0.8000 MRR and 0.80 Recall@5 while retaining two documented semantic misses for hybrid retrieval work.
+  Evidence: `benchmarks/retrieval/judgments.json`, `harness/retrieval_benchmark.py`, `tests/test_retrieval_benchmark.py`, `reports/RETRIEVAL_QUALITY_BASELINE.md`, `.github/workflows/ci.yml`.
+
 - Exposed the harness through a minimal MCP stdio server with permission-checked tools, safe read-only resources, prompt templates, workspace resource guards, and a committed protocol smoke transcript.
   Evidence: `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md`.
 
@@ -42,6 +45,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | Prompt-contract improvement | `reports/AGENT_EVAL_PROMPT_IMPROVEMENT.md`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md` |
 | Evaluation analysis tooling | `harness/eval_analysis.py`, `tests/test_eval_analysis.py`, `reports/EVAL_HISTORY.md`, `reports/FAILURE_MODES.md`, `reports/EVAL_STABILITY.md`, `reports/EVAL_STABILITY_40_TASKS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
 | Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
+| Retrieval quality benchmark | `benchmarks/retrieval/judgments.json`, `harness/retrieval_benchmark.py`, `tests/test_retrieval_benchmark.py`, `reports/RETRIEVAL_QUALITY_BASELINE.md` |
 | MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
 | Docker execution boundary | `harness/execution.py`, `harness/tools.py`, `docker/sandbox/Dockerfile`, `tests/test_execution.py`, `.github/workflows/ci.yml`, `reports/DOCKER_SANDBOX_SMOKE.md` |
 
