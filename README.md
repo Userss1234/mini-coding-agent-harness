@@ -69,7 +69,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md): repeated-run stability report comparing three same-model 36-task runs.
 - [`reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md`](reports/RETRIEVAL_PREFLIGHT_BUDGET_OPTIMIZATION.md): before/after evidence-budget analysis with an offline replay and a new paired 8-task real-agent run.
 - [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md): conditional retrieval gate design, prompt-alignment finding, and paired auto/off validation.
-- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md): two order-varied paired runs showing stable task outcomes and stable exploration reductions, with mixed token/cost direction.
+- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md): two order-varied real-agent pairs showing stable aggregate outcomes/exploration reductions and mixed token/cost direction; the report explicitly marks their historical JSON as pre-task-detail.
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 
@@ -406,11 +406,13 @@ Use `--retrieval on|auto|off` to always expose, conditionally gate, or hide retr
 
 Use `--compare-retrieval` to compare the selected `on` or `auto` strategy with retrieval-off under the same memory/context settings.
 Comparison reports include average `retrieve_then_read`, `context_pack`, and `read_file` calls plus average raw/injected preflight evidence characters, so retrieval changes can be inspected beyond pass rate.
-Use `--retrieval-compare-order selected-first|off-first` to control paired execution order. Retrieval comparison JSON records that order, and `retrieval-stability` aggregates repeated pairs without requiring a second model provider.
+Use `--retrieval-compare-order selected-first|off-first` to control paired execution order. Comparison JSON now preserves complete `task_results` for every configuration and compact `paired_tasks` with selected/off outcomes and metric deltas. `retrieval-stability` keeps the aggregate relative-delta view and adds task-level absolute paired variance without requiring a second model provider. Legacy summary-only JSON remains readable and is labeled as lacking task detail.
 
 Use `--task <task_id>` or `--category <category>` to run a targeted subset while tuning a fixture or agent behavior. Categories currently include `agent_loop`, `code_maintenance`, `code_quality`, `configuration`, `documentation`, `memory`, `multi_file`, `recovery`, `retrieval`, `security`, `tests`, and `trace`.
 
 Current honest status: this is a 40-task deterministic benchmark with query-ranked local code retrieval, memory/context ablation reporting, an injected-client agent-loop smoke test, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, CI validation, and a DeepSeek/OpenAI-compatible client path for real API-backed `eval --mode agent`. The retrieval layer uses local lexical scoring, merges overlapping ranges, caps evidence, and can conditionally suppress preflight plus all five retrieval schemas. The first expanded full-suite DeepSeek run passed 39/40 because `shell_no_shell_execution` stopped on a provider HTTP 503 before verification; retry hardening was followed by a complete 40/40 run. In two prompt-aligned, order-varied 8-task auto/off pairs, all four rows passed 8/8; auto activated 4/8 tasks, averaged 2.5 retrieval schemas, reduced tool calls by 7.41%-17.73%, direct reads by 14.29%-15.38%, duration by 7.43%-30.32%, and output tokens by 2.21%-16.61%. Input-token and estimated-cost direction changed between runs, so no stable cost-superiority claim is made.
+
+The historical 8-task comparison JSON predates task-result retention, so its committed stability report remains an aggregate real-agent analysis. New comparison runs preserve per-task rows automatically; deterministic opposite-order CLI validation and tests cover the task-level pairing path without rewriting the historical model evidence.
 
 ## Git Baseline
 
@@ -435,9 +437,9 @@ After the initial baseline commit, future tool changes and generated report chan
 
 ## Next Steps
 
-1. Install Docker Desktop locally and reproduce the CI Docker smoke on Windows; keep the CI runtime report as the committed cross-platform baseline.
-2. Preserve per-task results inside comparison JSON and time-box task-level paired variance as the final evaluation-only change.
-3. Add retrieval-dependent fixtures plus an optional local embedding/hybrid reranking backend while retaining lexical retrieval as the offline baseline.
-4. Expand memory/context ablation only as needed to measure the new retrieval path.
-5. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, and transport parity tests.
-6. Run one final cross-feature validation and then update resume evidence.
+1. Add retrieval-dependent fixtures where retrieval quality is measurable rather than merely optional.
+2. Add an optional local embedding/hybrid reranking backend while retaining lexical retrieval as the offline baseline.
+3. Measure the new retrieval path with Recall@K/MRR plus focused agent-level evidence; expand ablations only for this purpose.
+4. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, session handling, and transport parity tests.
+5. Run one final Docker + RAG + MCP cross-feature validation and update resume evidence.
+6. Install Docker Desktop when local Windows reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.

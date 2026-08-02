@@ -326,7 +326,36 @@ def test_retrieval_stability_loads_legacy_json_and_writes_output(tmp_path: Path)
     )
 
     assert "| legacy | `selected-first` | 8/8 | 8/8 |" in report
+    assert "Status: **unavailable for legacy comparison JSON**" in report
     assert output_path.read_text(encoding="utf-8") == report
+
+
+def test_retrieval_stability_measures_task_level_paired_variance() -> None:
+    first = _retrieval_comparison_report(order=["retrieval-auto", "retrieval-off"])
+    first["paired_tasks"] = [
+        _retrieval_task_pair("python_bugfix", True, True, 10, 12, 2, 3),
+        _retrieval_task_pair("readme_update", True, True, 4, 4, 1, 1),
+    ]
+    second = _retrieval_comparison_report(order=["retrieval-off", "retrieval-auto"])
+    second["paired_tasks"] = [
+        _retrieval_task_pair("python_bugfix", True, True, 11, 12, 3, 3),
+        _retrieval_task_pair("readme_update", False, True, 5, 4, 2, 1),
+    ]
+
+    report = build_retrieval_comparison_stability_report([
+        {"label": "selected-first", "path": "first.json", "report": first},
+        {"label": "off-first", "path": "second.json", "report": second},
+    ])
+
+    assert "Runs with task detail: **2/2**" in report
+    assert "Common paired tasks across detailed runs: **2**" in report
+    assert "Outcome-stable common tasks: **1/2**" in report
+    assert "Stable tool-call direction: **1/2**" in report
+    assert "Stable direct-read direction: **0/2**" in report
+    assert "Tasks requiring review: **`python_bugfix`, `readme_update`**" in report
+    assert "| `python_bugfix` | 2 | `P/P -> P/P` | -1.50 [-2.00, -1.00] | `stable: lower` | -0.50 [-1.00, +0.00] | `mixed: lower -> equal` |" in report
+    assert "| `readme_update` | 2 | `P/P -> F/P` | +0.50 [+0.00, +1.00] | `mixed: equal -> higher` |" in report
+    assert "Status: **repeated task-level paired variance measured**" in report
 
 
 def _history_report(
@@ -421,3 +450,33 @@ def _retrieval_comparison_report(
     if order is not None:
         report["execution_order"] = order
     return report
+
+
+def _retrieval_task_pair(
+    task_id: str,
+    selected_success: bool,
+    off_success: bool,
+    selected_tools: int,
+    off_tools: int,
+    selected_reads: int,
+    off_reads: int,
+) -> dict:
+    return {
+        "task_id": task_id,
+        "selected_label": "retrieval-auto",
+        "off_label": "retrieval-off",
+        "selected": {
+            "success": selected_success,
+            "tool_calls": selected_tools,
+            "read_file_calls": selected_reads,
+        },
+        "off": {
+            "success": off_success,
+            "tool_calls": off_tools,
+            "read_file_calls": off_reads,
+        },
+        "deltas": {
+            "tool_calls": selected_tools - off_tools,
+            "read_file_calls": selected_reads - off_reads,
+        },
+    }

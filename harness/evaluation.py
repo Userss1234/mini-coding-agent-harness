@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from .tools import ToolRegistry, build_registry
 from .trace import TraceLogger
@@ -262,6 +262,7 @@ def run_evaluation_comparison(
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
+    results_by_label: dict[str, list[EvalResult]] = {}
     for memory_enabled, context_enabled in [
         (True, True),
         (False, True),
@@ -281,9 +282,15 @@ def run_evaluation_comparison(
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=retrieval_mode,
         )
+        results_by_label[label] = results
         summaries.append(summarize_results(label, results))
     if json_output_path is not None:
-        write_eval_comparison_json_report(workspace, summaries, json_output_path)
+        write_eval_comparison_json_report(
+            workspace,
+            summaries,
+            json_output_path,
+            results_by_label=results_by_label,
+        )
     return build_eval_comparison_report(workspace, summaries)
 
 
@@ -299,6 +306,7 @@ def run_retrieval_comparison(
     json_output_path: Path | None = None,
 ) -> str:
     summaries: list[EvalRunSummary] = []
+    results_by_label: dict[str, list[EvalResult]] = {}
     comparison_mode = (
         active_retrieval_mode
         if active_retrieval_mode in {"on", "auto"}
@@ -326,6 +334,7 @@ def run_retrieval_comparison(
             retrieval_enabled=retrieval_enabled,
             retrieval_mode=current_retrieval_mode,
         )
+        results_by_label[label] = results
         summaries.append(summarize_results(label, results))
     if json_output_path is not None:
         write_eval_comparison_json_report(
@@ -335,6 +344,7 @@ def run_retrieval_comparison(
             comparison_kind="retrieval",
             execution_order=[summary.label for summary in summaries],
             selected_retrieval_mode=comparison_mode,
+            results_by_label=results_by_label,
         )
     return build_eval_comparison_report(workspace, summaries)
 
@@ -2472,8 +2482,10 @@ def write_eval_comparison_json_report(
     comparison_kind: str | None = None,
     execution_order: list[str] | None = None,
     selected_retrieval_mode: str | None = None,
+    results_by_label: Mapping[str, list[EvalResult]] | None = None,
 ) -> None:
     payload = {
+        "schema_version": 2,
         "workspace": str(workspace),
         "comparison": [asdict(item) for item in summaries],
     }
@@ -2483,8 +2495,91 @@ def write_eval_comparison_json_report(
         payload["execution_order"] = execution_order
     if selected_retrieval_mode is not None:
         payload["selected_retrieval_mode"] = selected_retrieval_mode
+    if results_by_label is not None:
+        payload["task_results"] = {
+            label: [asdict(item) for item in results]
+            for label, results in results_by_label.items()
+        }
+    if comparison_kind == "retrieval" and results_by_label is not None:
+        selected_label = f"retrieval-{selected_retrieval_mode or 'on'}"
+        payload["paired_tasks"] = build_retrieval_task_pairs(
+            results_by_label,
+            selected_label=selected_label,
+            off_label="retrieval-off",
+        )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def build_retrieval_task_pairs(
+    results_by_label: Mapping[str, list[EvalResult]],
+    *,
+    selected_label: str,
+    off_label: str,
+) -> list[dict[str, Any]]:
+    selected_results = {
+        item.task_id: item for item in results_by_label.get(selected_label, [])
+    }
+    off_results = {
+        item.task_id: item for item in results_by_label.get(off_label, [])
+    }
+    task_ids = sorted(set(selected_results) | set(off_results))
+    pairs: list[dict[str, Any]] = []
+    for task_id in task_ids:
+        selected = selected_results.get(task_id)
+        off = off_results.get(task_id)
+        selected_metrics = _retrieval_task_metrics(selected)
+        off_metrics = _retrieval_task_metrics(off)
+        pairs.append({
+            "task_id": task_id,
+            "selected_label": selected_label,
+            "off_label": off_label,
+            "selected": selected_metrics,
+            "off": off_metrics,
+            "deltas": _retrieval_task_deltas(selected_metrics, off_metrics),
+        })
+    return pairs
+
+
+def _retrieval_task_metrics(result: EvalResult | None) -> dict[str, Any] | None:
+    if result is None:
+        return None
+    return {
+        "success": result.success,
+        "retrieval_activated": result.retrieval_activated,
+        "retrieval_schema_count": result.retrieval_schema_count,
+        "tool_calls": result.tool_calls,
+        "read_file_calls": int(result.tool_counts.get("read_file", 0)),
+        "retrieve_then_read_calls": int(result.tool_counts.get("retrieve_then_read", 0)),
+        "context_pack_calls": int(result.tool_counts.get("context_pack", 0)),
+        "duration_seconds": result.duration_seconds,
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "estimated_cost_usd": result.estimated_cost_usd,
+        "trace_path": result.trace_path,
+    }
+
+
+def _retrieval_task_deltas(
+    selected: Mapping[str, Any] | None,
+    off: Mapping[str, Any] | None,
+) -> dict[str, float] | None:
+    if selected is None or off is None:
+        return None
+    metrics = [
+        "tool_calls",
+        "read_file_calls",
+        "retrieve_then_read_calls",
+        "context_pack_calls",
+        "duration_seconds",
+        "input_tokens",
+        "output_tokens",
+        "estimated_cost_usd",
+    ]
+    return {
+        metric: float(selected.get(metric, 0) or 0) - float(off.get(metric, 0) or 0)
+        for metric in metrics
+    }
 
 
 def build_eval_report(workspace: Path, results: list[EvalResult]) -> str:

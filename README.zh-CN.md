@@ -61,7 +61,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/AGENT_EVAL_36_TASKS_RUN2.md`](reports/AGENT_EVAL_36_TASKS_RUN2.md)：第二次同模型全量评估，35/36 通过并暴露 `error_recovery` 波动。
 - [`reports/AGENT_EVAL_36_TASKS_RUN3.md`](reports/AGENT_EVAL_36_TASKS_RUN3.md)：修复后的第三次同模型全量评估，36/36 通过。
 - [`reports/EVAL_STABILITY.md`](reports/EVAL_STABILITY.md)：三次 36-task 运行的重复运行稳定性分析。
-- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序 retrieval 配对运行的稳定性分析，区分稳定的探索下降与不稳定的 token/成本方向。
+- [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)：两次相反顺序真实 agent 配对的聚合稳定性分析，区分稳定探索下降与不稳定 token/成本方向，并明确标记历史 JSON 尚未包含逐任务字段。
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)：GitHub Actions 中真实验证非 root、workspace mount 和默认禁网的运行报告。
 - [`reports/ERROR_RECOVERY_AGENT_FIX.md`](reports/ERROR_RECOVERY_AGENT_FIX.md)：`error_recovery` prompt 修复的定向验证。
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
@@ -397,11 +397,13 @@ memory-off_context-off
 
 可以用 `--compare-retrieval` 在相同 memory/context 设置下，将选定的 `on` 或 `auto` 策略与 retrieval-off 对比。
 对比报告会包含平均 `retrieve_then_read`、`context_pack` 和 `read_file` 调用次数，以及 preflight 原始/实际注入的平均字符数，方便同时观察通过率、工具结构和证据预算。
-可以用 `--retrieval-compare-order selected-first|off-first` 控制配对执行顺序。retrieval 对比 JSON 会记录该顺序，`retrieval-stability` 可在只有一个模型 API 时汇总多次配对运行。
+可以用 `--retrieval-compare-order selected-first|off-first` 控制配对执行顺序。comparison JSON 现在会为每个配置保留完整 `task_results`，并生成包含 selected/off 结果与指标差值的紧凑 `paired_tasks`。`retrieval-stability` 会在原有聚合相对差值之外增加 task-level 绝对配对方差；旧的 summary-only JSON 仍可读取，但会明确标记缺少逐任务数据。
 
 可以用 `--task <task_id>` 或 `--category <category>` 运行一小部分任务，方便调试某个 fixture 或 agent 行为。当前分类包括 `agent_loop`、`code_maintenance`、`code_quality`、`configuration`、`documentation`、`memory`、`multi_file`、`recovery`、`retrieval`、`security`、`tests` 和 `trace`。
 
 当前诚实状态：这是一个 40 任务确定性 benchmark，并且已经有 query-ranked local code retrieval、memory/context ablation、trace HTML、权限策略、CI 和真实 API agent 入口。retrieval 现在使用本地词法评分、区间合并、证据预算和条件式 schema gate。40-task 扩展 suite 的两次完整运行是 39/40 和重试加固后的 40/40。两次提示对齐、顺序相反的 8-task auto/off 配对中，四个配置行均通过 8/8；auto 都只启用 4/8，平均暴露 2.5 个 retrieval schema，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，时长减少 7.43%-30.32%，输出 token 减少 2.21%-16.61%。input-token 和估算成本在两轮间方向相反，因此不声称稳定的成本优势。
+
+历史 8-task comparison JSON 生成于逐任务结果保留功能之前，因此已提交的真实 agent stability 报告仍是聚合分析。新的 comparison 会自动保留逐任务数据；相反顺序的 scripted CLI 验证和测试覆盖 task-level 配对链路，但不会被包装成模型效率证据。
 
 ## Git Baseline
 
@@ -425,10 +427,10 @@ git diff -- .
 
 ## 下一步
 
-1. 本机安装 Docker Desktop 并复现 CI Docker smoke；CI runtime 报告作为跨平台 baseline。
-2. 在 comparison JSON 中保留每个任务结果，把 task-level 配对方差限制为最后一次纯评测改动。
-3. 增加 retrieval-dependent fixture 和可选本地 embedding/hybrid reranking backend，同时保留 lexical baseline。
-4. 只在衡量新 retrieval 路径时扩展 memory/context ablation。
-5. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证和 transport parity tests。
-6. 做一次最终跨功能验证，然后更新简历证据。
+1. 增加 retrieval-dependent fixture，让检索质量可以直接测量，而不只是可选工具。
+2. 增加可选本地 embedding/hybrid reranking backend，同时保留 lexical baseline。
+3. 使用 Recall@K/MRR 和聚焦的 agent-level 证据衡量新 retrieval 路径；只为此目的扩展 ablation。
+4. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
+5. 做一次 Docker + RAG + MCP 最终联合验证，然后更新简历证据。
+6. 需要本机 Windows 复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
 

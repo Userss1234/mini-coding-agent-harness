@@ -245,8 +245,13 @@ def build_retrieval_comparison_stability_report(
         for _, key in metric_specs
         if _direction_status([record[key] for record in records]) == "stable"
     )
+    task_variance_section = _retrieval_task_variance_section(runs)
+    task_detail_run_count = sum(
+        1 for run in runs if _paired_task_rows(run["report"])
+    )
     all_full_pass = all(record["selected_full_pass"] and record["off_full_pass"] for record in records)
     orders = _dedupe([str(record["order"]) for record in records])
+    modes = _dedupe([str(record["mode"]) for record in records])
     conclusion = (
         "task outcomes and all measured efficiency directions are stable"
         if all_full_pass and stable_direction_count == len(metric_specs)
@@ -264,6 +269,7 @@ def build_retrieval_comparison_stability_report(
 This report compares repeated retrieval-on/auto versus retrieval-off evaluations and checks whether paired conclusions survive a changed execution order.
 
 - Paired runs analyzed: **{len(records)}**
+- Evaluation modes: **{', '.join(f'`{mode}`' for mode in modes)}**
 - Execution orders covered: **{', '.join(f'`{order}`' for order in orders)}**
 - All selected/off configurations fully passed: **{'yes' if all_full_pass else 'no'}**
 - Metrics with a stable direction: **{stable_direction_count}/{len(metric_specs)}**
@@ -283,13 +289,15 @@ All deltas are `(selected retrieval - retrieval off) / retrieval off`; negative 
 |---|---:|---:|---|
 {metric_rows}
 
+{task_variance_section}
+
 ## Scope
 
-The comparison JSON stores configuration-level summaries, so this report measures aggregate paired stability rather than per-task paired variance. Keep the task set, model, provider settings, and prompts fixed when adding runs.
+{_retrieval_stability_scope(task_detail_run_count, len(runs))}
 
 ## Interpretation
 
-Use pass-rate stability as the quality guardrail and treat efficiency deltas as noisy model-backed measurements. A resume claim should use the observed range or describe the result as directional unless repeated runs keep the same sign.
+{_retrieval_stability_interpretation(modes)}
 """
 
 
@@ -507,6 +515,7 @@ def _retrieval_comparison_record(run: Mapping[str, Any]) -> dict[str, Any]:
         "label": str(run["label"]),
         "path": str(run["path"]),
         "order": order,
+        "mode": str(selected.get("mode", off.get("mode", "unknown"))),
         "selected_mode": str(selected.get("retrieval_mode", "selected")),
         "selected_passed": int(selected.get("passed", 0) or 0),
         "selected_tasks": int(selected.get("task_count", 0) or 0),
@@ -526,6 +535,201 @@ def _retrieval_comparison_record(run: Mapping[str, Any]) -> dict[str, Any]:
         "output_token_delta": _relative_delta(selected.get("total_output_tokens"), off.get("total_output_tokens")),
         "cost_delta": _relative_delta(selected.get("estimated_cost_usd"), off.get("estimated_cost_usd")),
     }
+
+
+def _retrieval_task_variance_section(
+    runs: Sequence[Mapping[str, Any]],
+) -> str:
+    detailed_runs: list[tuple[str, dict[str, Mapping[str, Any]]]] = []
+    for run in runs:
+        pairs = {
+            str(pair.get("task_id")): pair
+            for pair in _paired_task_rows(run["report"])
+            if pair.get("task_id")
+        }
+        if pairs:
+            detailed_runs.append((str(run["label"]), pairs))
+
+    if not detailed_runs:
+        return """## Task-Level Paired Variance
+
+- Runs with task detail: **0/{run_count}**
+- Status: **unavailable for legacy comparison JSON**
+
+The selected files predate `task_results` and `paired_tasks`. Rerun the same comparison command with the current harness to enable task-level outcome, tool-call, and direct-read variance without changing this CLI.
+""".format(run_count=len(runs))
+
+    task_ids = sorted({
+        task_id
+        for _, pairs in detailed_runs
+        for task_id in pairs
+    })
+    detailed_run_count = len(detailed_runs)
+    common_tasks = [
+        task_id
+        for task_id in task_ids
+        if all(task_id in pairs for _, pairs in detailed_runs)
+    ]
+    rows: list[str] = []
+    outcome_stable_count = 0
+    tool_direction_stable_count = 0
+    read_direction_stable_count = 0
+    unstable_tasks: list[str] = []
+
+    for task_id in task_ids:
+        observations = [
+            pair_map[task_id]
+            for _, pair_map in detailed_runs
+            if task_id in pair_map
+        ]
+        outcome_pairs = [_task_pair_outcome(pair) for pair in observations]
+        tool_deltas = [_task_pair_delta(pair, "tool_calls") for pair in observations]
+        read_deltas = [_task_pair_delta(pair, "read_file_calls") for pair in observations]
+        complete = len(observations) == detailed_run_count
+        outcome_stable = complete and len(set(outcome_pairs)) == 1 and "missing" not in outcome_pairs
+        tool_stable = complete and _direction_status(tool_deltas) == "stable"
+        read_stable = complete and _direction_status(read_deltas) == "stable"
+        if outcome_stable:
+            outcome_stable_count += 1
+        if tool_stable:
+            tool_direction_stable_count += 1
+        if read_stable:
+            read_direction_stable_count += 1
+        if not (outcome_stable and tool_stable and read_stable):
+            unstable_tasks.append(task_id)
+        rows.append(
+            "| `{task}` | {runs} | `{outcomes}` | {tool_delta} | {tool_direction} | "
+            "{read_delta} | {read_direction} |".format(
+                task=task_id,
+                runs=len(observations),
+                outcomes=" -> ".join(outcome_pairs),
+                tool_delta=_absolute_delta_summary(tool_deltas),
+                tool_direction=_direction_text(tool_deltas),
+                read_delta=_absolute_delta_summary(read_deltas),
+                read_direction=_direction_text(read_deltas),
+            )
+        )
+
+    repeated = detailed_run_count >= 2
+    conclusion = (
+        "repeated task-level paired variance measured"
+        if repeated
+        else "single detailed run only; task-level pairing is recorded but repeated variance is not yet measured"
+    )
+    return f"""## Task-Level Paired Variance
+
+Task deltas are absolute `selected retrieval - retrieval off` values. Negative values mean fewer calls under the selected retrieval strategy.
+
+- Runs with task detail: **{detailed_run_count}/{len(runs)}**
+- Common paired tasks across detailed runs: **{len(common_tasks)}**
+- Outcome-stable common tasks: **{outcome_stable_count}/{len(common_tasks)}**
+- Stable tool-call direction: **{tool_direction_stable_count}/{len(common_tasks)}**
+- Stable direct-read direction: **{read_direction_stable_count}/{len(common_tasks)}**
+- Tasks requiring review: **{_task_list_text(unstable_tasks)}**
+- Status: **{conclusion}**
+
+| Task | Runs | Selected/Off Outcomes | Tool Delta Mean [Range] | Tool Direction | read_file Delta Mean [Range] | read_file Direction |
+|---|---:|---|---:|---|---:|---|
+{chr(10).join(rows)}
+"""
+
+
+def _paired_task_rows(report: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    rows = report.get("paired_tasks")
+    if isinstance(rows, list):
+        return [row for row in rows if isinstance(row, Mapping)]
+    return []
+
+
+def _task_pair_outcome(pair: Mapping[str, Any]) -> str:
+    selected = pair.get("selected")
+    off = pair.get("off")
+    if (
+        not isinstance(selected, Mapping)
+        or not isinstance(off, Mapping)
+        or "success" not in selected
+        or "success" not in off
+    ):
+        return "missing"
+    selected_status = "P" if selected.get("success") else "F"
+    off_status = "P" if off.get("success") else "F"
+    return f"{selected_status}/{off_status}"
+
+
+def _task_pair_delta(pair: Mapping[str, Any], metric: str) -> float | None:
+    deltas = pair.get("deltas")
+    if isinstance(deltas, Mapping) and metric in deltas:
+        return _optional_float(deltas.get(metric))
+    selected = pair.get("selected")
+    off = pair.get("off")
+    if not isinstance(selected, Mapping) or not isinstance(off, Mapping):
+        return None
+    selected_value = _task_pair_metric(selected, metric)
+    off_value = _task_pair_metric(off, metric)
+    if selected_value is None or off_value is None:
+        return None
+    return selected_value - off_value
+
+
+def _task_pair_metric(values: Mapping[str, Any], metric: str) -> float | None:
+    if metric in values:
+        return _optional_float(values.get(metric))
+    if metric == "read_file_calls":
+        tool_counts = values.get("tool_counts")
+        if isinstance(tool_counts, Mapping):
+            return _optional_float(tool_counts.get("read_file", 0))
+    return None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _absolute_delta_summary(values: Sequence[float | None]) -> str:
+    known_values = [value for value in values if value is not None]
+    if not known_values:
+        return "n/a"
+    mean = sum(known_values) / len(known_values)
+    return f"{mean:+.2f} [{min(known_values):+.2f}, {max(known_values):+.2f}]"
+
+
+def _retrieval_stability_scope(task_detail_run_count: int, run_count: int) -> str:
+    if task_detail_run_count == run_count:
+        return (
+            "Current comparison JSON includes full `task_results` plus compact `paired_tasks`. "
+            "The report measures aggregate relative deltas and task-level absolute paired variance. "
+            "Keep the task set, model, provider settings, and prompts fixed when adding runs."
+        )
+    if task_detail_run_count:
+        return (
+            f"Only {task_detail_run_count}/{run_count} selected comparison files include task-level data. "
+            "The report shows available task pairs, but repeated variance claims require every selected "
+            "run to preserve the same task set."
+        )
+    return (
+        "The selected legacy comparison JSON stores configuration-level summaries, so this run can "
+        "measure only aggregate paired stability. New comparison JSON includes task-level data; "
+        "rerun the same command to enable paired variance."
+    )
+
+
+def _retrieval_stability_interpretation(modes: Sequence[str]) -> str:
+    if modes and all(mode == "agent" for mode in modes):
+        return (
+            "Use pass-rate stability as the quality guardrail and treat efficiency deltas as noisy "
+            "model-backed measurements. A resume claim should use the observed range or describe the "
+            "result as directional unless repeated runs keep the same sign."
+        )
+    return (
+        "Scripted comparisons validate the JSON pairing and variance-analysis path deterministically; "
+        "they do not establish model-efficiency improvements. Use repeated agent-mode pairs for "
+        "behavioral or resume claims."
+    )
 
 
 def _is_full_pass(summary: Mapping[str, Any]) -> bool:

@@ -521,6 +521,7 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert "1/1" in report
     assert (tmp_path / "eval_runs" / "compare" / "memory-on_context-on" / "syntax_check.jsonl").exists()
     compare_json = json.loads((tmp_path / "COMPARE.json").read_text(encoding="utf-8"))
+    assert compare_json["schema_version"] == 2
     assert len(compare_json["comparison"]) == 4
     assert compare_json["comparison"][0]["task_count"] == 1
     assert compare_json["comparison"][0]["retrieval_enabled"] is False
@@ -529,6 +530,13 @@ def test_run_evaluation_comparison_report(tmp_path: Path) -> None:
     assert "average_preflight_raw_chars" in compare_json["comparison"][0]
     assert "average_preflight_injected_chars" in compare_json["comparison"][0]
     assert "tool_counts" in compare_json["comparison"][0]
+    assert set(compare_json["task_results"]) == {
+        "memory-on_context-on",
+        "memory-off_context-on",
+        "memory-on_context-off",
+        "memory-off_context-off",
+    }
+    assert compare_json["task_results"]["memory-on_context-on"][0]["task_id"] == "syntax_check"
 
 
 def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
@@ -553,6 +561,7 @@ def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
     assert (tmp_path / "eval_runs" / "compare_retrieval" / "retrieval-on" / "syntax_check.jsonl").exists()
     assert (tmp_path / "eval_runs" / "compare_retrieval" / "retrieval-off" / "syntax_check.jsonl").exists()
     compare_json = json.loads((tmp_path / "RETRIEVAL_COMPARE.json").read_text(encoding="utf-8"))
+    assert compare_json["schema_version"] == 2
     assert compare_json["comparison_kind"] == "retrieval"
     assert compare_json["execution_order"] == ["retrieval-on", "retrieval-off"]
     assert compare_json["selected_retrieval_mode"] == "on"
@@ -561,6 +570,16 @@ def test_run_retrieval_comparison_report(tmp_path: Path) -> None:
     assert compare_json["comparison"][0]["retrieval_mode"] == "on"
     assert compare_json["comparison"][1]["retrieval_enabled"] is False
     assert compare_json["comparison"][1]["retrieval_mode"] == "off"
+    assert set(compare_json["task_results"]) == {"retrieval-on", "retrieval-off"}
+    assert len(compare_json["paired_tasks"]) == 1
+    task_pair = compare_json["paired_tasks"][0]
+    assert task_pair["task_id"] == "syntax_check"
+    assert task_pair["selected_label"] == "retrieval-on"
+    assert task_pair["off_label"] == "retrieval-off"
+    assert task_pair["selected"]["success"] is True
+    assert task_pair["off"]["success"] is True
+    assert "tool_calls" in task_pair["deltas"]
+    assert "read_file_calls" in task_pair["deltas"]
 
 
 def test_auto_retrieval_comparison_uses_auto_and_off_labels(tmp_path: Path) -> None:
@@ -607,6 +626,8 @@ def test_retrieval_comparison_can_run_off_first(tmp_path: Path) -> None:
     assert compare_json["execution_order"] == ["retrieval-off", "retrieval-auto"]
     assert compare_json["comparison"][0]["retrieval_mode"] == "off"
     assert compare_json["comparison"][1]["retrieval_mode"] == "auto"
+    assert compare_json["paired_tasks"][0]["selected_label"] == "retrieval-auto"
+    assert compare_json["paired_tasks"][0]["off_label"] == "retrieval-off"
 
 
 def test_retrieval_comparison_rejects_unknown_execution_order(tmp_path: Path) -> None:

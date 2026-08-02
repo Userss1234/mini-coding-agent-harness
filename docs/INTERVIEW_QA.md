@@ -169,7 +169,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. It has harness-level permission controls, not OS sandboxing. Retrieval is lexical, not embedding-based. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
+The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval is lexical, not embedding-based. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
 
 Evidence:
 
@@ -178,13 +178,15 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating and the first order-varied stability check are complete. Two prompt-aligned 8-task pairs ran in opposite orders; all four configuration rows passed 8/8, auto activated retrieval on 4/8 tasks in both runs, tool calls stayed 7.41%-17.73% lower, and direct reads stayed 14.29%-15.38% lower. Input-token and cost direction changed between runs, so the project does not claim stable cost savings. Next, preserve per-task comparison rows and time-box task-level paired variance. Docker execution isolation is implemented; the following major stages are retrieval-dependent fixtures plus optional hybrid reranking, then MCP Streamable HTTP and one final cross-feature validation.
+Conditional gating, order-varied aggregate stability, per-task comparison retention, and task-level paired variance support are complete. The historical 8-task real-agent JSON remains summary-only and is not rewritten; current runs automatically store `task_results` and `paired_tasks`, while legacy inputs receive an explicit unavailable marker. Docker execution isolation is also implemented. The next major stage is RAG 2.0: retrieval-dependent fixtures, optional hybrid reranking, and Recall@K/MRR, followed by MCP Streamable HTTP and one final cross-feature validation.
 
 Evidence:
 
 - `README.md` Next Steps
 - `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`
 - `reports/RETRIEVAL_GATING_STABILITY.md`
+- `tests/test_eval_analysis.py`
+- `tests/test_evaluation.py`
 
 ## 18. How should you summarize this on a resume?
 

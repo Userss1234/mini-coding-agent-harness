@@ -5,6 +5,7 @@
 This report compares repeated retrieval-on/auto versus retrieval-off evaluations and checks whether paired conclusions survive a changed execution order.
 
 - Paired runs analyzed: **2**
+- Evaluation modes: **`agent`**
 - Execution orders covered: **`selected-first`, `off-first`**
 - All selected/off configurations fully passed: **yes**
 - Metrics with a stable direction: **4/6**
@@ -30,9 +31,17 @@ All deltas are `(selected retrieval - retrieval off) / retrieval off`; negative 
 | Output tokens | -9.41% | -16.61% to -2.21% | `stable: lower` |
 | Estimated cost | -12.60% | -27.07% to +1.87% | `mixed: higher -> lower` |
 
+## Task-Level Paired Variance
+
+- Runs with task detail: **0/2**
+- Status: **unavailable for legacy comparison JSON**
+
+The selected files predate `task_results` and `paired_tasks`. Rerun the same comparison command with the current harness to enable task-level outcome, tool-call, and direct-read variance without changing this CLI.
+
+
 ## Scope
 
-The comparison JSON stores configuration-level summaries, so this report measures aggregate paired stability rather than per-task paired variance. Keep the task set, model, provider settings, and prompts fixed when adding runs.
+The selected legacy comparison JSON stores configuration-level summaries, so this run can measure only aggregate paired stability. New comparison JSON includes task-level data; rerun the same command to enable paired variance.
 
 ## Interpretation
 
