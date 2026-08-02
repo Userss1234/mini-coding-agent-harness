@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from harness.agent import run_agent
 from harness.demo import run_demo
+from harness.docker_smoke import run_docker_smoke
 from harness.eval_analysis import (
     analyze_eval_reports,
     build_eval_history,
@@ -159,6 +161,16 @@ def cmd_demo(args) -> None:
     print(f"Trace report written to {result.html_path.resolve()}")
 
 
+def cmd_docker_smoke(args) -> None:
+    report = run_docker_smoke(
+        Path(args.workspace),
+        Path(args.output) if args.output else None,
+    )
+    print(report)
+    if args.output:
+        print(f"Docker smoke report written to {Path(args.output).resolve()}")
+
+
 def cmd_mcp_server(args) -> None:
     server = build_mcp_server(
         Path(args.workspace),
@@ -187,6 +199,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--trace", default="trace.jsonl", help="JSONL trace output path")
     parser.add_argument("--fresh-trace", action="store_true", help="Delete the trace file before running")
     parser.add_argument("--allow-write", action="store_true", help="Allow tools to overwrite existing files")
+    parser.add_argument(
+        "--execution-backend",
+        choices=["host", "docker"],
+        help="Run shell, tests, and Python compilation on the host or in the configured Docker sandbox",
+    )
 
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -210,6 +227,17 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--output-dir", default="artifacts/demo", help="Directory for demo workspace and reports")
     demo.add_argument("--keep-existing", action="store_true", help="Reuse the existing demo workspace instead of resetting it")
     demo.set_defaults(func=cmd_demo)
+
+    docker_smoke = sub.add_parser(
+        "docker-smoke",
+        help="Verify the configured Docker sandbox boundaries and write a report",
+    )
+    docker_smoke.add_argument(
+        "--output",
+        default="reports/DOCKER_SANDBOX_SMOKE.md",
+        help="Docker smoke report path",
+    )
+    docker_smoke.set_defaults(func=cmd_docker_smoke)
 
     mcp_server = sub.add_parser("mcp-server", help="Expose registered tools over MCP stdio")
     mcp_server.set_defaults(func=cmd_mcp_server)
@@ -343,6 +371,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    if args.execution_backend:
+        os.environ["HARNESS_EXECUTION_BACKEND"] = args.execution_backend
     args.func(args)
 
 

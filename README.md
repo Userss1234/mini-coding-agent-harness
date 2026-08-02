@@ -29,7 +29,8 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
 - **Ablations:** Memory/context comparison over 2 tasks plus paired 8-task retrieval experiments. Two prompt-aligned, order-varied auto/off runs kept all four configuration rows at 8/8; auto activated retrieval on 4/8 tasks, halved average model-facing retrieval schemas, reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%, while input-token and cost direction remained variable.
-- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, and MCP smoke validation.
+- **Docker execution:** pluggable host/Docker command backends route shell, pytest, and compilation through one execution boundary. Docker mode is non-root, network-disabled, capability-dropped, resource-limited, timeout-cleaned, and fail-closed unless host fallback is explicitly enabled.
+- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted benchmark, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke.
 - **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md), [`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md), and [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md).
 
 ## Portfolio Walkthrough
@@ -105,6 +106,7 @@ Current capabilities:
 - Deterministic Markdown/JSON evaluation reports with per-task traces
 - GitHub Actions CI for tests, compilation, benchmark, trace-report artifacts, and MCP protocol smoke checks
 - Machine-readable permission policy reports for workspace, shell, Git, and sandbox boundaries
+- Pluggable host/Docker execution for shell, pytest, and Python compilation with traceable isolation metadata
 
 ## Architecture
 
@@ -179,6 +181,8 @@ python main.py eval --mode scripted
 python main.py eval --mode scripted --json-output EVAL.json
 python main.py eval --mode scripted --compare --task syntax_check
 python main.py eval --mode scripted --compare-retrieval --task syntax_check
+python main.py --execution-backend docker eval --mode scripted --task syntax_check --task pytest_suite
+python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --task python_bugfix --task multi_file_service_fix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --retrieval-compare-order off-first --task python_bugfix --task multi_file_service_fix
@@ -203,6 +207,8 @@ Local demo flow:
 ```
 
 The demo writes generated output under `artifacts/demo/python_bugfix/`. Committed demo samples are available in `reports/DEMO_python_bugfix.md` and `reports/DEMO_python_bugfix_TRACE.html`.
+
+Docker execution setup and trust boundaries are documented in [`docs/DOCKER_SANDBOX.md`](docs/DOCKER_SANDBOX.md).
 
 Optional model-driven loop:
 
@@ -321,6 +327,7 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 - run the full scripted benchmark into Markdown and JSON artifacts
 - render one sample trace as `TRACE.html`
 - run an MCP protocol smoke check and upload `MCP_SMOKE.md`
+- build the Docker sandbox image and require its non-root/workspace/network smoke test to pass
 
 ## Evaluation
 
@@ -420,15 +427,15 @@ After the initial baseline commit, future tool changes and generated report chan
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
 - Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
-- Shell/Git permission checks use an allowlist and `shell=False`, including through MCP, but they are not a real OS sandbox.
-- MCP support is stdio-only and does not yet implement HTTP/SSE transport, OAuth, or resource subscriptions.
+- Host execution still relies on the harness allowlist and `shell=False`. Docker mode adds container isolation and resource limits, but it is not a VM or absolute security boundary, and the workspace mount remains writable.
+- MCP support is stdio-only and does not yet implement Streamable HTTP, authentication, or resource subscriptions.
 - Workflow memory is not full RAG: it ranks local Markdown memories lexically rather than using embeddings or a vector database.
 
 ## Next Steps
 
-1. Preserve per-task results inside comparison JSON and extend `retrieval-stability` from aggregate rows to task-level paired variance.
-2. Add retrieval-dependent fixtures where retrieval-off has a measurable quality or exploration disadvantage, then rerun the order-controlled comparison before tuning the gate threshold.
-3. Expand memory/context ablation to a representative multi-file task set.
-4. Add an optional embedding/reranking backend behind the existing local retrieval interface while retaining lexical retrieval as the offline baseline.
-5. Add optional MCP HTTP/SSE transport and OS-level sandboxing.
-6. Add a third hardened 40-task run or a second provider/model when another API becomes available.
+1. Install Docker Desktop locally and reproduce the CI Docker smoke on Windows; keep the CI runtime report as the committed cross-platform baseline.
+2. Preserve per-task results inside comparison JSON and time-box task-level paired variance as the final evaluation-only change.
+3. Add retrieval-dependent fixtures plus an optional local embedding/hybrid reranking backend while retaining lexical retrieval as the offline baseline.
+4. Expand memory/context ablation only as needed to measure the new retrieval path.
+5. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, and transport parity tests.
+6. Run one final cross-feature validation and then update resume evidence.

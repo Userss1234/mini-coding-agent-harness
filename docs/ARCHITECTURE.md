@@ -21,8 +21,13 @@ flowchart TD
     Model --> ToolUse["Tool request"]
     ToolUse --> Registry["ToolRegistry.call"]
     Registry --> Policy["Permission policy"]
-    Policy --> Tools["File, shell, Git, tests, memory, RAG, reports"]
+    Policy --> Tools["File, Git, memory, RAG, reports"]
+    Policy --> Execute["Shell / tests / compile"]
+    Execute --> Backend{"Execution backend"}
+    Backend --> Host["Host subprocess"]
+    Backend --> Docker["Restricted Docker container"]
     Tools --> Trace["TraceLogger JSONL"]
+    Backend --> Trace
     Trace --> Agent
 
     Trace --> Compact["compact_context"]
@@ -42,7 +47,7 @@ flowchart TD
 2. Agent mode builds a `ToolRegistry` and starts `harness.agent.run_agent()`.
 3. The retrieval strategy is resolved before the first model turn. `on` always preloads bounded evidence, `auto` scores task-complexity signals, and `off` suppresses retrieval.
 4. The model returns either text or a tool request.
-5. Every tool request goes through `ToolRegistry.call(...)`, which applies permission policy before dispatching.
+5. Every tool request goes through `ToolRegistry.call(...)`, which applies permission policy before dispatching. Shell, test, and compilation commands then cross the selected host/Docker executor boundary.
 6. Tool results are written to append-only JSONL through `TraceLogger`.
 7. Failed tools can trigger `retry_plan` feedback; long traces can be summarized with `compact_context`.
 8. Eval runs verify the final workspace state and write Markdown/JSON reports.
@@ -55,6 +60,8 @@ flowchart TD
 | `main.py` | CLI entry point for agent runs, evals, report analysis, trace rendering, demos, and MCP. |
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
+| `harness/execution.py` | Host and Docker command executors, resource policy, environment filtering, and timeout cleanup. |
+| `harness/docker_smoke.py` | Runtime verification for non-root execution, workspace mounting, and disabled networking. |
 | `harness/retrieval.py` | Local lexical chunk retrieval, read-plan generation, safe path filtering. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, verifiers, order-controlled comparisons, report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
@@ -77,6 +84,12 @@ flowchart LR
 ```
 
 The important design choice is that the model cannot directly touch the filesystem, shell, Git, tests, memory, or reports. It can only request registered tools. The harness then decides whether and how to execute the request.
+
+## Execution Boundary
+
+`shell`, `run_tests`, and `run_py_compile` share one executor interface. Host mode preserves the original subprocess behavior. Docker mode starts an ephemeral, named container with no network, a non-root UID, a read-only root filesystem, dropped capabilities, `no-new-privileges`, CPU/memory/PID limits, and a bounded tmpfs. The workspace is the only bind mount. Timeout handling forcibly removes the named container.
+
+Docker is an additional containment layer, not an absolute sandbox. Tool permission checks remain authoritative, provider credentials are not forwarded, and explicit host fallback is trace-visible.
 
 ## Retrieval Boundary
 
@@ -148,6 +161,7 @@ MCP exposes selected project documents and reports, including evaluation history
 ## Current Limits
 
 - Permission checks are harness-level, not OS-level sandboxing.
+- Docker execution adds an optional container boundary, but the default backend remains host and the writable workspace mount is still in scope.
 - Retrieval is lexical, not embedding-based.
 - MCP is stdio-only.
 - The deterministic suite has 40 tasks. Two complete expanded-suite DeepSeek runs passed 39/40 and 40/40. The only first-run interruption was a provider HTTP 503 before verification; after transient model retries increased from 2 to 4, the second complete run passed all tasks. The stability report records 39 stable passes and one provider-affected fail-to-pass task.

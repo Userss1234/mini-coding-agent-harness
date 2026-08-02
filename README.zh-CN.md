@@ -29,7 +29,8 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **真实 Agent eval：**将瞬时请求重试从 2 次提高到 4 次后，DeepSeek `deepseek-chat` 在第二次完整扩展 suite 中一次性通过 40/40。第一次运行仍诚实保留为 39/40，原因是 verifier 前的一次 provider HTTP 503；仓库已提交 39/40 -> 40/40 的重复运行证据。
 - **Recovery fix：**第二次全量运行后收紧 `error_recovery` agent prompt；定向验证和修复后 36-task 全量验证均通过，并保留预期的 `edit_match_failed` 恢复路径证据。
 - **Ablation：**已提交 2 任务 memory/context 对比和多轮 8-task retrieval 配对实验。两次提示对齐、顺序相反的 auto/off 运行中，四个配置行均为 8/8；auto 都只在 4/8 任务启用 retrieval，将平均模型可见 schema 减半，工具调用减少 7.41%-17.73%，直接读取减少 14.29%-15.38%，但 input-token 和成本方向仍有波动。
-- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML 渲染和 MCP smoke 验证。
+- **Docker execution：**可插拔 host/Docker 后端让 Shell、pytest 和 Python 编译共用一个执行边界。Docker 模式默认非 root、关闭网络、移除 capabilities、限制资源、超时清理，并在未显式允许 host fallback 时 fail closed。
+- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
 - **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_GATING_STABILITY.md`](reports/RETRIEVAL_GATING_STABILITY.md)、[`reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md) 和 [`reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md`](reports/AGENT_EVAL_40_TASKS_PROVIDER_RECOVERY.md)。
 
 ## Portfolio Walkthrough
@@ -99,6 +100,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - 生成带每任务 trace 的确定性 Markdown/JSON 评估报告
 - GitHub Actions CI 会运行测试、语法检查、benchmark、trace-report artifact 和 MCP 协议 smoke 检查
 - 生成机器可读的权限策略报告，说明 workspace、Shell、Git 和 sandbox 边界
+- Shell、pytest 和 Python 编译支持可插拔 host/Docker execution backend，并记录隔离策略元数据
 
 ## 架构
 
@@ -172,6 +174,8 @@ python main.py eval --mode scripted
 python main.py eval --mode scripted --json-output EVAL.json
 python main.py eval --mode scripted --compare --task syntax_check
 python main.py eval --mode scripted --compare-retrieval --task syntax_check
+python main.py --execution-backend docker eval --mode scripted --task syntax_check --task pytest_suite
+python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
 python main.py eval --mode agent --retrieval off --task python_bugfix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --task python_bugfix --task multi_file_service_fix
 python main.py eval --mode agent --retrieval auto --compare-retrieval --retrieval-compare-order off-first --task python_bugfix --task multi_file_service_fix
@@ -314,6 +318,7 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 - 运行完整 scripted benchmark，并生成 Markdown 和 JSON artifact
 - 将一个 sample trace 渲染成 `TRACE.html`
 - 运行 MCP 协议 smoke 检查，并上传 `MCP_SMOKE.md`
+- 构建 Docker sandbox 镜像，并要求非 root/workspace/network runtime smoke 通过
 
 ## 评估
 
@@ -412,16 +417,16 @@ git diff -- .
 - workflow memory 可以按 query 排序并注入 agent 评估提示，但排序仍然是词法匹配，还不是 embedding 检索。
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。
 - retry/backoff 已能以最多 4 次重试处理临时性模型/API 失败，并处理非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
-- Shell/Git 权限检查已经使用 allowlist 和 `shell=False`，MCP 调用也走同一套策略，但还不是真正的 OS 沙箱。
-- MCP 当前是 stdio-only；还没有实现 HTTP/SSE transport、OAuth 或 resource subscriptions。
+- Host backend 仍只依赖 allowlist 和 `shell=False`。Docker backend 增加容器和资源隔离，但不是 VM 或绝对安全边界，且 workspace mount 仍可写。
+- MCP 当前是 stdio-only；还没有实现 Streamable HTTP、认证或 resource subscriptions。
 - workflow memory 不是完整 RAG：当前是本地 Markdown 工作流记忆的词法相关性排序，还没有 embedding、向量库或 rerank。
 
 ## 下一步
 
-1. 在 comparison JSON 中保留每个任务的结果，把 `retrieval-stability` 从配置汇总扩展到 task-level 配对方差。
-2. 增加 retrieval-off 会出现可测质量或探索劣势的 retrieval-dependent fixture，再做顺序受控对比后才调整 gate 阈值。
-3. 将 memory/context ablation 扩展到一组有代表性的跨文件任务。
-4. 在现有本地 retrieval 接口后增加可选 embedding/reranking backend，同时保留词法检索作为离线 baseline。
-5. 增加可选 MCP HTTP/SSE transport 和 OS 级沙箱。
-6. 再增加一次加固后的 40-task 全量运行；有第二个模型 API 后再做跨 provider/model 对比。
+1. 本机安装 Docker Desktop 并复现 CI Docker smoke；CI runtime 报告作为跨平台 baseline。
+2. 在 comparison JSON 中保留每个任务结果，把 task-level 配对方差限制为最后一次纯评测改动。
+3. 增加 retrieval-dependent fixture 和可选本地 embedding/hybrid reranking backend，同时保留 lexical baseline。
+4. 只在衡量新 retrieval 路径时扩展 memory/context ablation。
+5. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证和 transport parity tests。
+6. 做一次最终跨功能验证，然后更新简历证据。
 

@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+.venv
+__pycache__
+.pytest_cache
+artifacts
+eval_runs
+reports
+skills
+*.pyc
+*.pyo

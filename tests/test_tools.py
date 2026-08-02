@@ -26,7 +26,22 @@ def test_python_scan_ignores_generated_artifacts(tmp_path: Path) -> None:
     assert listed.ok
     assert listed.output == "main.py"
     assert compiled.ok
-    assert compiled.metadata == {"checked": 1, "errors": 0}
+    assert compiled.metadata["checked"] == 1
+    assert compiled.metadata["errors"] == 0
+    assert compiled.metadata["execution_backend"] == "host"
+
+
+def test_python_compile_reports_syntax_errors_without_writing_pycache(tmp_path: Path) -> None:
+    (tmp_path / "broken.py").write_text("def broken(:\n", encoding="utf-8")
+    registry = make_registry(tmp_path)
+
+    result = registry.call("run_py_compile")
+
+    assert not result.ok
+    assert "broken.py: SyntaxError" in result.output
+    assert result.metadata["checked"] == 1
+    assert result.metadata["errors"] == 1
+    assert not (tmp_path / "__pycache__").exists()
 
 
 def test_edit_file_replaces_exactly_once_and_records_diff(tmp_path: Path) -> None:

@@ -56,12 +56,15 @@ Evidence:
 
 ## 6. Is this a real sandbox?
 
-No. It is a harness-level permission system, not an OS-level sandbox. That distinction matters: the project blocks dangerous operations through its own tool policy, but it does not isolate processes like a container, VM, or seccomp profile.
+The default host backend is still a harness-level permission system, not an OS sandbox. The optional Docker backend adds a real container boundary for shell, pytest, and compilation: non-root execution, disabled networking, dropped capabilities, a read-only root filesystem, resource limits, and timeout cleanup. It is still not a VM or absolute security boundary, and the writable workspace mount remains accessible inside the container.
 
 Evidence:
 
 - `README.md` Current Limitations
 - `permission_policy` tool output
+- `harness/execution.py`
+- `docs/DOCKER_SANDBOX.md`
+- `tests/test_execution.py`
 
 ## 7. How does RAG work in this project?
 
@@ -174,7 +177,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating and the first order-varied stability check are complete. Two prompt-aligned 8-task pairs ran in opposite orders; all four configuration rows passed 8/8, auto activated retrieval on 4/8 tasks in both runs, tool calls stayed 7.41%-17.73% lower, and direct reads stayed 14.29%-15.38% lower. Input-token and cost direction changed between runs, so the project does not claim stable cost savings. Next, preserve per-task comparison rows, add retrieval-dependent fixtures, and measure task-level paired variance before tuning the gate threshold. After that, expand memory/context ablation, add an optional embedding/reranking backend, remote MCP transport, and OS-level sandboxing.
+Conditional gating and the first order-varied stability check are complete. Two prompt-aligned 8-task pairs ran in opposite orders; all four configuration rows passed 8/8, auto activated retrieval on 4/8 tasks in both runs, tool calls stayed 7.41%-17.73% lower, and direct reads stayed 14.29%-15.38% lower. Input-token and cost direction changed between runs, so the project does not claim stable cost savings. Next, preserve per-task comparison rows and time-box task-level paired variance. Docker execution isolation is implemented; the following major stages are retrieval-dependent fixtures plus optional hybrid reranking, then MCP Streamable HTTP and one final cross-feature validation.
 
 Evidence:
 

@@ -46,6 +46,15 @@ jobs:
         run: |
           python main.py --workspace . --trace artifacts/mcp_smoke_trace.jsonl mcp-smoke --output artifacts/MCP_SMOKE.md
 
+      - name: Build Docker sandbox image
+        run: |
+          docker build --file docker/sandbox/Dockerfile --tag mini-coding-agent-harness-sandbox:latest .
+
+      - name: Run Docker sandbox smoke
+        run: |
+          python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
+          grep -F "Status: **pass**" artifacts/DOCKER_SANDBOX_SMOKE.md
+
       - name: Upload validation artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -5,9 +5,7 @@ import difflib
 import fnmatch
 import importlib.util
 import json
-import os
 from pathlib import Path
-import py_compile
 import shutil
 import shlex
 import sys
@@ -15,6 +13,7 @@ import subprocess
 import time
 from typing import Any, Callable
 
+from .execution import CommandExecutor, ExecutionResult, build_executor
 from .retrieval import (
     build_workspace_index,
     explain_retrieval_plan,
@@ -58,6 +57,8 @@ class ToolRegistry:
         self.allow_write = allow_write
         self.max_tool_retries = max_tool_retries
         self.retry_delay = retry_delay
+        self.execution_backend = "host"
+        self.execution_policy: dict[str, object] = {}
         self._tools: dict[str, Tool] = {}
         self.metrics: dict[str, int] = {
             "read_cache_hits": 0,
@@ -174,6 +175,23 @@ class ToolRegistry:
 
 SHELL_OPERATOR_MARKERS = ["&&", "||", ";", "|", ">", "<", "\n", "\r"]
 
+PYTHON_SYNTAX_CHECK_SCRIPT = """import ast
+import sys
+import tokenize
+
+errors = []
+for name in sys.argv[1:]:
+    try:
+        with tokenize.open(name) as source_file:
+            source = source_file.read()
+        compile(source, name, "exec", ast.PyCF_ONLY_AST, dont_inherit=True)
+    except Exception as exc:
+        errors.append(f"{name}: {type(exc).__name__}: {exc}")
+if errors:
+    print("\\n".join(errors))
+    raise SystemExit(1)
+"""
+
 ALLOWED_SHELL_COMMANDS = {
     "cat",
     "dir",
@@ -237,6 +255,34 @@ def is_transient_exception(exc: Exception) -> bool:
         "504",
     ]
     return any(marker in name or marker in text for marker in transient_markers)
+
+
+def _execution_tool_metadata(
+    result: ExecutionResult,
+    argv: list[str],
+) -> dict[str, Any]:
+    return {
+        "returncode": result.returncode,
+        "duration_seconds": result.duration_seconds,
+        "timed_out": result.timed_out,
+        "error": result.error,
+        "argv": [str(item) for item in argv],
+        "shell": False,
+        "execution_backend": result.backend,
+        "execution": result.metadata,
+    }
+
+
+def _execution_error_text(
+    result: ExecutionResult,
+    fallback: str,
+    timeout_text: str | None = None,
+) -> str:
+    if result.timed_out:
+        return timeout_text or fallback
+    if result.error:
+        return f"{result.error}: {result.stderr.strip() or fallback}"
+    return fallback
 
 
 def shell_permission_decision(command: str) -> str:
@@ -335,7 +381,11 @@ def build_registry(
     max_tool_retries: int = 1,
     retry_delay: float = 0.05,
     enable_context_pack: bool = True,
+    execution_backend: str | None = None,
+    executor: CommandExecutor | None = None,
 ) -> ToolRegistry:
+    workspace = workspace.resolve()
+    executor = executor or build_executor(workspace, execution_backend)
     registry = ToolRegistry(
         workspace,
         trace,
@@ -343,6 +393,8 @@ def build_registry(
         max_tool_retries=max_tool_retries,
         retry_delay=retry_delay,
     )
+    registry.execution_backend = executor.backend
+    registry.execution_policy = executor.describe()
     read_cache: dict[tuple[Any, ...], str] = {}
 
     def list_python_files(include_venv: bool = False) -> ToolResult:
@@ -1058,6 +1110,7 @@ def build_registry(
         return ToolResult(True, "\n".join(matches) if matches else "(no matches)")
 
     def permission_policy() -> ToolResult:
+        execution = executor.describe()
         metadata = {
             "workspace": str(workspace),
             "allow_write": registry.allow_write,
@@ -1068,6 +1121,9 @@ def build_registry(
             "shell_operator_markers": SHELL_OPERATOR_MARKERS,
             "allowed_shell_commands": sorted(ALLOWED_SHELL_COMMANDS),
             "read_only_git_subcommands": sorted(READ_ONLY_GIT_SUBCOMMANDS),
+            "execution_backend": executor.backend,
+            "execution": execution,
+            "container_isolation": bool(execution.get("containerized")),
             "os_sandbox": False,
         }
         lines = [
@@ -1081,7 +1137,12 @@ def build_registry(
             f"- Allowed shell executables: {', '.join(metadata['allowed_shell_commands'])}",
             f"- Read-only Git subcommands: {', '.join(metadata['read_only_git_subcommands'])}",
             "- Force flags and mutating Git subcommands are blocked.",
-            "- This is a harness permission policy, not an OS-level sandbox.",
+            f"- Command execution backend: {executor.backend}.",
+            (
+                "- Docker execution adds container, network, capability, and resource boundaries; it is not a VM security boundary."
+                if execution.get("containerized")
+                else "- Host execution uses harness policy only and is not an OS-level sandbox."
+            ),
         ]
         return ToolResult(True, "\n".join(lines), metadata)
 
@@ -1167,39 +1228,51 @@ def build_registry(
         if not tokens:
             return ToolResult(False, "Could not parse shell command", {"argv": [], "shell": False})
         executable = Path(tokens[0]).name.lower()
-        if executable in {"ls", "dir"}:
+        if executable in {"ls", "dir"} and executor.backend == "host":
             return _shell_list_directory(workspace, tokens)
-        try:
-            completed = subprocess.run(
-                tokens,
-                cwd=workspace,
-                shell=False,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout,
-            )
-        except FileNotFoundError as exc:
-            return ToolResult(False, f"Executable not found: {tokens[0]}", {"argv": tokens, "shell": False, "error": str(exc)})
-        output = ((completed.stdout or "") + (completed.stderr or "")).strip()
+        if executor.backend == "docker" and executable == "dir":
+            tokens[0] = "ls"
+        executed = executor.run(tokens, timeout=int(timeout))
+        output = executed.output
         return ToolResult(
-            completed.returncode == 0,
-            output or "(no output)",
-            {"returncode": completed.returncode, "argv": tokens, "shell": False},
+            executed.returncode == 0 and not executed.timed_out,
+            output or _execution_error_text(
+                executed,
+                "Command failed without output",
+                f"Command timed out after {timeout} seconds",
+            ),
+            _execution_tool_metadata(executed, tokens),
         )
 
     def run_py_compile() -> ToolResult:
         files = [Path(line) for line in list_python_files().output.splitlines() if line.strip()]
-        errors: list[str] = []
-        for rel in files:
-            try:
-                py_compile.compile(str(workspace / rel), doraise=True)
-            except Exception as exc:
-                errors.append(f"{rel}: {type(exc).__name__}: {exc}")
-        if errors:
-            return ToolResult(False, "\n".join(errors), {"checked": len(files), "errors": len(errors)})
-        return ToolResult(True, f"Parsed OK: {len(files)} Python files", {"checked": len(files), "errors": 0})
+        if not files:
+            return ToolResult(True, "Parsed OK: 0 Python files", {
+                "checked": 0,
+                "errors": 0,
+                "execution_backend": executor.backend,
+                "execution": executor.describe(),
+            })
+        command = [
+            executor.python_executable,
+            "-c",
+            PYTHON_SYNTAX_CHECK_SCRIPT,
+            *(str(path) for path in files),
+        ]
+        executed = executor.run(
+            command,
+            timeout=120,
+            env={"PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        metadata = _execution_tool_metadata(executed, command)
+        metadata.update({"checked": len(files), "errors": 0 if executed.returncode == 0 else 1})
+        if executed.returncode != 0 or executed.timed_out:
+            return ToolResult(
+                False,
+                executed.output or _execution_error_text(executed, "Python compilation failed"),
+                metadata,
+            )
+        return ToolResult(True, f"Parsed OK: {len(files)} Python files", metadata)
 
     def git_diff() -> ToolResult:
         started = time.perf_counter()
@@ -1241,64 +1314,41 @@ def build_registry(
         )
 
     def run_tests(timeout: int = 120, target: str = "auto") -> ToolResult:
-        if importlib.util.find_spec("pytest") is None:
+        if executor.backend == "host" and importlib.util.find_spec("pytest") is None:
             return ToolResult(
                 False,
                 "pytest is not installed; install pytest or add it to requirements.txt to run tests.",
                 {"pytest_available": False},
             )
 
-        started = time.perf_counter()
-        command = [sys.executable, "-m", "pytest", "--rootdir=."]
+        command = [executor.python_executable, "-m", "pytest", "--rootdir=."]
         resolved_target = _resolve_pytest_target(workspace, target)
         if resolved_target:
             command.append(resolved_target)
         cleared_pycache_dirs = _clear_pycache_dirs(workspace)
-        env = os.environ.copy()
-        existing_pythonpath = env.get("PYTHONPATH")
-        env["PYTHONPATH"] = str(workspace) if not existing_pythonpath else os.pathsep.join([str(workspace), existing_pythonpath])
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-        try:
-            completed = subprocess.run(
-                command,
-                cwd=workspace,
-                env=env,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout,
-            )
-        except subprocess.TimeoutExpired as exc:
-            duration = time.perf_counter() - started
-            output = ((exc.stdout or "") + (exc.stderr or "")).strip()
-            return ToolResult(
-                False,
-                output or f"pytest timed out after {timeout} seconds",
-                {
-                    "returncode": None,
-                    "duration_seconds": round(duration, 3),
-                    "pytest_available": True,
-                    "timed_out": True,
-                    "command": " ".join(command),
-                    "target": resolved_target,
-                    "cleared_pycache_dirs": cleared_pycache_dirs,
-                },
-            )
-        duration = time.perf_counter() - started
-        output = ((completed.stdout or "") + (completed.stderr or "")).strip()
-        return ToolResult(
-            completed.returncode == 0,
-            output or "(no test output)",
-            {
-                "returncode": completed.returncode,
-                "duration_seconds": round(duration, 3),
-                "pytest_available": True,
-                "timed_out": False,
-                "command": " ".join(command),
-                "target": resolved_target,
-                "cleared_pycache_dirs": cleared_pycache_dirs,
+        executed = executor.run(
+            command,
+            timeout=int(timeout),
+            env={
+                "PYTHONPATH": executor.workspace_path,
+                "PYTHONDONTWRITEBYTECODE": "1",
             },
+        )
+        metadata = _execution_tool_metadata(executed, command)
+        metadata.update({
+            "pytest_available": True,
+            "command": " ".join(command),
+            "target": resolved_target,
+            "cleared_pycache_dirs": cleared_pycache_dirs,
+        })
+        return ToolResult(
+            executed.returncode == 0 and not executed.timed_out,
+            executed.output or _execution_error_text(
+                executed,
+                "pytest failed without output",
+                f"pytest timed out after {timeout} seconds",
+            ),
+            metadata,
         )
 
     registry.register(Tool(
