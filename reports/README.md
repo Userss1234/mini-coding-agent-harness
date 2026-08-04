@@ -14,6 +14,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 
 - `MCP_SMOKE.md`: in-process MCP protocol smoke report covering initialize, tools, resources, resource templates, prompts, and a permission-policy tool call.
 - `MCP_HTTP_SMOKE.md`: localhost Streamable HTTP smoke report covering Bearer authentication, Origin rejection, session lifecycle, JSON/405 behavior, and stdio tool parity.
+- `CROSS_FEATURE_VALIDATION.md`: passing Docker runtime markers plus a live cached MiniLM `rag_search` call through authenticated MCP HTTP.
 
 ## Execution Isolation
 

@@ -190,7 +190,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating, Docker execution isolation, local hybrid RAG, focused backend agent evidence, and the MCP Streamable HTTP compatibility transport are complete. The next stage is one final Docker + hybrid RAG + MCP validation and evidence refresh. Retrieval should only reopen for evidence-consumption work or a reverse-order stability pair; the newer MCP protocol surface should only be claimed after official SDK v2 migration and parity validation.
+Conditional gating, Docker execution isolation, local hybrid RAG, focused backend agent evidence, MCP Streamable HTTP, and the cross-feature validation path are complete. The committed combined report uses real cached MiniLM retrieval over HTTP plus existing Docker CI runtime evidence; the immediate operational step is to trigger the manual CI job so Docker is rebuilt in the same workflow before the report artifact is generated. After that, the project is resume-ready at this scope. The next protocol step is optional official SDK v2 migration with parity proof, not more one-off feature expansion.
 
 Evidence:
 
@@ -200,12 +200,13 @@ Evidence:
 - `tests/test_eval_analysis.py`
 - `tests/test_evaluation.py`
 - `reports/RETRIEVAL_QUALITY_BASELINE.md`
+- `reports/CROSS_FEATURE_VALIDATION.md`
 
 ## 18. How should you summarize this on a resume?
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, backend-controlled paired agent evaluation, execution traces, and shared MCP stdio/Streamable HTTP exposure with Origin, Bearer, and session controls; validated a 40-task deterministic suite and used separate ranking/agent evidence to avoid overstating hybrid gains.
+Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, Docker-isolated command execution, lexical/local-hybrid RAG, paired agent evaluation, execution traces, and shared MCP stdio/Streamable HTTP exposure with Origin, Bearer, and session controls; validated a 40-task deterministic suite and a focused cross-feature path without claiming that embeddings run inside the container or improve agent efficiency.
 
 Evidence:
 
@@ -214,3 +215,4 @@ Evidence:
 - `reports/EVAL_STABILITY_40_TASKS.md`
 - `reports/MCP_SMOKE.md`
 - `reports/MCP_HTTP_SMOKE.md`
+- `reports/CROSS_FEATURE_VALIDATION.md`

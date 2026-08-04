@@ -57,6 +57,9 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 10. Open `reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`.
    Explain that ranking gains were tested separately from agent workflow gains. The lexical-first 8-task pair did not show hybrid efficiency gains and exposed a verifier hardcoded to lexical metadata even though hybrid ranked the target first. The defect was fixed, a targeted pair passed on both backends, and the original report was preserved rather than rewritten.
 
+11. Open `reports/CROSS_FEATURE_VALIDATION.md`.
+   Show the final integration evidence: six Docker runtime markers pass, an authenticated MCP HTTP session selects `local_chunk_hybrid_scoring`, MiniLM returns `harness/mcp_http.py` in the top three, and the warm rerun exercises the incremental embedding-cache hit path. State the boundary clearly: Docker execution and hybrid retrieval are joined as evidence, but MiniLM is not claimed to run inside the sandbox.
+
 ## Key Architecture Points
 
 - `main.py` wires the CLI commands to the agent loop, evaluation runner, report analyzers, trace renderer, and MCP server.
@@ -80,6 +83,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Added an optional Docker command backend and CI runtime proof for non-root execution, workspace visibility, and blocked outbound networking while preserving the tool permission layer.
 - Added optional local MiniLM hybrid retrieval with lexical/semantic fusion and incremental document-embedding caching; improved the same 10-query judged fixture from 0.8000 to 0.9000 MRR and recovered both retained semantic cases at rank 2.
 - Added order-controlled lexical/hybrid agent comparison with task-level pairs and cache metrics, then used the first focused run to find and fix a backend-biased verifier without claiming unsupported agent-efficiency gains.
+- Added a focused Docker + hybrid RAG + MCP validation command and manual CI job; the committed warm run exercised embedding-cache hits and returned implementation evidence through authenticated HTTP.
 
 ## Claims To Avoid
 

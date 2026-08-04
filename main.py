@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from harness.agent import run_agent
+from harness.cross_feature_smoke import run_cross_feature_smoke
 from harness.demo import run_demo
 from harness.docker_smoke import run_docker_smoke
 from harness.eval_analysis import (
@@ -283,6 +284,19 @@ def cmd_mcp_http_smoke(args) -> None:
     print(f"MCP HTTP smoke report written to {Path(args.output).resolve()}")
 
 
+def cmd_cross_feature_smoke(args) -> None:
+    report = run_cross_feature_smoke(
+        Path(args.workspace),
+        Path(args.trace),
+        Path(args.docker_report),
+        Path(args.output),
+        fresh_trace=args.fresh_trace,
+        allow_model_download=args.allow_model_download,
+    )
+    print(report)
+    print(f"Cross-feature report written to {Path(args.output).resolve()}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Mini Coding Agent Harness")
     parser.add_argument("--workspace", default=".", help="Repository workspace to inspect")
@@ -381,6 +395,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP smoke report path",
     )
     mcp_http_smoke.set_defaults(func=cmd_mcp_http_smoke)
+
+    cross_feature_smoke = sub.add_parser(
+        "cross-feature-smoke",
+        help="Validate Docker evidence plus a live hybrid retrieval call over MCP HTTP",
+    )
+    cross_feature_smoke.add_argument(
+        "--docker-report",
+        default="reports/DOCKER_SANDBOX_SMOKE.md",
+        help="Passing Docker runtime report to inspect",
+    )
+    cross_feature_smoke.add_argument(
+        "--output",
+        default="reports/CROSS_FEATURE_VALIDATION.md",
+        help="Combined validation report path",
+    )
+    cross_feature_smoke.add_argument(
+        "--allow-model-download",
+        action="store_true",
+        help="Allow the MiniLM preflight to download missing model files; default is cache-only",
+    )
+    cross_feature_smoke.set_defaults(func=cmd_cross_feature_smoke)
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")

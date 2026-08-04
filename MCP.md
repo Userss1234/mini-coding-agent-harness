@@ -87,7 +87,9 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
-`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, lexical/hybrid retrieval quality, focused retrieval-backend agent evidence and analysis, `reports/MCP_HTTP_SMOKE.md`, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, lexical/hybrid retrieval quality, focused retrieval-backend agent evidence and analysis, `reports/MCP_HTTP_SMOKE.md`, `reports/CROSS_FEATURE_VALIDATION.md`, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+
+For the final focused path, `cross-feature-smoke` checks a passing Docker runtime report and performs a live `rag_search` call with `backend=hybrid` through an authenticated localhost HTTP session. It defaults to cache-only model loading so a missing MiniLM cache fails quickly; `--allow-model-download` is explicit and is used by the manual CI job.
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 

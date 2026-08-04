@@ -69,3 +69,50 @@ jobs:
         with:
           name: validation-artifacts
           path: artifacts/
+
+  cross-feature:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+          cache-dependency-path: pyproject.toml
+
+      - name: Cache MiniLM model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: ${{ runner.os }}-minilm-l6-v2-v1
+
+      - name: Install base and retrieval dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[retrieval]"
+
+      - name: Build Docker sandbox image
+        run: |
+          docker build --file docker/sandbox/Dockerfile --tag mini-coding-agent-harness-sandbox:latest .
+
+      - name: Generate current Docker runtime evidence
+        run: |
+          python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
+          grep -F "Status: **pass**" artifacts/DOCKER_SANDBOX_SMOKE.md
+
+      - name: Run Docker hybrid RAG MCP cross-feature validation
+        run: |
+          python main.py --workspace . --trace artifacts/cross_feature_trace.jsonl --fresh-trace cross-feature-smoke --allow-model-download --docker-report artifacts/DOCKER_SANDBOX_SMOKE.md --output artifacts/CROSS_FEATURE_VALIDATION.md
+          grep -F "Status: **pass**" artifacts/CROSS_FEATURE_VALIDATION.md
+          grep -F "local_chunk_hybrid_scoring" artifacts/CROSS_FEATURE_VALIDATION.md
+
+      - name: Upload cross-feature evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-feature-validation
+          path: artifacts/

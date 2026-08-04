@@ -153,6 +153,7 @@ The committed reports show the project as an evaluated system, not only an imple
 - `reports/EVAL_STABILITY.md`
 - `reports/MCP_SMOKE.md`
 - `reports/MCP_HTTP_SMOKE.md`
+- `reports/CROSS_FEATURE_VALIDATION.md`
 
 ## MCP Surface
 
@@ -171,6 +172,8 @@ flowchart LR
 ```
 
 MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence. The HTTP boundary defaults to localhost, validates exact browser Origins, requires a static Bearer token unless localhost development explicitly disables it, issues expiring session IDs, and supports DELETE termination. It returns JSON for POST and 405 for GET rather than advertising an SSE stream.
+
+The focused cross-feature command keeps evidence ownership explicit: it inspects a real Docker runtime report for non-root/workspace/network/no-fallback markers, then performs a live hybrid retrieval call through MCP HTTP and requires the implementation path in the top three results. The report does not claim the embedding model executes inside the container.
 
 ## What To Emphasize In Interviews
 

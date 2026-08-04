@@ -90,6 +90,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 - [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): localhost Streamable HTTP authentication, Origin, session lifecycle, and stdio parity evidence.
+- [`reports/CROSS_FEATURE_VALIDATION.md`](reports/CROSS_FEATURE_VALIDATION.md): passing Docker runtime markers plus a live cached MiniLM retrieval call through authenticated MCP HTTP.
 
 ## What It Does
 
@@ -346,7 +347,7 @@ The default URL is `http://127.0.0.1:8000/mcp`. The server validates browser Ori
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/retrieval-quality`, `harness://reports/retrieval-hybrid`, `harness://reports/retrieval-backend-agent`, `harness://reports/retrieval-backend-analysis`, `harness://reports/mcp-http-smoke`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. Committed protocol evidence is available in `reports/MCP_SMOKE.md` and `reports/MCP_HTTP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/retrieval-quality`, `harness://reports/retrieval-hybrid`, `harness://reports/retrieval-backend-agent`, `harness://reports/retrieval-backend-analysis`, `harness://reports/mcp-http-smoke`, `harness://reports/cross-feature`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. Committed protocol evidence is available in `reports/MCP_SMOKE.md`, `reports/MCP_HTTP_SMOKE.md`, and `reports/CROSS_FEATURE_VALIDATION.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 
@@ -363,6 +364,8 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 - run an MCP protocol smoke check and upload `MCP_SMOKE.md`
 - run the localhost MCP Streamable HTTP security/parity smoke and upload `MCP_HTTP_SMOKE.md`
 - build the Docker sandbox image and require its non-root/workspace/network smoke test to pass
+
+`workflow_dispatch` also starts a focused `cross-feature` job. It installs the optional retrieval dependencies, caches MiniLM, rebuilds the Docker image, generates current Docker runtime evidence, and runs live hybrid `rag_search` through MCP HTTP before uploading `CROSS_FEATURE_VALIDATION.md`.
 
 ## Evaluation
 
@@ -469,11 +472,12 @@ After the initial baseline commit, future tool changes and generated report chan
 - Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
 - Host execution still relies on the harness allowlist and `shell=False`. Docker mode adds container isolation and resource limits, but it is not a VM or absolute security boundary, and the workspace mount remains writable.
 - MCP supports stdio and a `2025-11-25`-compatible Streamable HTTP JSON-response profile with static Bearer authentication, Origin validation, and expiring sessions. It does not implement the full OAuth flow, SSE resumability/event replay, the newer `2026-07-28` protocol surface, or resource subscriptions.
+- The committed cross-feature report joins a live local hybrid call over MCP HTTP with the committed Docker CI runtime report; it explicitly does not claim that MiniLM runs inside the Docker sandbox. The dedicated manual CI job rebuilds Docker before regenerating the combined artifact.
 - Workflow memory is not full RAG: it ranks local Markdown memories lexically rather than using embeddings or a vector database.
 
 ## Next Steps
 
-1. Run one final Docker + hybrid RAG + MCP cross-feature validation and update resume evidence.
-2. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
-3. Evaluate the official MCP Python SDK v2 before claiming the newer `2026-07-28` protocol surface; preserve the current tested compatibility path until parity is proven.
-4. Install Docker Desktop when local Windows reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.
+1. Trigger the manual cross-feature GitHub Actions job after this change is pushed and retain its passing artifact as the current same-run Docker + hybrid RAG + MCP evidence.
+2. Evaluate the official MCP Python SDK v2 before claiming the newer `2026-07-28` protocol surface; preserve the current tested compatibility path until parity is proven.
+3. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
+4. Install Docker Desktop only when local Windows container reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.

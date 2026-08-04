@@ -113,6 +113,7 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
     (reports / "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md").write_text("# Retrieval Backend Agent\n", encoding="utf-8")
     (reports / "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md").write_text("# Retrieval Backend Analysis\n", encoding="utf-8")
     (reports / "MCP_HTTP_SMOKE.md").write_text("# MCP HTTP Smoke\n", encoding="utf-8")
+    (reports / "CROSS_FEATURE_VALIDATION.md").write_text("# Cross Feature Validation\n", encoding="utf-8")
     (reports / "DOCKER_SANDBOX_SMOKE.md").write_text("# Docker Sandbox Smoke Report\n", encoding="utf-8")
     server = build_mcp_server(tmp_path, tmp_path / "mcp_trace.jsonl", fresh_trace=True)
 
@@ -170,6 +171,7 @@ def test_mcp_resources_expose_eval_retrieval_and_docker_reports(tmp_path: Path) 
     assert resources["harness://reports/retrieval-backend-agent"]["name"] == "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS"
     assert resources["harness://reports/retrieval-backend-analysis"]["name"] == "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS"
     assert resources["harness://reports/mcp-http-smoke"]["name"] == "MCP_HTTP_SMOKE"
+    assert resources["harness://reports/cross-feature"]["name"] == "CROSS_FEATURE_VALIDATION"
     assert resources["harness://reports/docker-sandbox"]["name"] == "DOCKER_SANDBOX_SMOKE"
     assert history["result"]["contents"][0]["text"] == "# Eval History Report\n"
     assert failures["result"]["contents"][0]["text"] == "# Eval Failure Dashboard\n"
