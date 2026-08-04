@@ -139,14 +139,17 @@ Evidence:
 
 ## 13. What does MCP add?
 
-MCP exposes the same permission-checked tool registry through a stdio server. It also exposes selected read-only resources, workspace resource templates, and prompt templates. This lets an MCP client inspect the same tools and evidence without bypassing the harness policy.
+MCP exposes the same permission-checked tool registry through stdio and a `2025-11-25`-compatible Streamable HTTP transport. HTTP adds localhost-safe binding, exact Origin validation, static Bearer authentication, cryptographically random expiring sessions, and DELETE termination. It returns JSON for POST and 405 for GET, while both transports reuse `MCPToolServer` and `ToolRegistry.call(...)` instead of duplicating business logic.
 
 Evidence:
 
 - `harness/mcp_server.py`
+- `harness/mcp_http.py`
 - `MCP.md`
 - `tests/test_mcp_server.py`
+- `tests/test_mcp_http.py`
 - `reports/MCP_SMOKE.md`
+- `reports/MCP_HTTP_SMOKE.md`
 
 ## 14. What did the benchmark validate?
 
@@ -178,7 +181,7 @@ Evidence:
 
 ## 16. What are the main limitations?
 
-The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval defaults to lexical; the optional embedding backend has a 10-query project-specific ranking benchmark, no vector database, and only one lexical-first focused agent pair. That pair found no hybrid efficiency gain and therefore does not support agent-level superiority claims. MCP is stdio-only. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
+The current system is not a full autonomous software engineer. Host execution remains policy-only; optional Docker execution adds a container boundary but not a VM or absolute sandbox. Retrieval defaults to lexical; the optional embedding backend has a 10-query project-specific ranking benchmark, no vector database, and only one lexical-first focused agent pair. That pair found no hybrid efficiency gain and therefore does not support agent-level superiority claims. MCP HTTP uses static Bearer authentication rather than full OAuth and does not implement SSE replay or the newer `2026-07-28` protocol surface. The two complete expanded-suite runs passed 39/40 and 40/40; 39 tasks were stable passes, while `shell_no_shell_execution` remains a fail-to-pass stability case because its first run stopped on a provider HTTP 503 before verification.
 
 Evidence:
 
@@ -187,7 +190,7 @@ Evidence:
 
 ## 17. What would you improve next?
 
-Conditional gating, Docker execution isolation, local hybrid RAG, and focused backend agent evidence are complete. The agent pair did not justify more retrieval tuning: it found no hybrid workflow advantage and instead exposed a backend-biased verifier, which now has targeted post-fix evidence. The next stage is MCP Streamable HTTP, followed by one final Docker + hybrid RAG + MCP validation. Retrieval should only reopen for evidence-consumption work or a reverse-order stability pair.
+Conditional gating, Docker execution isolation, local hybrid RAG, focused backend agent evidence, and the MCP Streamable HTTP compatibility transport are complete. The next stage is one final Docker + hybrid RAG + MCP validation and evidence refresh. Retrieval should only reopen for evidence-consumption work or a reverse-order stability pair; the newer MCP protocol surface should only be claimed after official SDK v2 migration and parity validation.
 
 Evidence:
 
@@ -202,7 +205,7 @@ Evidence:
 
 Use a claim that stays grounded:
 
-Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, incremental embedding caching, backend-controlled paired agent evaluation, execution traces, MCP resources/prompts, and a 40-task deterministic suite; improved the project-specific 10-query retrieval result from 0.8000 to 0.9000 MRR, then used an 8-task agent pair to identify and fix a lexical-only verifier contract without overstating hybrid workflow gains.
+Implemented a lightweight Coding Agent Harness for repository maintenance with permission-checked tools, optional Docker execution, lexical/local-hybrid RAG preflight, backend-controlled paired agent evaluation, execution traces, and shared MCP stdio/Streamable HTTP exposure with Origin, Bearer, and session controls; validated a 40-task deterministic suite and used separate ranking/agent evidence to avoid overstating hybrid gains.
 
 Evidence:
 
@@ -210,3 +213,4 @@ Evidence:
 - `reports/AGENT_EVAL_40_TASKS_RUN2.md`
 - `reports/EVAL_STABILITY_40_TASKS.md`
 - `reports/MCP_SMOKE.md`
+- `reports/MCP_HTTP_SMOKE.md`

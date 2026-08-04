@@ -15,6 +15,8 @@ from harness.eval_analysis import (
     build_stability_report,
 )
 from harness.evaluation import run_evaluation
+from harness.mcp_http import build_mcp_http_server, serve_streamable_http
+from harness.mcp_http_smoke import run_mcp_http_smoke
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
 from harness.review import inspect_repo
@@ -223,6 +225,40 @@ def cmd_mcp_server(args) -> None:
     serve_stdio(server)
 
 
+def cmd_mcp_http(args) -> None:
+    auth_token = None if args.no_auth else os.getenv(args.auth_token_env)
+    if not auth_token and not args.no_auth:
+        raise SystemExit(
+            f"MCP HTTP requires a Bearer token in {args.auth_token_env}; "
+            "use --no-auth only for explicit localhost development."
+        )
+    server = build_mcp_http_server(
+        Path(args.workspace),
+        Path(args.trace),
+        allow_write=args.allow_write,
+        fresh_trace=args.fresh_trace,
+        host=args.host,
+        port=args.port,
+        endpoint=args.endpoint,
+        auth_token=auth_token,
+        allowed_origins=args.allow_origin,
+        allow_remote=args.allow_remote,
+        allow_unauthenticated=args.no_auth,
+        session_ttl_seconds=args.session_ttl,
+    )
+    host, port = server.server_address[:2]
+    print(
+        f"MCP Streamable HTTP listening on http://{host}:{port}{server.config.endpoint}",
+        flush=True,
+    )
+    print(
+        "Authentication: "
+        + (f"Bearer token from {args.auth_token_env}" if auth_token else "disabled for explicit localhost development"),
+        flush=True,
+    )
+    serve_streamable_http(server)
+
+
 def cmd_mcp_smoke(args) -> None:
     report = run_mcp_smoke(
         Path(args.workspace),
@@ -233,6 +269,18 @@ def cmd_mcp_smoke(args) -> None:
     )
     print(report)
     print(f"MCP smoke report written to {Path(args.output).resolve()}")
+
+
+def cmd_mcp_http_smoke(args) -> None:
+    report = run_mcp_http_smoke(
+        Path(args.workspace),
+        Path(args.trace),
+        Path(args.output),
+        allow_write=args.allow_write,
+        fresh_trace=args.fresh_trace,
+    )
+    print(report)
+    print(f"MCP HTTP smoke report written to {Path(args.output).resolve()}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -284,9 +332,55 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_server = sub.add_parser("mcp-server", help="Expose registered tools over MCP stdio")
     mcp_server.set_defaults(func=cmd_mcp_server)
 
+    mcp_http = sub.add_parser(
+        "mcp-http",
+        help="Expose registered tools over MCP Streamable HTTP with JSON responses",
+    )
+    mcp_http.add_argument("--host", default="127.0.0.1", help="HTTP bind host")
+    mcp_http.add_argument("--port", type=int, default=8000, help="HTTP bind port")
+    mcp_http.add_argument("--endpoint", default="/mcp", help="Single MCP HTTP endpoint path")
+    mcp_http.add_argument(
+        "--auth-token-env",
+        default="HARNESS_MCP_AUTH_TOKEN",
+        help="Environment variable containing the static Bearer token",
+    )
+    mcp_http.add_argument(
+        "--allow-origin",
+        action="append",
+        help="Allowed browser Origin; repeat as needed (defaults to the bound localhost port)",
+    )
+    mcp_http.add_argument(
+        "--session-ttl",
+        type=int,
+        default=3600,
+        help="Idle session lifetime in seconds",
+    )
+    mcp_http.add_argument(
+        "--allow-remote",
+        action="store_true",
+        help="Explicitly permit binding outside localhost; authentication remains required",
+    )
+    mcp_http.add_argument(
+        "--no-auth",
+        action="store_true",
+        help="Disable Bearer authentication for explicit localhost development only",
+    )
+    mcp_http.set_defaults(func=cmd_mcp_http)
+
     mcp_smoke = sub.add_parser("mcp-smoke", help="Run an in-process MCP protocol smoke test and write a report")
     mcp_smoke.add_argument("--output", default="reports/MCP_SMOKE.md", help="Smoke report path")
     mcp_smoke.set_defaults(func=cmd_mcp_smoke)
+
+    mcp_http_smoke = sub.add_parser(
+        "mcp-http-smoke",
+        help="Run a localhost MCP Streamable HTTP security and parity smoke test",
+    )
+    mcp_http_smoke.add_argument(
+        "--output",
+        default="reports/MCP_HTTP_SMOKE.md",
+        help="HTTP smoke report path",
+    )
+    mcp_http_smoke.set_defaults(func=cmd_mcp_http_smoke)
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")

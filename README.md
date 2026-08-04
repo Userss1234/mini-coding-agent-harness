@@ -89,6 +89,7 @@ Show these committed artifacts while explaining the system:
 - [`docs/HYBRID_RETRIEVAL.md`](docs/HYBRID_RETRIEVAL.md): optional dependency, backend configuration, cache design, measured evidence, and honest limits.
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
+- [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): localhost Streamable HTTP authentication, Origin, session lifecycle, and stdio parity evidence.
 
 ## What It Does
 
@@ -120,7 +121,7 @@ Current capabilities:
 - Error recovery suggestions for failed tool calls
 - Evidence-backed repository review generation
 - Static HTML trace report generation
-- MCP stdio server exposing the same permission-checked tool registry, selected resources, and prompt templates
+- MCP stdio and Streamable HTTP transports exposing the same permission-checked tool registry, selected resources, and prompt templates
 - Deterministic Markdown/JSON evaluation reports with per-task traces
 - GitHub Actions CI for tests, compilation, benchmark, trace-report artifacts, and MCP protocol smoke checks
 - Machine-readable permission policy reports for workspace, shell, Git, and sandbox boundaries
@@ -322,7 +323,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 
 ## MCP Server
 
-The harness exposes the same permission-checked `ToolRegistry` through a minimal MCP stdio server:
+The harness exposes the same permission-checked `ToolRegistry` through MCP stdio and a `2025-11-25`-compatible Streamable HTTP transport. Start stdio with:
 
 ```powershell
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
@@ -334,9 +335,18 @@ Use `--allow-write` before `mcp-server` when the client should be allowed to edi
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp-server
 ```
 
+Start the localhost HTTP endpoint with a dedicated Bearer token:
+
+```powershell
+$env:HARNESS_MCP_AUTH_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+python main.py --workspace . --trace artifacts/mcp_http_trace.jsonl mcp-http
+```
+
+The default URL is `http://127.0.0.1:8000/mcp`. The server validates browser Origins, requires authentication, issues expiring `MCP-Session-Id` values, supports explicit DELETE termination, and refuses non-local binding unless `--allow-remote` is supplied. It returns JSON for POST and 405 for GET because SSE delivery is outside the current scope.
+
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 
-The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/retrieval-quality`, `harness://reports/retrieval-hybrid`, `harness://reports/retrieval-backend-agent`, `harness://reports/retrieval-backend-analysis`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. A committed protocol transcript is available in `reports/MCP_SMOKE.md`.
+The server also supports `resources/templates/list` for safe workspace text resources such as `harness://workspace/README.md`. Committed report resources include `harness://reports/eval-history`, `harness://reports/retrieval-quality`, `harness://reports/retrieval-hybrid`, `harness://reports/retrieval-backend-agent`, `harness://reports/retrieval-backend-analysis`, `harness://reports/mcp-http-smoke`, and `harness://reports/docker-sandbox`. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked. Committed protocol evidence is available in `reports/MCP_SMOKE.md` and `reports/MCP_HTTP_SMOKE.md`.
 
 For client integration, copy `examples/mcp_config.example.json` and replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout path.
 
@@ -351,6 +361,7 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 - run the judged lexical retrieval benchmark and enforce its MRR/Recall@5 gates
 - render one sample trace as `TRACE.html`
 - run an MCP protocol smoke check and upload `MCP_SMOKE.md`
+- run the localhost MCP Streamable HTTP security/parity smoke and upload `MCP_HTTP_SMOKE.md`
 - build the Docker sandbox image and require its non-root/workspace/network smoke test to pass
 
 ## Evaluation
@@ -457,12 +468,12 @@ After the initial baseline commit, future tool changes and generated report chan
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.
 - Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
 - Host execution still relies on the harness allowlist and `shell=False`. Docker mode adds container isolation and resource limits, but it is not a VM or absolute security boundary, and the workspace mount remains writable.
-- MCP support is stdio-only and does not yet implement Streamable HTTP, authentication, or resource subscriptions.
+- MCP supports stdio and a `2025-11-25`-compatible Streamable HTTP JSON-response profile with static Bearer authentication, Origin validation, and expiring sessions. It does not implement the full OAuth flow, SSE resumability/event replay, the newer `2026-07-28` protocol surface, or resource subscriptions.
 - Workflow memory is not full RAG: it ranks local Markdown memories lexically rather than using embeddings or a vector database.
 
 ## Next Steps
 
-1. Add MCP Streamable HTTP with localhost-safe defaults, Origin validation, authentication, session handling, and transport parity tests.
-2. Run one final Docker + hybrid RAG + MCP cross-feature validation and update resume evidence.
-3. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
+1. Run one final Docker + hybrid RAG + MCP cross-feature validation and update resume evidence.
+2. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
+3. Evaluate the official MCP Python SDK v2 before claiming the newer `2026-07-28` protocol surface; preserve the current tested compatibility path until parity is proven.
 4. Install Docker Desktop when local Windows reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.

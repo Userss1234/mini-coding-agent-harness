@@ -84,6 +84,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/EVAL_HISTORY.md`](reports/EVAL_HISTORY.md)：展示 18/20 到 20/20 改进轨迹的趋势报告。
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md)：展示 tools、resources 和 prompts 的 MCP 协议 transcript。
+- [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md)：展示 localhost Streamable HTTP 的认证、Origin、session 生命周期和 stdio 一致性证据。
 
 ## 项目能做什么
 
@@ -114,7 +115,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - 对失败工具调用生成错误恢复建议
 - 生成有证据来源的仓库审查报告
 - 生成静态 HTML trace 报告
-- 通过 MCP stdio server 暴露同一套带权限检查的工具注册表、部分只读资源和 prompt 模板
+- 通过 MCP stdio 和 Streamable HTTP 暴露同一套带权限检查的工具注册表、部分只读资源和 prompt 模板
 - 生成带每任务 trace 的确定性 Markdown/JSON 评估报告
 - GitHub Actions CI 会运行测试、语法检查、benchmark、trace-report artifact 和 MCP 协议 smoke 检查
 - 生成机器可读的权限策略报告，说明 workspace、Shell、Git 和 sandbox 边界
@@ -311,7 +312,7 @@ python main.py eval-failures --run before-prompt-contract=reports/AGENT_EVAL_20_
 
 ## MCP Server
 
-harness 现在可以把同一套带权限检查的 `ToolRegistry` 暴露为最小 MCP stdio server：
+harness 现在可以通过 MCP stdio 和兼容 `2025-11-25` 的 Streamable HTTP 暴露同一套带权限检查的 `ToolRegistry`。启动 stdio：
 
 ```powershell
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
@@ -323,9 +324,18 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp-server
 ```
 
+使用独立 Bearer token 启动 localhost HTTP endpoint：
+
+```powershell
+$env:HARNESS_MCP_AUTH_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+python main.py --workspace . --trace artifacts/mcp_http_trace.jsonl mcp-http
+```
+
+默认 URL 是 `http://127.0.0.1:8000/mcp`。server 会校验浏览器 Origin、要求认证、签发带过期时间的 `MCP-Session-Id`、支持 DELETE 主动结束 session，并在未显式传入 `--allow-remote` 时拒绝非本机监听。POST 返回 JSON；因为当前不实现 SSE delivery，GET 返回 405。
+
 当前支持的 MCP 方法包括：`initialize`、`notifications/initialized`、`ping`、`tools/list`、`tools/call`、`resources/list`、`resources/read`、`resources/templates/list`、`prompts/list` 和 `prompts/get`。`MCP.md` 里有消息示例和边界说明。
 
-server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/retrieval-quality`、`harness://reports/retrieval-hybrid`、`harness://reports/retrieval-backend-agent`、`harness://reports/retrieval-backend-analysis` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议交互 transcript 在 `reports/MCP_SMOKE.md`。
+server 也支持 `resources/templates/list`，用于安全读取 workspace 文本资源，例如 `harness://workspace/README.md`。已提交报告资源包括 `harness://reports/eval-history`、`harness://reports/retrieval-quality`、`harness://reports/retrieval-hybrid`、`harness://reports/retrieval-backend-agent`、`harness://reports/retrieval-backend-analysis`、`harness://reports/mcp-http-smoke` 和 `harness://reports/docker-sandbox`。`.env`、`.git`、`artifacts` 和 `eval_runs` 等敏感或生成路径会被阻断。已提交的协议证据在 `reports/MCP_SMOKE.md` 和 `reports/MCP_HTTP_SMOKE.md`。
 
 如果要接入支持 MCP 的客户端，可以复制 `examples/mcp_config.example.json`，把 `/absolute/path/to/mini-coding-agent-harness` 替换成本地项目绝对路径。
 
@@ -340,6 +350,7 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 - 运行带相关性标注的 lexical retrieval benchmark，并执行 MRR/Recall@5 门槛
 - 将一个 sample trace 渲染成 `TRACE.html`
 - 运行 MCP 协议 smoke 检查，并上传 `MCP_SMOKE.md`
+- 运行 localhost MCP Streamable HTTP 安全性/一致性 smoke，并上传 `MCP_HTTP_SMOKE.md`
 - 构建 Docker sandbox 镜像，并要求非 root/workspace/network runtime smoke 通过
 
 ## 评估
@@ -444,13 +455,13 @@ git diff -- .
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。
 - retry/backoff 已能以最多 4 次重试处理临时性模型/API 失败，并处理非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
 - Host backend 仍只依赖 allowlist 和 `shell=False`。Docker backend 增加容器和资源隔离，但不是 VM 或绝对安全边界，且 workspace mount 仍可写。
-- MCP 当前是 stdio-only；还没有实现 Streamable HTTP、认证或 resource subscriptions。
+- MCP 已支持 stdio，以及兼容 `2025-11-25` 的 Streamable HTTP JSON-response profile，包含静态 Bearer 认证、Origin 校验和过期 session；还没有实现完整 OAuth、SSE resumability/event replay、较新的 `2026-07-28` 协议 surface 或 resource subscriptions。
 - workflow memory 不是完整 RAG：当前是本地 Markdown 工作流记忆的词法相关性排序，还没有 embedding、向量库或 rerank。
 
 ## 下一步
 
-1. 增加 MCP Streamable HTTP、localhost 安全默认值、Origin 校验、认证、session handling 和 transport parity tests。
-2. 做一次 Docker + hybrid RAG + MCP 最终联合验证，然后更新简历证据。
-3. 只有在改进 agent evidence consumption 或运行 hybrid-first 稳定性 pair 时再回到 retrieval；不要根据一次 agent 结果调 fusion 权重。
+1. 做一次 Docker + hybrid RAG + MCP 最终联合验证，然后更新简历证据。
+2. 只有在改进 agent evidence consumption 或运行 hybrid-first 稳定性 pair 时再回到 retrieval；不要根据一次 agent 结果调 fusion 权重。
+3. 在声称支持较新的 `2026-07-28` 协议 surface 前评估官方 MCP Python SDK v2；在一致性验证完成前保留当前已测试的 compatibility path。
 4. 需要本机 Windows 复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
 

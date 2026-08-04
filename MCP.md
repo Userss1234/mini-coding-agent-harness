@@ -1,6 +1,6 @@
 # MCP Server
 
-The project exposes its existing `ToolRegistry`, selected project reports, and task prompt templates through a minimal MCP stdio server.
+The project exposes its existing `ToolRegistry`, selected project reports, and task prompt templates through MCP stdio and a `2025-11-25`-compatible Streamable HTTP transport. Both transports delegate to the same protocol methods and permission-checked registry implementation.
 
 ## Run
 
@@ -15,6 +15,36 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl --allow-write mcp
 ```
 
 `stdout` is reserved for JSON-RPC MCP messages. Operational trace data is written to the trace file.
+
+### Streamable HTTP
+
+Generate a dedicated local Bearer token and start the HTTP server:
+
+```powershell
+$env:HARNESS_MCP_AUTH_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+python main.py --workspace . --trace artifacts/mcp_http_trace.jsonl mcp-http
+```
+
+The endpoint is `http://127.0.0.1:8000/mcp`. Clients send `Authorization: Bearer <value-from-HARNESS_MCP_AUTH_TOKEN>` and an `Accept` header containing both `application/json` and `text/event-stream`. Initialization returns `MCP-Session-Id`; subsequent POST, GET, and DELETE requests reuse that header and may send `MCP-Protocol-Version: 2025-11-25`.
+
+HTTP defaults are intentionally restrictive:
+
+- bind to `127.0.0.1`;
+- require a Bearer token from `HARNESS_MCP_AUTH_TOKEN`;
+- allow only the bound `127.0.0.1` and `localhost` browser origins unless `--allow-origin` is repeated explicitly;
+- require `--allow-remote` before binding outside localhost;
+- permit `--no-auth` only on localhost as an explicit development choice;
+- expire idle sessions after 3600 seconds by default and support explicit DELETE termination.
+
+This implementation returns JSON for POST requests. GET returns 405 because the server does not advertise an SSE listener. It does not implement the deprecated HTTP+SSE transport.
+
+Run the committed security, lifecycle, and stdio parity smoke check with:
+
+```powershell
+python main.py --workspace . --trace artifacts/mcp_http_smoke_trace.jsonl mcp-http-smoke --output reports/MCP_HTTP_SMOKE.md
+```
+
+The transport follows the official [MCP 2025-11-25 Streamable HTTP requirements](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) for a single endpoint, Origin validation, localhost-safe binding, POST response types, session headers, and DELETE termination.
 
 ## Client Config
 
@@ -57,7 +87,7 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 `tools/call` calls the same permission-checked `ToolRegistry.call(...)` path used by the CLI and agent loop. Tool failures are returned as MCP tool results with `isError: true`, while protocol errors use JSON-RPC error responses.
 
-`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, lexical/hybrid retrieval quality, focused retrieval-backend agent evidence and analysis, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
+`resources/list` exposes a small whitelist of project documents and committed reports, including `README.md`, `MCP.md`, `EVAL.md`, agent-evaluation reports, lexical/hybrid retrieval quality, focused retrieval-backend agent evidence and analysis, `reports/MCP_HTTP_SMOKE.md`, and `reports/DOCKER_SANDBOX_SMOKE.md`. It also exposes `harness://rag/index-summary`, a dynamic summary of the safe local retrieval index. Arbitrary file reads should use the permission-checked `read_file` tool instead.
 
 `resources/templates/list` exposes `harness://workspace/{path}` for safe workspace text resources. Sensitive paths such as `.env`, `.git`, `artifacts`, and `eval_runs` are blocked.
 
@@ -151,11 +181,13 @@ Replace `/absolute/path/to/mini-coding-agent-harness` with your local checkout p
 
 ## Boundaries
 
-- This is a stdio MCP server, not an HTTP/SSE server.
+- The stdio and Streamable HTTP transports target the negotiated MCP `2025-11-25` compatibility surface used by this project.
+- Streamable HTTP returns JSON responses and intentionally returns 405 for GET; SSE delivery, resumability, and event replay are not implemented.
 - It exposes local harness tools, selected read-only resources, and prompt templates.
 - Tool calls keep the harness permission policy.
 - Lexical retrieval is the base-install default. Optional hybrid retrieval uses a local Sentence Transformers model and an incremental JSON embedding cache; it does not call a model API or require a vector database.
 - Write tools still require `--allow-write` for existing files.
 - Shell and Git commands still use the existing allowlist and `shell=False`.
 - Host execution is policy-only. Optional Docker execution adds a container boundary for shell, pytest, and syntax checks, but it is not a VM or absolute security sandbox.
-- It does not implement OAuth or resource subscriptions.
+- HTTP authentication is a static Bearer token for local or controlled deployments, not the full MCP OAuth flow.
+- It does not implement resource subscriptions.

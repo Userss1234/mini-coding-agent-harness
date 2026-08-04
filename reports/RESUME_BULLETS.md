@@ -28,8 +28,8 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 - Added order-controlled lexical/hybrid agent evaluation with backend-aware traces, task-level pairs, and embedding-cache metrics; a focused 8-task DeepSeek run exposed a lexical-only verifier contract, which was fixed and validated on both backends while preserving the original report and avoiding unsupported efficiency claims.
   Evidence: `harness/evaluation.py`, `tests/test_evaluation.py`, `reports/AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_BACKEND_RAG_SYMBOL_FIX.md`, `reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`.
 
-- Exposed the harness through a minimal MCP stdio server with permission-checked tools, safe read-only resources, prompt templates, workspace resource guards, and a committed protocol smoke transcript.
-  Evidence: `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md`.
+- Exposed one permission-checked MCP surface over stdio and `2025-11-25`-compatible Streamable HTTP; added localhost-safe binding, exact Origin validation, static Bearer authentication, cryptographically random expiring sessions, DELETE termination, and a committed 25/25 transport-parity smoke report.
+  Evidence: `MCP.md`, `harness/mcp_server.py`, `harness/mcp_http.py`, `tests/test_mcp_server.py`, `tests/test_mcp_http.py`, `reports/MCP_SMOKE.md`, `reports/MCP_HTTP_SMOKE.md`.
 
 - Designed a pluggable command-execution layer for shell, pytest, and Python syntax checks, adding an opt-in Docker backend with non-root execution, default-deny networking, dropped capabilities, CPU/memory/PID limits, filtered environment forwarding, fail-closed startup, and forced timeout cleanup; validated the runtime boundary in GitHub Actions.
   Evidence: `harness/execution.py`, `harness/tools.py`, `docker/sandbox/Dockerfile`, `tests/test_execution.py`, `.github/workflows/ci.yml`, `reports/DOCKER_SANDBOX_SMOKE.md`.
@@ -50,7 +50,7 @@ Use these as source-backed resume bullet options. Pick 2-3 depending on resume s
 | Retrieval ablation | `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_COMPARE_8_TASKS_OPTIMIZED.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_AUTO_COMPARE_8_TASKS_OFF_FIRST.md`, `reports/RETRIEVAL_GATING_8_TASKS_ANALYSIS.md`, `reports/RETRIEVAL_GATING_STABILITY.md` |
 | Retrieval quality benchmark | `benchmarks/retrieval/judgments.json`, `harness/retrieval_benchmark.py`, `harness/hybrid_retrieval.py`, `tests/test_retrieval_benchmark.py`, `tests/test_hybrid_retrieval.py`, `reports/RETRIEVAL_QUALITY_BASELINE.md`, `reports/RETRIEVAL_QUALITY_HYBRID.md` |
 | Retrieval backend agent evidence | `harness/evaluation.py`, `tests/test_evaluation.py`, `reports/AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md`, `reports/AGENT_RETRIEVAL_BACKEND_RAG_SYMBOL_FIX.md`, `reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md` |
-| MCP integration | `MCP.md`, `harness/mcp_server.py`, `tests/test_mcp_server.py`, `reports/MCP_SMOKE.md` |
+| MCP integration | `MCP.md`, `harness/mcp_server.py`, `harness/mcp_http.py`, `tests/test_mcp_server.py`, `tests/test_mcp_http.py`, `reports/MCP_SMOKE.md`, `reports/MCP_HTTP_SMOKE.md` |
 | Docker execution boundary | `harness/execution.py`, `harness/tools.py`, `docker/sandbox/Dockerfile`, `tests/test_execution.py`, `.github/workflows/ci.yml`, `reports/DOCKER_SANDBOX_SMOKE.md` |
 
 ## Claims To Avoid

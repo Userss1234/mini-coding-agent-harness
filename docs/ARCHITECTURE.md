@@ -9,7 +9,10 @@ flowchart TD
     U["User or eval task"] --> CLI["main.py CLI"]
     CLI --> Agent["harness.agent.run_agent"]
     CLI --> Scripted["harness.evaluation scripted runners"]
-    CLI --> MCP["harness.mcp_server stdio server"]
+    CLI --> MCPStdio["harness.mcp_server stdio"]
+    CLI --> MCPHTTP["harness.mcp_http Streamable HTTP"]
+    MCPStdio --> MCPProtocol["MCPToolServer protocol surface"]
+    MCPHTTP --> MCPProtocol
 
     Agent --> Preflight["Retrieval preflight"]
     Preflight --> RTR["retrieve_then_read"]
@@ -67,7 +70,8 @@ flowchart TD
 | `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, backend-neutral verifiers, order-controlled retrieval/backend comparisons, report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
-| `harness/mcp_server.py` | MCP stdio server exposing selected tools, resources, templates, and prompts. |
+| `harness/mcp_server.py` | Shared MCP protocol surface plus stdio transport. |
+| `harness/mcp_http.py` | Streamable HTTP JSON-response transport, Origin/auth guards, and expiring sessions. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
 | `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |
 
@@ -148,6 +152,7 @@ The committed reports show the project as an evaluated system, not only an imple
 - `reports/FAILURE_MODES.md`
 - `reports/EVAL_STABILITY.md`
 - `reports/MCP_SMOKE.md`
+- `reports/MCP_HTTP_SMOKE.md`
 
 ## MCP Surface
 
@@ -155,14 +160,17 @@ The MCP server does not bypass the harness. MCP `tools/call` delegates to the sa
 
 ```mermaid
 flowchart LR
-    Client["MCP client"] --> Server["harness.mcp_server"]
+    Client["MCP client"] --> Stdio["stdio transport"]
+    Client --> HTTP["Streamable HTTP transport"]
+    Stdio --> Server["MCPToolServer"]
+    HTTP --> Server
     Server --> Registry["ToolRegistry.call"]
     Server --> Resources["Selected read-only resources"]
     Server --> Prompts["Prompt templates"]
     Registry --> Policy["Same permission policy"]
 ```
 
-MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence.
+MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence. The HTTP boundary defaults to localhost, validates exact browser Origins, requires a static Bearer token unless localhost development explicitly disables it, issues expiring session IDs, and supports DELETE termination. It returns JSON for POST and 405 for GET rather than advertising an SSE stream.
 
 ## What To Emphasize In Interviews
 
@@ -177,5 +185,5 @@ MCP exposes selected project documents and reports, including evaluation history
 - Permission checks are harness-level, not OS-level sandboxing.
 - Docker execution adds an optional container boundary, but the default backend remains host and the writable workspace mount is still in scope.
 - Retrieval defaults to lexical. Hybrid ranking evidence is limited to a 10-query project fixture and uses an in-process scan rather than a vector database. One lexical-first focused agent pair found no efficiency advantage; reverse-order repetition would be required for stability claims.
-- MCP is stdio-only.
+- MCP HTTP targets the project's `2025-11-25` compatibility surface. Static Bearer authentication is not full OAuth, and SSE resumability/event replay, the newer `2026-07-28` protocol surface, and resource subscriptions are not implemented.
 - The deterministic suite has 40 tasks. Two complete expanded-suite DeepSeek runs passed 39/40 and 40/40. The only first-run interruption was a provider HTTP 503 before verification; after transient model retries increased from 2 to 4, the second complete run passed all tasks. The stability report records 39 stable passes and one provider-affected fail-to-pass task.

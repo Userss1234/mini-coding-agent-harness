@@ -13,6 +13,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 ## MCP
 
 - `MCP_SMOKE.md`: in-process MCP protocol smoke report covering initialize, tools, resources, resource templates, prompts, and a permission-policy tool call.
+- `MCP_HTTP_SMOKE.md`: localhost Streamable HTTP smoke report covering Bearer authentication, Origin rejection, session lifecycle, JSON/405 behavior, and stdio tool parity.
 
 ## Execution Isolation
 

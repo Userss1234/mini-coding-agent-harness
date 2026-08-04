@@ -281,6 +281,7 @@ def _build_resource_catalog(workspace: Path) -> list[dict[str, Any]]:
         ("harness://reports/retrieval-hybrid", "RETRIEVAL_QUALITY_HYBRID", "Committed local MiniLM hybrid retrieval benchmark over the same judgments.", workspace / "reports" / "RETRIEVAL_QUALITY_HYBRID.md"),
         ("harness://reports/retrieval-backend-agent", "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS", "Committed focused lexical/hybrid real-agent comparison with task-level pairs.", workspace / "reports" / "AGENT_RETRIEVAL_BACKEND_COMPARE_8_TASKS.md"),
         ("harness://reports/retrieval-backend-analysis", "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS", "Committed analysis separating hybrid ranking gains from agent-workflow evidence.", workspace / "reports" / "RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md"),
+        ("harness://reports/mcp-http-smoke", "MCP_HTTP_SMOKE", "Committed Streamable HTTP authentication, Origin, session, and stdio parity report.", workspace / "reports" / "MCP_HTTP_SMOKE.md"),
         ("harness://reports/docker-sandbox", "DOCKER_SANDBOX_SMOKE", "Committed CI runtime verification for the Docker execution boundary.", workspace / "reports" / "DOCKER_SANDBOX_SMOKE.md"),
         ("harness://reports/agent-compare", "AGENT_COMPARE_2_TASKS", "Committed memory/context ablation report.", workspace / "reports" / "AGENT_COMPARE_2_TASKS.md"),
         ("harness://reports/demo-python-bugfix", "DEMO_python_bugfix", "Committed deterministic local demo report.", workspace / "reports" / "DEMO_python_bugfix.md"),

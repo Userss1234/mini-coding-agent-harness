@@ -39,8 +39,8 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 4. Open `reports/FAILURE_MODES.md`.
    Explain that the project does not stop at pass rate. It classifies failed tasks into patterns such as `max_turns`, `no_file_change`, `over_exploration`, `verification_failed`, and `tool_failures`, so the next harness change can be targeted.
 
-5. Open `reports/MCP_SMOKE.md`.
-   Explain that the same harness is exposed through a minimal MCP stdio server. It lists tools, resources, and prompts, including report resources such as `harness://reports/eval-history`, `harness://reports/failure-modes`, and `harness://reports/eval-stability`.
+5. Open `reports/MCP_SMOKE.md` and `reports/MCP_HTTP_SMOKE.md`.
+   Explain that stdio and Streamable HTTP reuse the same MCP protocol object and permission-checked registry. The HTTP evidence covers Bearer authentication, malicious-Origin rejection, secure session issuance/deletion, JSON responses, explicit GET 405 behavior, and 25/25 tool-name parity with stdio.
 
 6. Open `reports/EVAL_STABILITY_40_TASKS.md`.
    Explain that repeated same-model runs quantify variance without needing another provider API: the two complete expanded-suite runs passed 39/40 and 40/40, with 39 stable-pass tasks and one provider-affected fail-to-pass task.
@@ -65,7 +65,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution, controllable retrieval comparison order, and per-configuration task-result retention.
 - `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, repeated-run, aggregate retrieval, and task-level paired-variance evidence.
 - `harness/execution.py` implements the host/Docker executor boundary, resource policy, environment filtering, and timeout cleanup.
-- `harness/mcp_server.py` exposes selected tools, read-only resources, and prompts through MCP.
+- `harness/mcp_server.py` owns the shared MCP methods and stdio transport; `harness/mcp_http.py` adds the localhost-safe HTTP boundary without duplicating tool policy.
 
 ## Claims To Make
 
@@ -76,6 +76,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - Preserved full per-task comparison results and compact selected/off task pairs so new repeated retrieval runs can identify task-level outcome and exploration variance.
 - Measured retrieval on eight maintenance tasks across two opposite-order pairs; all four rows passed 8/8 while auto reduced tool calls by 7.41%-17.73% and direct reads by 14.29%-15.38%.
 - Exposed evaluation artifacts through MCP resources so external clients can inspect the same evidence.
+- Added a `2025-11-25`-compatible Streamable HTTP transport with exact Origin validation, static Bearer authentication, expiring sessions, explicit termination, and stdio parity evidence.
 - Added an optional Docker command backend and CI runtime proof for non-root execution, workspace visibility, and blocked outbound networking while preserving the tool permission layer.
 - Added optional local MiniLM hybrid retrieval with lexical/semantic fusion and incremental document-embedding caching; improved the same 10-query judged fixture from 0.8000 to 0.9000 MRR and recovered both retained semantic cases at rank 2.
 - Added order-controlled lexical/hybrid agent comparison with task-level pairs and cache metrics, then used the first focused run to find and fix a backend-biased verifier without claiming unsupported agent-efficiency gains.
