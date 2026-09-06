@@ -40,7 +40,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **检索质量：**提交了一套 10-query 相关性标注语料，在 agent loop 外独立评估排序。离线 lexical 基线为 MRR 0.8000，Recall@1/3/5 为 0.70/0.80/0.80；可选本地 MiniLM hybrid backend 达到 MRR 0.9000 和 Recall@1/3/5 0.70/1.00/1.00，无需模型 API，并把两个保留的语义案例都排到第 2 位。
 - **Backend agent 证据：**完成一次 lexical-first 8-task DeepSeek 对比，保留逐任务 pair 和 cache 指标。原始报告为 lexical 8/8、hybrid 7/8，原因是一个 verifier 硬编码 lexical metadata，虽然 hybrid 实际把目标排第 1。修复 backend 偏置后，定向复验两侧均为 1/1；hybrid 仍使用更多工具/token，因此不声称 agent 效率提升。
 - **Docker execution：**可插拔 host/Docker 后端让 Shell、pytest 和 Python 编译共用一个执行边界。Docker 模式默认非 root、关闭网络、移除 capabilities、限制资源、超时清理，并在未显式允许 host fallback 时 fail closed。
-- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted 与 retrieval-quality benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。
+- **CI：**`.github/workflows/ci.yml` 会运行测试、语法检查、scripted 与 retrieval-quality benchmark、trace HTML、MCP smoke，以及真实 Docker 镜像构建和 sandbox smoke。commit `e4504a3` 上的 Docker + 认证 MCP HTTP + hybrid RAG 联合工作流已通过，artifact 保留在 [run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902)。
 - **报告入口：**优先看 [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md)、[`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md)、[`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md)、[`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md) 和 [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md)。
 
 ## Portfolio Walkthrough
@@ -356,6 +356,8 @@ server 也支持 `resources/templates/list`，用于安全读取 workspace 文�
 
 手动触发 `workflow_dispatch` 时还会运行独立的 `cross-feature` job：安装可选 retrieval 依赖、缓存 MiniLM、重建 Docker 镜像、生成当前 Docker runtime 证据，并通过 MCP HTTP 现场调用 hybrid `rag_search`，最后上传 `CROSS_FEATURE_VALIDATION.md`。
 
+发布就绪证据：[workflow run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902) 已在 commit `e4504a3` 上同时通过 `validate` 与 `cross-feature`，并上传 `validation-artifacts` 和 `cross-feature-validation`。
+
 ## 评估
 
 当前 benchmark 有 **40 个任务**，全部是确定性任务。它包含 harness 能力检查、带 retrieval preflight 的注入式 fake client agent-loop smoke test、隔离的代码维护 fixture、行区间文件读取、query-ranked context retrieval、本地 RAG symbol retrieval、RAG read-plan generation、retrieve-then-read evidence loading、敏感路径检索过滤、MCP `rag_search` smoke validation、可交互的单文件 trace HTML 渲染、无 shell 命令执行、权限策略报告、多文件契约修复任务、语义 retry planning、memory 相关性排序、嵌套 `src/` package、插件发现和依赖/配置交互。
@@ -459,13 +461,13 @@ git diff -- .
 - retry/backoff 已能以最多 4 次重试处理临时性模型/API 失败，并处理非写工具 handler 失败；retry_plan 会在工具失败后自动反馈给模型循环，但还不会自动执行修复。
 - Host backend 仍只依赖 allowlist 和 `shell=False`。Docker backend 增加容器和资源隔离，但不是 VM 或绝对安全边界，且 workspace mount 仍可写。
 - MCP 已支持 stdio，以及兼容 `2025-11-25` 的 Streamable HTTP JSON-response profile，包含静态 Bearer 认证、Origin 校验和过期 session；还没有实现完整 OAuth、SSE resumability/event replay、较新的 `2026-07-28` 协议 surface 或 resource subscriptions。
-- 已提交的联合报告把本机 live hybrid MCP HTTP 调用与已提交 Docker CI runtime 报告组合起来，并明确不声称 MiniLM 在 Docker sandbox 内运行；手动 full CI job 会先重建 Docker，再重新生成联合 artifact。
+- 已提交的联合报告和通过的手动 CI artifact 将 Docker runtime 证据与认证 MCP HTTP 上的 live hybrid 调用组合起来，并明确不声称 MiniLM 在 Docker sandbox 内运行。
 - workflow memory 不是完整 RAG：当前是本地 Markdown 工作流记忆的词法相关性排序，还没有 embedding、向量库或 rerank。
 
-## 下一步
+## 可选路线图
 
-1. 推送本次改动后手动触发 cross-feature GitHub Actions job，并保留其通过 artifact，作为当前同轮 Docker + hybrid RAG + MCP 证据。
-2. 在声称支持较新的 `2026-07-28` 协议 surface 前评估官方 MCP Python SDK v2；在一致性验证完成前保留当前已测试的 compatibility path。
-3. 只有在改进 agent evidence consumption 或运行 hybrid-first 稳定性 pair 时再回到 retrieval；不要根据一次 agent 结果调 fusion 权重。
-4. 只有需要本机 Windows 容器复现或面试演示时再安装 Docker Desktop；CI 继续作为已提交的 Docker runtime baseline。
+当前范围已经达到简历可用状态：核心 harness、评测证据、Docker 执行边界、hybrid retrieval、MCP stdio/HTTP 一致性和 cross-feature CI 均已闭环。后续工作是条件性深化，不是当前项目声明的必需项。
 
+1. 在声称支持较新的 `2026-07-28` 协议 surface 前评估官方 MCP Python SDK v2；在一致性验证完成前保留当前已测试的 compatibility path。
+2. 只有在改进 agent evidence consumption 或运行 hybrid-first 稳定性 pair 时再回到 retrieval；不要根据一次 agent 结果调 fusion 权重。
+3. 只有需要本机 Windows 容器复现或面试演示时再安装 Docker Desktop；GitHub Actions 继续作为已验证的 Docker runtime baseline。

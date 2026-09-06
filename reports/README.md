@@ -5,6 +5,10 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 - `PORTFOLIO_WALKTHROUGH.md`: short interview talk track tying the demo, eval, failure-analysis, and MCP artifacts together.
 - `RESUME_BULLETS.md`: evidence-backed resume bullet options with claim-to-file mapping.
 
+## CI Closure
+
+- [GitHub Actions run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902): passing `validate` and `cross-feature` jobs for commit `e4504a3`; retained artifacts are `validation-artifacts` and `cross-feature-validation`.
+
 ## Local Demo
 
 - `DEMO_python_bugfix.md`: deterministic local demo report for `python main.py demo --task python_bugfix`.

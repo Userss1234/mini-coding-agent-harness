@@ -40,7 +40,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Retrieval quality:** a committed 10-query relevance-judged corpus measures ranking independently from the agent loop. The offline lexical baseline reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5. The optional local MiniLM hybrid backend reaches 0.9000 MRR and 0.70/1.00/1.00 Recall@1/3/5, recovering both retained semantic cases at rank 2 without a model API.
 - **Backend agent evidence:** a lexical-first 8-task DeepSeek comparison preserved task-level pairs and cache metrics. The original report was lexical 8/8 versus hybrid 7/8 because one verifier hardcoded lexical metadata even though hybrid ranked the target first. After fixing the backend-biased verifier, a targeted rerun passed 1/1 on both sides. Hybrid still used more tools/tokens in these runs, so no agent-efficiency claim is made.
 - **Docker execution:** pluggable host/Docker command backends route shell, pytest, and compilation through one execution boundary. Docker mode is non-root, network-disabled, capability-dropped, resource-limited, timeout-cleaned, and fail-closed unless host fallback is explicitly enabled.
-- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted and retrieval-quality benchmarks, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke.
+- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted and retrieval-quality benchmarks, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke. The focused Docker + authenticated MCP HTTP + hybrid RAG workflow passed on commit `e4504a3`; its artifacts are retained in [run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902).
 - **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md), [`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md), and [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md).
 
 ## Portfolio Walkthrough
@@ -367,6 +367,8 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 
 `workflow_dispatch` also starts a focused `cross-feature` job. It installs the optional retrieval dependencies, caches MiniLM, rebuilds the Docker image, generates current Docker runtime evidence, and runs live hybrid `rag_search` through MCP HTTP before uploading `CROSS_FEATURE_VALIDATION.md`.
 
+Release-readiness evidence: [workflow run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902) completed both `validate` and `cross-feature` successfully on commit `e4504a3`, uploading `validation-artifacts` and `cross-feature-validation`.
+
 ## Evaluation
 
 The current benchmark has **40 tasks** and is fully deterministic. It includes harness checks, an injected-client agent-loop simulation with retrieval preflight, isolated code-maintenance fixtures, line-range file reading, query-ranked context retrieval, local RAG symbol retrieval, RAG read-plan generation, retrieve-then-read evidence loading, sensitive-path retrieval filtering, MCP RAG search smoke validation, interactive self-contained trace HTML rendering, no-shell command execution, permission policy reporting, multi-file contract fixes, semantic retry planning, memory relevance ranking, nested `src/` packages, plugin discovery, and dependency/config interactions.
@@ -472,12 +474,13 @@ After the initial baseline commit, future tool changes and generated report chan
 - Retry/backoff handles transient model/API failures with up to 4 retries and handles non-write tool handler failures; retry_plan is injected back into the model loop after failed tools, but it does not execute repairs automatically.
 - Host execution still relies on the harness allowlist and `shell=False`. Docker mode adds container isolation and resource limits, but it is not a VM or absolute security boundary, and the workspace mount remains writable.
 - MCP supports stdio and a `2025-11-25`-compatible Streamable HTTP JSON-response profile with static Bearer authentication, Origin validation, and expiring sessions. It does not implement the full OAuth flow, SSE resumability/event replay, the newer `2026-07-28` protocol surface, or resource subscriptions.
-- The committed cross-feature report joins a live local hybrid call over MCP HTTP with the committed Docker CI runtime report; it explicitly does not claim that MiniLM runs inside the Docker sandbox. The dedicated manual CI job rebuilds Docker before regenerating the combined artifact.
+- The committed cross-feature report and passing manual CI artifact join Docker runtime evidence with a live hybrid call over authenticated MCP HTTP; they explicitly do not claim that MiniLM runs inside the Docker sandbox.
 - Workflow memory is not full RAG: it ranks local Markdown memories lexically rather than using embeddings or a vector database.
 
-## Next Steps
+## Optional Roadmap
 
-1. Trigger the manual cross-feature GitHub Actions job after this change is pushed and retain its passing artifact as the current same-run Docker + hybrid RAG + MCP evidence.
-2. Evaluate the official MCP Python SDK v2 before claiming the newer `2026-07-28` protocol surface; preserve the current tested compatibility path until parity is proven.
-3. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
-4. Install Docker Desktop only when local Windows container reproduction or an interview demo is needed; CI remains the committed Docker runtime baseline.
+The current scope is resume-ready: the core harness, evaluation evidence, Docker execution boundary, hybrid retrieval, MCP stdio/HTTP parity, and cross-feature CI are complete. Further work is conditional rather than required for the current portfolio claim.
+
+1. Evaluate the official MCP Python SDK v2 before claiming the newer `2026-07-28` protocol surface; preserve the current tested compatibility path until parity is proven.
+2. Only revisit retrieval after improving agent evidence consumption or when running a hybrid-first stability pair; do not tune fusion weights from the agent result alone.
+3. Install Docker Desktop only when local Windows container reproduction or an interview demo is needed; GitHub Actions remains the verified Docker runtime baseline.
