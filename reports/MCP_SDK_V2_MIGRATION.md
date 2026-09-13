@@ -2,14 +2,15 @@
 
 ## Status
 
-Stage 1 adapter complete; transport migration remains in progress.
+Stage 2 stdio migration complete; HTTP transport migration remains in progress.
 
 - Official dependency: `mcp==2.2.0`
 - SDK server API: low-level `Server`, preserving explicit harness JSON Schemas
 - Modern client negotiation: `2026-07-28`, pass
 - Legacy client negotiation: `2025-11-25`, pass
-- Focused tests: 22 passed across the SDK adapter and compatibility surface
-- Full regression: 192 tests passed at 79.58% branch coverage
+- CLI stdio: official SDK v2 transport, pass in real subprocess tests
+- Focused tests: 24 passed across the SDK adapter and compatibility surface
+- Full regression: 194 tests passed at 79.55% branch coverage
 - Scripted benchmark: 40/40 passed
 
 ## Verified Surface
@@ -24,6 +25,7 @@ Stage 1 adapter complete; transport migration remains in progress.
 | Prompt listing and rendering | pass | pass |
 | Protocol errors | pass | pass |
 | Protocol-version and tool-call trace evidence | pass | pass |
+| Real CLI stdio subprocess | pass | pass |
 
 The SDK adapter delegates every tool call to the existing `ToolRegistry.call(...)` path.
 It adds an `mcp_sdk_request` trace event with the negotiated protocol version and does not
@@ -35,17 +37,16 @@ Windows-only wheel.
 
 ## Claim Boundary
 
-This report proves in-memory protocol-era parity through the official SDK. The CLI stdio command
-and the authenticated Streamable HTTP command still use the project's hand-written compatibility
-transports. The project must not claim completed SDK transport migration or end-to-end
-`2026-07-28` support until those entry points and their smoke reports move to the SDK.
+This report proves in-memory and real CLI stdio protocol-era parity through the official SDK.
+The authenticated Streamable HTTP command still uses the project's hand-written compatibility
+transport. The project must not claim completed SDK transport migration or HTTP
+`2026-07-28` support until that transport is migrated and its security parity is tested.
 
 ## Next Gate
 
-1. Switch `mcp-server` to the SDK stdio runner and add a real subprocess client test.
-2. Replace the custom HTTP protocol/session implementation with the SDK Streamable HTTP app while
+1. Replace the custom HTTP protocol/session implementation with the SDK Streamable HTTP app while
    preserving localhost, Origin, and Bearer-token controls.
-3. Regenerate stdio/HTTP smoke reports, run cross-feature CI, and retire the compatibility
+2. Regenerate stdio/HTTP smoke reports, run cross-feature CI, and retire the compatibility
    transport only after both protocol eras pass.
 
 ## Sources

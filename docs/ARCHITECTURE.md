@@ -180,10 +180,10 @@ flowchart LR
 
 MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence. The HTTP boundary defaults to localhost, validates exact browser Origins, requires a static Bearer token unless localhost development explicitly disables it, issues expiring session IDs, and supports DELETE termination. It returns JSON for POST and 405 for GET rather than advertising an SSE stream.
 
-The staged SDK v2 adapter uses the official low-level `Server` API so the harness can retain
-its explicit JSON Schemas and structured tool results. In-memory parity tests negotiate both
-`2026-07-28` and legacy `2025-11-25`; CLI stdio and HTTP remain on the compatibility
-transports until their process-level and security parity tests pass.
+The SDK v2 adapter uses the official low-level `Server` API so the harness can retain its
+explicit JSON Schemas and structured tool results. In-memory and CLI subprocess tests negotiate
+both `2026-07-28` and legacy `2025-11-25` over official stdio. HTTP remains on the
+compatibility transport until its authentication, Origin, session, and protocol-era parity tests pass.
 
 The focused cross-feature command keeps evidence ownership explicit: it inspects a real Docker runtime report for non-root/workspace/network/no-fallback markers, then performs a live hybrid retrieval call through MCP HTTP and requires the implementation path in the top three results. The report does not claim the embedding model executes inside the container.
 

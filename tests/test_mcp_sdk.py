@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
-from mcp import Client
+from mcp import Client, StdioServerParameters
 from mcp.server import Server
 from mcp.shared.exceptions import MCPError
 
 from harness.mcp_sdk import build_mcp_sdk_server
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize(
@@ -82,6 +85,31 @@ def test_sdk_server_maps_surface_errors_to_mcp_errors(tmp_path: Path) -> None:
     assert "Unknown resource URI" in error.message
 
 
+@pytest.mark.parametrize(
+    ("mode", "expected_version"),
+    [
+        ("auto", "2026-07-28"),
+        ("legacy", "2025-11-25"),
+    ],
+)
+def test_cli_stdio_uses_official_sdk_across_protocol_eras(
+    tmp_path: Path,
+    mode: str,
+    expected_version: str,
+) -> None:
+    (tmp_path / "README.md").write_text("# Process SDK bridge\n", encoding="utf-8")
+    trace_path = tmp_path / f"stdio-{mode}.jsonl"
+
+    result = asyncio.run(_exercise_cli_stdio(tmp_path, trace_path, mode))
+
+    assert result["protocol_version"] == expected_version
+    assert "read_file" in result["tool_names"]
+    assert result["tool_text"] == "# Process SDK bridge\n"
+    trace = trace_path.read_text(encoding="utf-8")
+    assert '"transport": "mcp-sdk-v2-stdio"' in trace
+    assert f'"protocol_version": "{expected_version}"' in trace
+
+
 async def _exercise_surface(server: Server[Any], mode: str) -> dict[str, Any]:
     async with Client(server, mode=mode) as client:
         tools = await client.list_tools()
@@ -109,6 +137,34 @@ async def _exercise_surface(server: Server[Any], mode: str) -> dict[str, Any]:
             },
             "prompt_names": {item.name for item in prompts.prompts},
             "prompt_text": prompt.messages[0].content.text,
+        }
+
+
+async def _exercise_cli_stdio(
+    workspace: Path,
+    trace_path: Path,
+    mode: str,
+) -> dict[str, Any]:
+    parameters = StdioServerParameters(
+        command=sys.executable,
+        args=[
+            str(PROJECT_ROOT / "main.py"),
+            "--workspace",
+            str(workspace),
+            "--trace",
+            str(trace_path),
+            "--fresh-trace",
+            "mcp-server",
+        ],
+        cwd=str(PROJECT_ROOT),
+    )
+    async with Client(parameters, mode=mode) as client:
+        tools = await client.list_tools()
+        called = await client.call_tool("read_file", {"path": "README.md"})
+        return {
+            "protocol_version": client.protocol_version,
+            "tool_names": {tool.name for tool in tools.tools},
+            "tool_text": called.content[0].text,
         }
 
 

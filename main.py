@@ -18,7 +18,7 @@ from harness.eval_analysis import (
 from harness.evaluation import run_evaluation
 from harness.mcp_http import build_mcp_http_server, serve_streamable_http
 from harness.mcp_http_smoke import run_mcp_http_smoke
-from harness.mcp_server import build_mcp_server, serve_stdio
+from harness.mcp_sdk import build_mcp_sdk_server, serve_mcp_sdk_stdio
 from harness.mcp_smoke import run_mcp_smoke
 from harness.retrieval_benchmark import (
     run_retrieval_benchmark,
@@ -217,13 +217,14 @@ def cmd_docker_smoke(args) -> None:
 
 
 def cmd_mcp_server(args) -> None:
-    server = build_mcp_server(
+    server = build_mcp_sdk_server(
         Path(args.workspace),
         Path(args.trace),
         allow_write=args.allow_write,
         fresh_trace=args.fresh_trace,
+        transport="mcp-sdk-v2-stdio",
     )
-    serve_stdio(server)
+    serve_mcp_sdk_stdio(server)
 
 
 def cmd_mcp_http(args) -> None:

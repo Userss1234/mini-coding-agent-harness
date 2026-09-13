@@ -4,9 +4,11 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+import anyio
 import anyio.to_thread
 import mcp.types as types
 from mcp.server import Server, ServerRequestContext
+from mcp.server.stdio import stdio_server
 from mcp.shared.exceptions import MCPError
 
 from .mcp_server import MCPToolServer, build_mcp_server
@@ -26,15 +28,29 @@ def build_mcp_sdk_server(
     *,
     allow_write: bool = False,
     fresh_trace: bool = False,
+    transport: str = "mcp-sdk-v2",
 ) -> Server[Any]:
     surface = build_mcp_server(
         workspace,
         trace_path,
         allow_write=allow_write,
         fresh_trace=fresh_trace,
-        transport="mcp-sdk-v2",
+        transport=transport,
     )
     return build_mcp_sdk_server_from_surface(surface)
+
+
+def serve_mcp_sdk_stdio(server: Server[Any]) -> None:
+    anyio.run(_serve_mcp_sdk_stdio, server)
+
+
+async def _serve_mcp_sdk_stdio(server: Server[Any]) -> None:
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
 
 
 def build_mcp_sdk_server_from_surface(surface: MCPToolServer) -> Server[Any]:
