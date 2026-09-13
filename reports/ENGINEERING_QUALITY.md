@@ -22,9 +22,9 @@ Validated on Python 3.10 with the committed development lock:
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 23 source files |
-| pytest | pass, 187 tests |
-| Branch coverage | 79.43% (75% required) |
+| mypy | pass, 24 source files |
+| pytest | pass, 192 tests |
+| Branch coverage | 79.58% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 

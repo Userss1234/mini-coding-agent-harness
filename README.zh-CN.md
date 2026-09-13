@@ -103,6 +103,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - [`reports/FAILURE_MODES.md`](reports/FAILURE_MODES.md)：展示已解决 agent 失败模式的聚合报告。
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md)：展示 tools、resources 和 prompts 的 MCP 协议 transcript。
 - [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md)：展示 localhost Streamable HTTP 的认证、Origin、session 生命周期和 stdio 一致性证据。
+- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md)：官方 SDK v2 的分阶段证据，覆盖现代/legacy 内存对等测试和剩余 transport 门禁。
 - [`reports/CROSS_FEATURE_VALIDATION.md`](reports/CROSS_FEATURE_VALIDATION.md)：展示 Docker runtime 标记，以及通过认证 MCP HTTP 执行的真实缓存 MiniLM retrieval。
 
 ## 项目能做什么

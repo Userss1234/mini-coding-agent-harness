@@ -2,6 +2,17 @@
 
 The project exposes its existing `ToolRegistry`, selected project reports, and task prompt templates through MCP stdio and a `2025-11-25`-compatible Streamable HTTP transport. Both transports delegate to the same protocol methods and permission-checked registry implementation.
 
+## Official SDK v2 Migration Status
+
+The runtime dependency is locked to the current official MCP Python SDK `2.2.0`. A staged
+adapter in `harness/mcp_sdk.py` already proves the complete tools, resources, resource
+templates, prompts, permission-result, and trace surface with the SDK's in-memory client in both
+automatic `2026-07-28` mode and legacy `2025-11-25` mode.
+
+The user-facing `mcp-server` and `mcp-http` commands still use the tested compatibility
+transports below. They will move only after process-level stdio and authenticated Streamable HTTP
+parity are demonstrated; until then, the project does not claim that transport migration is complete.
+
 ## Run
 
 ```powershell

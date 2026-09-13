@@ -214,6 +214,7 @@ def build_mcp_server(
     *,
     allow_write: bool = False,
     fresh_trace: bool = False,
+    transport: str = "mcp-stdio",
 ) -> MCPToolServer:
     if fresh_trace and trace_path.exists():
         trace_path.unlink()
@@ -221,7 +222,7 @@ def build_mcp_server(
     trace.log(
         "session_start",
         workspace=str(workspace.resolve()),
-        transport="mcp-stdio",
+        transport=transport,
         allow_write=allow_write,
     )
     return MCPToolServer(build_registry(workspace.resolve(), trace, allow_write=allow_write))

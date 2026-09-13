@@ -108,6 +108,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 - [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): localhost Streamable HTTP authentication, Origin, session lifecycle, and stdio parity evidence.
+- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md): staged official SDK v2 evidence for modern/legacy in-memory parity and the remaining transport gate.
 - [`reports/CROSS_FEATURE_VALIDATION.md`](reports/CROSS_FEATURE_VALIDATION.md): passing Docker runtime markers plus a live cached MiniLM retrieval call through authenticated MCP HTTP.
 
 ## What It Does
