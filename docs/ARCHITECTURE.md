@@ -58,11 +58,16 @@ flowchart TD
 
 ## Main Modules
 
+Pure workspace path checks, transient-error classification, and Shell/Git allowlist policy live in
+`harness/permissions.py`. `ToolRegistry` remains the only enforcement point and delegates these
+side-effect-free decisions before dispatching a tool handler.
+
 | Module | Role |
 |---|---|
 | `main.py` | CLI entry point for agent runs, evals, report analysis, trace rendering, demos, and MCP. |
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
+| `harness/permissions.py` | Workspace path scope, transient-error classification, and Shell/Git allowlist policy. |
 | `harness/execution.py` | Host and Docker command executors, resource policy, environment filtering, and timeout cleanup. |
 | `harness/docker_smoke.py` | Runtime verification for non-root execution, workspace mounting, and disabled networking. |
 | `harness/retrieval.py` | Shared safe chunk index, lexical retrieval, read-plan generation, and path filtering. |
@@ -90,7 +95,7 @@ flowchart LR
     Metadata --> Trace["JSONL trace event"]
 ```
 
-The important design choice is that the model cannot directly touch the filesystem, shell, Git, tests, memory, or reports. It can only request registered tools. The harness then decides whether and how to execute the request.
+The important design choice is that the model cannot directly touch the filesystem, shell, Git, tests, memory, or reports. It can only request registered tools. `ToolRegistry` remains the enforcement point, delegates pure policy decisions to `harness.permissions`, and then decides whether and how to execute the request.
 
 ## Execution Boundary
 

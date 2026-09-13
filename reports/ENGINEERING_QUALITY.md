@@ -22,9 +22,9 @@ Validated on Python 3.10 with the committed development lock:
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 21 source files |
-| pytest | pass, 177 tests |
-| Branch coverage | 79.28% (75% required) |
+| mypy | pass, 23 source files |
+| pytest | pass, 187 tests |
+| Branch coverage | 79.43% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
@@ -35,6 +35,13 @@ The first ownership split moved the deterministic task catalog and fixtures into
 `harness/eval_tasks.py`. `harness/evaluation.py` decreased from 2,998 to 1,277 lines while retaining
 the original task IDs and compatibility export used by existing callers. Post-split verification
 passed 177 tests at 79.31% branch coverage and the 40/40 scripted benchmark.
+
+The second ownership split moved workspace path checks, transient-error classification, and
+Shell/Git allowlist decisions from `harness/tools.py` into `harness/permissions.py`. The registry
+remains the sole enforcement point, and compatibility exports preserve the existing `harness.tools`
+surface. Focused policy tests cover path escape, retry classification, shell operators, malformed
+commands, and read-only Git boundaries. Post-split verification passed 187 tests at 79.43% branch
+coverage and the 40/40 scripted benchmark.
 
 ## Claim Boundary
 

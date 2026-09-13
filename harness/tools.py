@@ -5,10 +5,8 @@ import fnmatch
 import importlib.util
 import json
 import os
-import shlex
 import shutil
 import subprocess
-import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -16,6 +14,23 @@ from pathlib import Path
 from typing import Any
 
 from .execution import CommandExecutor, ExecutionResult, build_executor
+from .permissions import (
+    ALLOWED_SHELL_COMMANDS,
+    READ_ONLY_GIT_SUBCOMMANDS,
+    SHELL_OPERATOR_MARKERS,
+)
+from .permissions import (
+    is_transient_exception as is_transient_exception,
+)
+from .permissions import (
+    parse_shell_tokens as parse_shell_tokens,
+)
+from .permissions import (
+    safe_path as safe_path,
+)
+from .permissions import (
+    shell_permission_decision as shell_permission_decision,
+)
 from .retrieval import (
     build_read_plan,
     build_workspace_index,
@@ -176,8 +191,6 @@ class ToolRegistry:
         return "allow"
 
 
-SHELL_OPERATOR_MARKERS = ["&&", "||", ";", "|", ">", "<", "\n", "\r"]
-
 PYTHON_SYNTAX_CHECK_SCRIPT = """import ast
 import sys
 import tokenize
@@ -195,34 +208,6 @@ if errors:
     raise SystemExit(1)
 """
 
-ALLOWED_SHELL_COMMANDS = {
-    "cat",
-    "dir",
-    "echo",
-    "findstr",
-    "get-childitem",
-    "ls",
-    "pwd",
-    "python",
-    "python.exe",
-    "py",
-    "py.exe",
-    "pytest",
-    "pytest.exe",
-    "type",
-    Path(sys.executable).name.lower(),
-}
-
-READ_ONLY_GIT_SUBCOMMANDS = {
-    "branch",
-    "diff",
-    "log",
-    "rev-parse",
-    "show",
-    "status",
-    "ls-files",
-}
-
 CONTEXT_PACK_IGNORED_PARTS = {
     ".git",
     ".venv",
@@ -231,33 +216,6 @@ CONTEXT_PACK_IGNORED_PARTS = {
     "artifacts",
     "eval_runs",
 }
-
-
-def safe_path(workspace: Path, path: str | Path) -> Path:
-    candidate = (workspace / path).resolve()
-    if not candidate.is_relative_to(workspace):
-        raise ValueError(f"Path escapes workspace: {path}")
-    return candidate
-
-
-def is_transient_exception(exc: Exception) -> bool:
-    if isinstance(exc, (TimeoutError, ConnectionError)):
-        return True
-    name = type(exc).__name__.lower()
-    text = str(exc).lower()
-    transient_markers = [
-        "timeout",
-        "temporarily",
-        "connection",
-        "rate limit",
-        "ratelimit",
-        "overloaded",
-        "service unavailable",
-        "502",
-        "503",
-        "504",
-    ]
-    return any(marker in name or marker in text for marker in transient_markers)
 
 
 def _execution_tool_metadata(
@@ -286,46 +244,6 @@ def _execution_error_text(
     if result.error:
         return f"{result.error}: {result.stderr.strip() or fallback}"
     return fallback
-
-
-def shell_permission_decision(command: str) -> str:
-    tokens = parse_shell_tokens(command)
-    if not tokens:
-        return "blocked_empty_shell"
-    lowered = command.lower()
-    if any(marker in lowered for marker in SHELL_OPERATOR_MARKERS):
-        return "blocked_shell_operator"
-    if any(token.lower() in {"--force", "-f", "/f"} for token in tokens):
-        return "blocked_force_flag"
-
-    executable = Path(tokens[0]).name.lower()
-    if executable == "git":
-        return git_shell_permission_decision(tokens)
-
-    if executable not in ALLOWED_SHELL_COMMANDS:
-        return "blocked_shell_not_allowlisted"
-    return "allow"
-
-
-def parse_shell_tokens(command: str) -> list[str]:
-    try:
-        return shlex.split(command, posix=True)
-    except ValueError:
-        return []
-
-
-def git_shell_permission_decision(tokens: list[str]) -> str:
-    if len(tokens) < 2:
-        return "blocked_git_missing_subcommand"
-    if any(token.lower().startswith("--force") for token in tokens):
-        return "blocked_force_flag"
-
-    subcommand = tokens[1].lower()
-    if subcommand not in READ_ONLY_GIT_SUBCOMMANDS:
-        return "blocked_git_not_allowlisted"
-    if subcommand == "branch" and any(token.startswith("-") for token in tokens[2:]):
-        return "blocked_git_branch_mutation"
-    return "allow"
 
 
 def _resolve_pytest_target(workspace: Path, target: str | None) -> str:
