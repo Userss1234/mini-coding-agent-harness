@@ -16,9 +16,9 @@ from harness.eval_analysis import (
     build_stability_report,
 )
 from harness.evaluation import run_evaluation
-from harness.mcp_http import build_mcp_http_server, serve_streamable_http
 from harness.mcp_http_smoke import run_mcp_http_smoke
 from harness.mcp_sdk import build_mcp_sdk_server, serve_mcp_sdk_stdio
+from harness.mcp_sdk_http import build_mcp_sdk_http_server, serve_mcp_sdk_http
 from harness.mcp_smoke import run_mcp_smoke
 from harness.retrieval_benchmark import (
     run_retrieval_benchmark,
@@ -234,7 +234,7 @@ def cmd_mcp_http(args) -> None:
             f"MCP HTTP requires a Bearer token in {args.auth_token_env}; "
             "use --no-auth only for explicit localhost development."
         )
-    server = build_mcp_http_server(
+    server = build_mcp_sdk_http_server(
         Path(args.workspace),
         Path(args.trace),
         allow_write=args.allow_write,
@@ -259,7 +259,7 @@ def cmd_mcp_http(args) -> None:
         + (f"Bearer token from {args.auth_token_env}" if auth_token else "disabled for explicit localhost development"),
         flush=True,
     )
-    serve_streamable_http(server)
+    serve_mcp_sdk_http(server)
 
 
 def cmd_mcp_smoke(args) -> None:

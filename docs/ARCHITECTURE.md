@@ -9,8 +9,8 @@ flowchart TD
     U["User or eval task"] --> CLI["main.py CLI"]
     CLI --> Agent["harness.agent.run_agent"]
     CLI --> Scripted["harness.evaluation scripted runners"]
-    CLI --> MCPStdio["harness.mcp_server stdio"]
-    CLI --> MCPHTTP["harness.mcp_http Streamable HTTP"]
+    CLI --> MCPStdio["harness.mcp_sdk stdio"]
+    CLI --> MCPHTTP["harness.mcp_sdk_http Streamable HTTP"]
     MCPStdio --> MCPProtocol["MCPToolServer protocol surface"]
     MCPHTTP --> MCPProtocol
 
@@ -77,9 +77,9 @@ side-effect-free decisions before dispatching a tool handler.
 | `harness/evaluation.py` | Scripted and real-agent benchmark orchestration, order-controlled retrieval/backend comparisons, metrics, and report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | Shared MCP protocol surface plus stdio transport. |
-| `harness/mcp_http.py` | Streamable HTTP JSON-response transport, Origin/auth guards, and expiring sessions. |
+| `harness/mcp_http.py` | Compatibility HTTP implementation plus shared HTTP configuration and normalization helpers pending retirement. |
 | `harness/mcp_sdk.py` | Official MCP Python SDK v2 adapter for dual-era protocol negotiation over the existing registry-backed surface. |
-| `harness/mcp_sdk_http.py` | Candidate official SDK v2 HTTP runtime with static Bearer verification, exact Origin/CORS controls, and managed Uvicorn lifecycle. |
+| `harness/mcp_sdk_http.py` | Active official SDK v2 HTTP runtime with static Bearer verification, exact Origin/CORS controls, and managed Uvicorn lifecycle. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
 | `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |
 
@@ -179,17 +179,14 @@ flowchart LR
     Registry --> Policy["Same permission policy"]
 ```
 
-MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence. The HTTP boundary defaults to localhost, validates exact browser Origins, requires a static Bearer token unless localhost development explicitly disables it, issues expiring session IDs, and supports DELETE termination. It returns JSON for POST and 405 for GET rather than advertising an SSE stream.
+MCP exposes selected project documents and reports, including evaluation history, failure modes, stability, and MCP smoke evidence. The HTTP boundary defaults to localhost, validates exact browser Origins, requires a static Bearer token unless localhost development explicitly disables it, issues expiring session IDs, and supports DELETE termination. It returns JSON for POST and may serve Streamable HTTP GET event streams.
 
-The SDK v2 adapter uses the official low-level `Server` API so the harness can retain its
+The SDK v2 adapters use the official low-level `Server` API so the harness can retain its
 explicit JSON Schemas and structured tool results. In-memory and CLI subprocess tests negotiate
-both `2026-07-28` and legacy `2025-11-25` over official stdio. HTTP remains on the
-compatibility transport until its authentication, Origin, session, and protocol-era parity tests pass.
-
-The candidate SDK HTTP runtime has passed that focused parity gate over a real localhost socket:
-static Bearer rejection, exact Origin rejection, CORS preflight, modern and legacy official clients,
-session deletion, and idle expiry. The public `mcp-http` command remains on the compatibility
-runtime until its smoke and cross-feature consumers are switched in the next stage.
+both `2026-07-28` and legacy `2025-11-25` over official stdio. Real-network HTTP tests cover
+static Bearer rejection, exact Origin rejection, CORS preflight, both official-client modes,
+session deletion, and idle expiry. The public command and smoke/cross-feature consumers now use
+this SDK runtime; compatibility retirement waits for the switched cross-feature CI result.
 
 The focused cross-feature command keeps evidence ownership explicit: it inspects a real Docker runtime report for non-root/workspace/network/no-fallback markers, then performs a live hybrid retrieval call through MCP HTTP and requires the implementation path in the top three results. The report does not claim the embedding model executes inside the container.
 

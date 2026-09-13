@@ -16,12 +16,12 @@ from .mcp_http import (
     MCP_PROTOCOL_HEADER,
     MCP_SESSION_HEADER,
     SUPPORTED_PROTOCOL_VERSION,
-    build_mcp_http_server,
 )
+from .mcp_sdk_http import build_mcp_sdk_http_server
 
 CROSS_FEATURE_TOKEN = "cross-feature-local-token"
 CROSS_FEATURE_QUERY = "Streamable HTTP Origin authentication session lifecycle"
-EXPECTED_IMPLEMENTATION_PATH = "harness/mcp_http.py"
+EXPECTED_IMPLEMENTATION_PATH = "harness/mcp_sdk_http.py"
 
 
 def run_cross_feature_smoke(
@@ -118,7 +118,7 @@ def run_live_hybrid_mcp_check(
             "cache_written": False,
             "tool_error": preflight["error"],
         }
-    server = build_mcp_http_server(
+    server = build_mcp_sdk_http_server(
         workspace,
         trace_path,
         fresh_trace=fresh_trace,

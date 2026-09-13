@@ -2,16 +2,16 @@
 
 ## Status
 
-Stage 3 HTTP candidate parity complete; the public HTTP command switch remains in progress.
+Stage 4 public HTTP consumer switch complete; cross-feature CI and compatibility retirement remain.
 
 - Official dependency: `mcp==2.2.0`
 - SDK server API: low-level `Server`, preserving explicit harness JSON Schemas
 - Modern client negotiation: `2026-07-28`, pass
 - Legacy client negotiation: `2025-11-25`, pass
 - CLI stdio: official SDK v2 transport, pass in real subprocess tests
-- Candidate HTTP runtime: official SDK v2 over a real localhost socket
+- Public HTTP runtime: official SDK v2 over a real localhost socket
 - HTTP security/session tests: 5 passed
-- Full regression: 199 tests passed at 79.79% branch coverage
+- Full regression: 199 tests passed at 79.63% branch coverage
 - Scripted benchmark: 40/40 passed
 
 ## Verified Surface
@@ -39,16 +39,15 @@ Windows-only wheel.
 
 ## Claim Boundary
 
-This report proves in-memory, real CLI stdio, and candidate authenticated HTTP protocol-era
-parity through the official SDK. The user-facing Streamable HTTP command still uses the project's
-hand-written compatibility transport. The project must not claim completed SDK transport migration
-or public HTTP `2026-07-28` support until the command, smoke, and cross-feature paths switch.
+This report proves in-memory, real CLI stdio, and public authenticated HTTP protocol-era parity
+through the official SDK. The `mcp-http`, HTTP smoke, and cross-feature code paths now use the
+SDK runtime. The project must not claim completed compatibility retirement until the switched
+cross-feature path passes CI and the hand-written runtime is removed.
 
 ## Next Gate
 
-1. Switch `mcp-http`, its smoke, and cross-feature consumers to the candidate SDK runtime.
-2. Regenerate HTTP smoke evidence, run cross-feature CI, and retire the compatibility
-   transport only after both protocol eras pass.
+1. Run the switched Docker + hybrid RAG + MCP cross-feature path in CI and commit its evidence.
+2. Extract the remaining shared HTTP configuration helpers and remove the hand-written runtime.
 
 ## Sources
 

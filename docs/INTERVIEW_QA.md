@@ -139,15 +139,18 @@ Evidence:
 
 ## 13. What does MCP add?
 
-MCP exposes the same permission-checked tool registry through stdio and a `2025-11-25`-compatible Streamable HTTP transport. HTTP adds localhost-safe binding, exact Origin validation, static Bearer authentication, cryptographically random expiring sessions, and DELETE termination. It returns JSON for POST and 405 for GET, while both transports reuse `MCPToolServer` and `ToolRegistry.call(...)` instead of duplicating business logic.
+MCP exposes the same permission-checked tool registry through official SDK v2 stdio and Streamable HTTP transports, with modern `2026-07-28` and legacy `2025-11-25` negotiation. HTTP adds localhost-safe binding, exact Origin validation, static Bearer authentication, expiring sessions, and DELETE termination. Both transports reuse the shared protocol surface and `ToolRegistry.call(...)` instead of duplicating business logic.
 
 Evidence:
 
 - `harness/mcp_server.py`
-- `harness/mcp_http.py`
+- `harness/mcp_sdk.py`
+- `harness/mcp_sdk_http.py`
 - `MCP.md`
 - `tests/test_mcp_server.py`
 - `tests/test_mcp_http.py`
+- `tests/test_mcp_sdk.py`
+- `tests/test_mcp_sdk_http.py`
 - `reports/MCP_SMOKE.md`
 - `reports/MCP_HTTP_SMOKE.md`
 

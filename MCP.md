@@ -1,8 +1,9 @@
 # MCP Server
 
 The project exposes its existing `ToolRegistry`, selected project reports, and task prompt
-templates through official SDK v2 stdio and a `2025-11-25`-compatible Streamable HTTP
-transport. Both transports delegate to the same permission-checked registry implementation.
+templates through official SDK v2 stdio and Streamable HTTP transports. Both negotiate modern
+`2026-07-28` and legacy `2025-11-25` clients and delegate to the same permission-checked
+registry implementation.
 
 ## Official SDK v2 Migration Status
 
@@ -11,13 +12,10 @@ The runtime dependency is locked to the current official MCP Python SDK `2.2.0`.
 subprocess tests prove tools, resources, resource templates, prompts, permission results, and
 trace behavior in automatic `2026-07-28` mode and legacy `2025-11-25` mode.
 
-The user-facing `mcp-http` command still uses the tested compatibility transport below.
-It will move only after authenticated Streamable HTTP security and protocol-era parity are
-demonstrated; until then, the project does not claim that the full transport migration is complete.
-
-An isolated candidate in `harness/mcp_sdk_http.py` now passes real-network tests for
-Bearer authentication, exact Origin/CORS handling, session deletion and expiry, and official
-client negotiation in both protocol eras. The command switch is intentionally a separate gate.
+The user-facing `mcp-http` command and its smoke and cross-feature consumers now use
+`harness/mcp_sdk_http.py`. Real-network tests cover Bearer authentication, exact Origin/CORS
+handling, session deletion and expiry, and official-client negotiation in both protocol eras.
+The compatibility implementation remains only until the switched cross-feature path passes CI.
 
 ## Run
 
@@ -53,7 +51,7 @@ HTTP defaults are intentionally restrictive:
 - permit `--no-auth` only on localhost as an explicit development choice;
 - expire idle sessions after 3600 seconds by default and support explicit DELETE termination.
 
-This implementation returns JSON for POST requests. GET returns 405 because the server does not advertise an SSE listener. It does not implement the deprecated HTTP+SSE transport.
+This implementation returns JSON for POST requests. Streamable HTTP may serve GET event streams; this does not enable the deprecated HTTP+SSE transport.
 
 Run the committed security, lifecycle, and stdio parity smoke check with:
 
@@ -61,7 +59,7 @@ Run the committed security, lifecycle, and stdio parity smoke check with:
 python main.py --workspace . --trace artifacts/mcp_http_smoke_trace.jsonl mcp-http-smoke --output reports/MCP_HTTP_SMOKE.md
 ```
 
-The transport follows the official [MCP 2025-11-25 Streamable HTTP requirements](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) for a single endpoint, Origin validation, localhost-safe binding, POST response types, session headers, and DELETE termination.
+The transport uses the official MCP Python SDK v2 implementation and preserves a single endpoint, Origin validation, localhost-safe binding, JSON POST responses, session headers, and DELETE termination.
 
 ## Client Config
 

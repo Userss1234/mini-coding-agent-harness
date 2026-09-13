@@ -107,8 +107,8 @@ Show these committed artifacts while explaining the system:
 - [`docs/HYBRID_RETRIEVAL.md`](docs/HYBRID_RETRIEVAL.md): optional dependency, backend configuration, cache design, measured evidence, and honest limits.
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
-- [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): localhost Streamable HTTP authentication, Origin, session lifecycle, and stdio parity evidence.
-- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md): staged official SDK v2 evidence for modern/legacy in-memory parity and the remaining transport gate.
+- [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): official SDK v2 Streamable HTTP authentication, Origin, dual-protocol, and session-lifecycle evidence.
+- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md): staged official SDK v2 migration evidence and the remaining cross-feature retirement gate.
 - [`reports/CROSS_FEATURE_VALIDATION.md`](reports/CROSS_FEATURE_VALIDATION.md): passing Docker runtime markers plus a live cached MiniLM retrieval call through authenticated MCP HTTP.
 
 ## What It Does
@@ -343,7 +343,7 @@ python main.py eval-stability --run full-36-v1=reports/AGENT_EVAL_36_TASKS.json 
 
 ## MCP Server
 
-The harness exposes the same permission-checked `ToolRegistry` through MCP stdio and a `2025-11-25`-compatible Streamable HTTP transport. Start stdio with:
+The harness exposes the same permission-checked `ToolRegistry` through official MCP Python SDK v2 stdio and Streamable HTTP transports. Both negotiate modern `2026-07-28` clients and legacy `2025-11-25` clients. Start stdio with:
 
 ```powershell
 python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
@@ -362,7 +362,7 @@ $env:HARNESS_MCP_AUTH_TOKEN = python -c "import secrets; print(secrets.token_url
 python main.py --workspace . --trace artifacts/mcp_http_trace.jsonl mcp-http
 ```
 
-The default URL is `http://127.0.0.1:8000/mcp`. The server validates browser Origins, requires authentication, issues expiring `MCP-Session-Id` values, supports explicit DELETE termination, and refuses non-local binding unless `--allow-remote` is supplied. It returns JSON for POST and 405 for GET because SSE delivery is outside the current scope.
+The default URL is `http://127.0.0.1:8000/mcp`. The server validates browser Origins, requires authentication, issues expiring `MCP-Session-Id` values for sessionful clients, supports explicit DELETE termination, and refuses non-local binding unless `--allow-remote` is supplied. POST responses use JSON; Streamable HTTP may use GET event streams without enabling the deprecated HTTP+SSE transport.
 
 Supported MCP methods: `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `resources/templates/list`, `prompts/list`, and `prompts/get`. See `MCP.md` for message examples and boundaries.
 

@@ -1,20 +1,22 @@
 from __future__ import annotations
 
+import asyncio
 import http.client
 import json
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
-from .mcp_http import (
-    MCP_PROTOCOL_HEADER,
-    MCP_SESSION_HEADER,
-    SUPPORTED_PROTOCOL_VERSION,
-    build_mcp_http_server,
-)
-from .mcp_server import build_mcp_server
+from mcp import Client
+from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+
+from .mcp_http import MCP_PROTOCOL_HEADER, MCP_SESSION_HEADER
+from .mcp_sdk_http import build_mcp_sdk_http_server
 
 SMOKE_TOKEN = "mcp-http-smoke-token"
+MODERN_PROTOCOL_VERSION = "2026-07-28"
+LEGACY_PROTOCOL_VERSION = "2025-11-25"
 
 
 def run_mcp_http_smoke(
@@ -25,7 +27,7 @@ def run_mcp_http_smoke(
     allow_write: bool = False,
     fresh_trace: bool = False,
 ) -> str:
-    server = build_mcp_http_server(
+    server = build_mcp_sdk_http_server(
         workspace,
         trace_path,
         allow_write=allow_write,
@@ -35,8 +37,10 @@ def run_mcp_http_smoke(
     )
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
+    _wait_for_server(server, thread)
     port = int(server.server_address[1])
     origin = f"http://127.0.0.1:{port}"
+    url = f"{origin}{server.config.endpoint}"
     base_headers = {
         "Authorization": f"Bearer {SMOKE_TOKEN}",
         "Accept": "application/json, text/event-stream",
@@ -45,89 +49,91 @@ def run_mcp_http_smoke(
     }
     checks: list[tuple[str, bool, str]] = []
     try:
-        initialize = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": SUPPORTED_PROTOCOL_VERSION,
-                "capabilities": {},
-                "clientInfo": {"name": "mcp-http-smoke", "version": "0.1.0"},
+        initialize = _initialize_message()
+        unauthorized = _request(
+            port,
+            "POST",
+            initialize,
+            {
+                "Accept": base_headers["Accept"],
+                "Content-Type": "application/json",
+                "Origin": origin,
             },
-        }
-        unauthorized = _request(port, "POST", initialize, {
-            "Accept": base_headers["Accept"],
-            "Content-Type": "application/json",
-            "Origin": origin,
-        })
-        checks.append(("Bearer authentication", unauthorized[0] == 401, str(unauthorized[0])))
+        )
+        checks.append(
+            ("Bearer authentication", unauthorized[0] == 401, str(unauthorized[0]))
+        )
 
         bad_origin_headers = dict(base_headers)
         bad_origin_headers["Origin"] = "https://attacker.example"
         bad_origin = _request(port, "POST", initialize, bad_origin_headers)
         checks.append(("Origin rejection", bad_origin[0] == 403, str(bad_origin[0])))
 
+        modern = asyncio.run(_exercise_official_client(url, origin, "auto"))
+        legacy = asyncio.run(_exercise_official_client(url, origin, "legacy"))
+        checks.extend([
+            (
+                "Official client modern negotiation",
+                modern["protocol_version"] == MODERN_PROTOCOL_VERSION,
+                str(modern["protocol_version"]),
+            ),
+            (
+                "Official client legacy negotiation",
+                legacy["protocol_version"] == LEGACY_PROTOCOL_VERSION,
+                str(legacy["protocol_version"]),
+            ),
+            (
+                "Protocol-era tool parity",
+                modern["tool_names"] == legacy["tool_names"],
+                f"{len(modern['tool_names'])}/{len(legacy['tool_names'])}",
+            ),
+        ])
+
         initialized = _request(port, "POST", initialize, base_headers)
         session_id = initialized[1].get(MCP_SESSION_HEADER.lower(), "")
-        checks.append(("Initialize", initialized[0] == 200, str(initialized[0])))
-        checks.append(("Secure session issued", bool(session_id), "present" if session_id else "missing"))
+        checks.append(("Legacy initialize", initialized[0] == 200, str(initialized[0])))
+        checks.append(
+            ("Secure session issued", bool(session_id), "present" if session_id else "missing")
+        )
 
         session_headers = dict(base_headers)
         session_headers[MCP_SESSION_HEADER] = session_id
-        session_headers[MCP_PROTOCOL_HEADER] = SUPPORTED_PROTOCOL_VERSION
+        session_headers[MCP_PROTOCOL_HEADER] = LEGACY_PROTOCOL_VERSION
         notification = _request(
             port,
             "POST",
             {"jsonrpc": "2.0", "method": "notifications/initialized"},
             session_headers,
         )
-        checks.append(("Notification accepted", notification[0] == 202, str(notification[0])))
-
-        tools_response = _request(
-            port,
-            "POST",
-            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
-            session_headers,
+        checks.append(
+            ("Notification accepted", notification[0] == 202, str(notification[0]))
         )
-        tools_payload = _json_body(tools_response[2])
-        http_tools = {
-            item["name"]
-            for item in tools_payload.get("result", {}).get("tools", [])
-        }
-        stdio_server = build_mcp_server(
-            workspace,
-            trace_path.with_name("mcp_stdio_parity_trace.jsonl"),
-            allow_write=allow_write,
-            fresh_trace=True,
-        )
-        stdio_response = stdio_server.handle_message({
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/list",
-        }) or {}
-        stdio_tools = {
-            item["name"]
-            for item in stdio_response.get("result", {}).get("tools", [])
-        }
-        checks.append(("HTTP tools/list", tools_response[0] == 200, str(tools_response[0])))
-        checks.append(("Transport tool parity", http_tools == stdio_tools, f"{len(http_tools)}/{len(stdio_tools)}"))
-
-        get_response = _request(port, "GET", None, session_headers)
-        checks.append(("GET without SSE", get_response[0] == 405, str(get_response[0])))
 
         delete_response = _request(port, "DELETE", None, session_headers)
-        checks.append(("Session deletion", delete_response[0] == 204, str(delete_response[0])))
-        expired_response = _request(
+        checks.append(
+            (
+                "Session deletion",
+                delete_response[0] in {200, 204},
+                str(delete_response[0]),
+            )
+        )
+        deleted_response = _request(
             port,
             "POST",
             {"jsonrpc": "2.0", "id": 3, "method": "ping"},
             session_headers,
         )
-        checks.append(("Deleted session rejected", expired_response[0] == 404, str(expired_response[0])))
+        checks.append(
+            (
+                "Deleted session rejected",
+                deleted_response[0] == 404,
+                str(deleted_response[0]),
+            )
+        )
     finally:
         server.shutdown()
+        thread.join(timeout=10)
         server.server_close()
-        thread.join(timeout=5)
 
     passed = all(ok for _, ok, _ in checks)
     report = build_mcp_http_smoke_report(checks, passed)
@@ -148,9 +154,9 @@ def build_mcp_http_smoke_report(
 
 Status: **{'pass' if passed else 'fail'}**
 
-Protocol: **{SUPPORTED_PROTOCOL_VERSION}**
+Protocols: **{MODERN_PROTOCOL_VERSION} and {LEGACY_PROTOCOL_VERSION}**
 
-Transport: **Streamable HTTP with JSON responses**
+Transport: **Official MCP Python SDK v2 Streamable HTTP**
 
 ## Checks
 
@@ -162,10 +168,51 @@ Transport: **Streamable HTTP with JSON responses**
 
 - The smoke server binds to an ephemeral localhost port.
 - Static Bearer authentication and an exact localhost Origin allowlist are enabled.
-- Initialization issues a cryptographically random session ID; notification, request, GET, and DELETE paths reuse it.
-- GET intentionally returns 405 because this implementation does not advertise an SSE listener.
-- HTTP and stdio tool names are compared from the same permission-checked registry implementation.
+- Official SDK clients negotiate the modern and legacy protocol eras against the same server.
+- Legacy initialization issues a session ID; notification and DELETE paths reuse it.
+- Streamable HTTP may serve GET event streams; this is not the deprecated HTTP+SSE transport.
+- Tool names are compared across both protocol eras on the shared permission-checked registry.
 """
+
+
+async def _exercise_official_client(
+    url: str,
+    origin: str,
+    mode: str,
+) -> dict[str, Any]:
+    headers = {
+        "Authorization": f"Bearer {SMOKE_TOKEN}",
+        "Origin": origin,
+    }
+    async with create_mcp_http_client(headers=headers) as http_client:
+        transport = streamable_http_client(url, http_client=http_client)
+        async with Client(transport, mode=mode) as client:
+            tools = await client.list_tools()
+            return {
+                "protocol_version": client.protocol_version,
+                "tool_names": {tool.name for tool in tools.tools},
+            }
+
+
+def _wait_for_server(server: Any, thread: threading.Thread) -> None:
+    deadline = time.monotonic() + 10
+    while not server.started and thread.is_alive() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    if not server.started:
+        raise RuntimeError("SDK HTTP smoke server did not start.")
+
+
+def _initialize_message() -> dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": LEGACY_PROTOCOL_VERSION,
+            "capabilities": {},
+            "clientInfo": {"name": "mcp-http-smoke", "version": "0.1.0"},
+        },
+    }
 
 
 def _request(
@@ -183,14 +230,9 @@ def _request(
         connection.request(method, "/mcp", body=body, headers=request_headers)
         response = connection.getresponse()
         response_body = response.read()
-        response_headers = {name.lower(): value for name, value in response.getheaders()}
+        response_headers = {
+            name.lower(): value for name, value in response.getheaders()
+        }
         return response.status, response_headers, response_body
     finally:
         connection.close()
-
-
-def _json_body(body: bytes) -> dict[str, Any]:
-    if not body:
-        return {}
-    value = json.loads(body.decode("utf-8"))
-    return value if isinstance(value, dict) else {}

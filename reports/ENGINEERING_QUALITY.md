@@ -24,7 +24,7 @@ Validated on Python 3.10 with the committed development lock:
 | Ruff | pass, 0 findings |
 | mypy | pass, 25 source files |
 | pytest | pass, 199 tests |
-| Branch coverage | 79.79% (75% required) |
+| Branch coverage | 79.63% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
