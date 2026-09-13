@@ -2,15 +2,16 @@
 
 ## Status
 
-Stage 2 stdio migration complete; HTTP transport migration remains in progress.
+Stage 3 HTTP candidate parity complete; the public HTTP command switch remains in progress.
 
 - Official dependency: `mcp==2.2.0`
 - SDK server API: low-level `Server`, preserving explicit harness JSON Schemas
 - Modern client negotiation: `2026-07-28`, pass
 - Legacy client negotiation: `2025-11-25`, pass
 - CLI stdio: official SDK v2 transport, pass in real subprocess tests
-- Focused tests: 24 passed across the SDK adapter and compatibility surface
-- Full regression: 194 tests passed at 79.55% branch coverage
+- Candidate HTTP runtime: official SDK v2 over a real localhost socket
+- HTTP security/session tests: 5 passed
+- Full regression: 199 tests passed at 79.79% branch coverage
 - Scripted benchmark: 40/40 passed
 
 ## Verified Surface
@@ -26,6 +27,7 @@ Stage 2 stdio migration complete; HTTP transport migration remains in progress.
 | Protocol errors | pass | pass |
 | Protocol-version and tool-call trace evidence | pass | pass |
 | Real CLI stdio subprocess | pass | pass |
+| Real authenticated HTTP client | pass | pass |
 
 The SDK adapter delegates every tool call to the existing `ToolRegistry.call(...)` path.
 It adds an `mcp_sdk_request` trace event with the negotiated protocol version and does not
@@ -37,16 +39,15 @@ Windows-only wheel.
 
 ## Claim Boundary
 
-This report proves in-memory and real CLI stdio protocol-era parity through the official SDK.
-The authenticated Streamable HTTP command still uses the project's hand-written compatibility
-transport. The project must not claim completed SDK transport migration or HTTP
-`2026-07-28` support until that transport is migrated and its security parity is tested.
+This report proves in-memory, real CLI stdio, and candidate authenticated HTTP protocol-era
+parity through the official SDK. The user-facing Streamable HTTP command still uses the project's
+hand-written compatibility transport. The project must not claim completed SDK transport migration
+or public HTTP `2026-07-28` support until the command, smoke, and cross-feature paths switch.
 
 ## Next Gate
 
-1. Replace the custom HTTP protocol/session implementation with the SDK Streamable HTTP app while
-   preserving localhost, Origin, and Bearer-token controls.
-2. Regenerate stdio/HTTP smoke reports, run cross-feature CI, and retire the compatibility
+1. Switch `mcp-http`, its smoke, and cross-feature consumers to the candidate SDK runtime.
+2. Regenerate HTTP smoke evidence, run cross-feature CI, and retire the compatibility
    transport only after both protocol eras pass.
 
 ## Sources

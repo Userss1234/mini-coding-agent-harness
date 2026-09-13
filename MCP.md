@@ -15,6 +15,10 @@ The user-facing `mcp-http` command still uses the tested compatibility transport
 It will move only after authenticated Streamable HTTP security and protocol-era parity are
 demonstrated; until then, the project does not claim that the full transport migration is complete.
 
+An isolated candidate in `harness/mcp_sdk_http.py` now passes real-network tests for
+Bearer authentication, exact Origin/CORS handling, session deletion and expiry, and official
+client negotiation in both protocol eras. The command switch is intentionally a separate gate.
+
 ## Run
 
 ```powershell

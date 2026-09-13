@@ -79,6 +79,7 @@ side-effect-free decisions before dispatching a tool handler.
 | `harness/mcp_server.py` | Shared MCP protocol surface plus stdio transport. |
 | `harness/mcp_http.py` | Streamable HTTP JSON-response transport, Origin/auth guards, and expiring sessions. |
 | `harness/mcp_sdk.py` | Official MCP Python SDK v2 adapter for dual-era protocol negotiation over the existing registry-backed surface. |
+| `harness/mcp_sdk_http.py` | Candidate official SDK v2 HTTP runtime with static Bearer verification, exact Origin/CORS controls, and managed Uvicorn lifecycle. |
 | `harness/trace.py` | Append-only JSONL trace writer. |
 | `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |
 
@@ -184,6 +185,11 @@ The SDK v2 adapter uses the official low-level `Server` API so the harness can r
 explicit JSON Schemas and structured tool results. In-memory and CLI subprocess tests negotiate
 both `2026-07-28` and legacy `2025-11-25` over official stdio. HTTP remains on the
 compatibility transport until its authentication, Origin, session, and protocol-era parity tests pass.
+
+The candidate SDK HTTP runtime has passed that focused parity gate over a real localhost socket:
+static Bearer rejection, exact Origin rejection, CORS preflight, modern and legacy official clients,
+session deletion, and idle expiry. The public `mcp-http` command remains on the compatibility
+runtime until its smoke and cross-feature consumers are switched in the next stage.
 
 The focused cross-feature command keeps evidence ownership explicit: it inspects a real Docker runtime report for non-root/workspace/network/no-fallback markers, then performs a live hybrid retrieval call through MCP HTTP and requires the implementation path in the top three results. The report does not claim the embedding model executes inside the container.
 
