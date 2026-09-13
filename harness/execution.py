@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 import time
-from typing import Callable, Mapping, Protocol, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Protocol
 from uuid import uuid4
-
 
 DOCKER_ENV_KEYS = {
     "HOME",
@@ -304,7 +304,8 @@ def build_executor(
     workspace: Path,
     backend: str | None = None,
 ) -> CommandExecutor:
-    selected = (backend or os.getenv("HARNESS_EXECUTION_BACKEND", "host")).strip().lower()
+    configured = backend if backend is not None else os.getenv("HARNESS_EXECUTION_BACKEND")
+    selected = (configured or "host").strip().lower()
     if selected == "host":
         return HostExecutor(workspace)
     if selected == "docker":

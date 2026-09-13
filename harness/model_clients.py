@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
+from collections.abc import Callable
+from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import Any
 from urllib import request
 
 

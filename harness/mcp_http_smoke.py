@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import http.client
 import json
-from pathlib import Path
 import threading
+from pathlib import Path
 from typing import Any
 
 from .mcp_http import (
@@ -13,7 +13,6 @@ from .mcp_http import (
     build_mcp_http_server,
 )
 from .mcp_server import build_mcp_server
-
 
 SMOKE_TOKEN = "mcp-http-smoke-token"
 

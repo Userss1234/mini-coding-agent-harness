@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
-
 
 KEY_TOOL_COUNTS = [
     "todo_write",
@@ -551,13 +550,13 @@ def _retrieval_task_variance_section(
             detailed_runs.append((str(run["label"]), pairs))
 
     if not detailed_runs:
-        return """## Task-Level Paired Variance
+        return f"""## Task-Level Paired Variance
 
-- Runs with task detail: **0/{run_count}**
+- Runs with task detail: **0/{len(runs)}**
 - Status: **unavailable for legacy comparison JSON**
 
 The selected files predate `task_results` and `paired_tasks`. Rerun the same comparison command with the current harness to enable task-level outcome, tool-call, and direct-read variance without changing this CLI.
-""".format(run_count=len(runs))
+"""
 
     task_ids = sorted({
         task_id
@@ -898,7 +897,7 @@ def _metric_row(label: str, before: str, after: str) -> str:
 
 
 def _tool_delta_rows(before_summary: Mapping[str, Any], after_summary: Mapping[str, Any]) -> str:
-    tools = sorted(set(KEY_TOOL_COUNTS) | set((before_summary.get("tool_counts") or {})) | set((after_summary.get("tool_counts") or {})))
+    tools = sorted(set(KEY_TOOL_COUNTS) | set(before_summary.get("tool_counts") or {}) | set(after_summary.get("tool_counts") or {}))
     rows = []
     for tool in tools:
         before = _tool_count_int(before_summary, tool)
@@ -1146,7 +1145,7 @@ def _load_trace_events(path: Path | None) -> tuple[list[dict[str, Any]], bool]:
     return events, True
 
 
-def _trace_has_successful_file_change(events: list[Mapping[str, Any]]) -> bool:
+def _trace_has_successful_file_change(events: Sequence[Mapping[str, Any]]) -> bool:
     for event in events:
         if event.get("event") != "tool_call":
             continue

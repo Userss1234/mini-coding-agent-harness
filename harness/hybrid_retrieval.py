@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from functools import lru_cache
 import hashlib
 import json
 import math
 import os
+from collections.abc import Sequence
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 
 from .retrieval import (
     RetrievalChunk,
@@ -16,7 +17,6 @@ from .retrieval import (
     search_retrieval_index,
     tokenize_query,
 )
-
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_LEXICAL_WEIGHT = 0.35
@@ -171,7 +171,7 @@ def search_workspace_hybrid(
         default=0.0,
     )
 
-    scored = []
+    scored: list[dict[str, Any]] = []
     for chunk, document_vector in zip(index.chunks, document_vectors):
         key = _chunk_identity(chunk)
         lexical = lexical_matches.get(key) or {}

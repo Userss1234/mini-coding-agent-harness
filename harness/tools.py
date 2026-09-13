@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import difflib
 import fnmatch
 import importlib.util
 import json
 import os
-from pathlib import Path
-import shutil
 import shlex
-import sys
+import shutil
 import subprocess
+import sys
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 from .execution import CommandExecutor, ExecutionResult, build_executor
 from .retrieval import (
@@ -60,6 +61,7 @@ class ToolRegistry:
         self.retry_delay = retry_delay
         self.execution_backend = "host"
         self.execution_policy: dict[str, object] = {}
+        self.retrieval_backend = "lexical"
         self._tools: dict[str, Tool] = {}
         self.metrics: dict[str, int] = {
             "read_cache_hits": 0,
@@ -1143,6 +1145,8 @@ def build_registry(
 
     def permission_policy() -> ToolResult:
         execution = executor.describe()
+        allowed_shell_commands = sorted(ALLOWED_SHELL_COMMANDS)
+        read_only_git_subcommands = sorted(READ_ONLY_GIT_SUBCOMMANDS)
         metadata = {
             "workspace": str(workspace),
             "allow_write": registry.allow_write,
@@ -1151,8 +1155,8 @@ def build_registry(
             "path_scope": "workspace_only",
             "shell_false": True,
             "shell_operator_markers": SHELL_OPERATOR_MARKERS,
-            "allowed_shell_commands": sorted(ALLOWED_SHELL_COMMANDS),
-            "read_only_git_subcommands": sorted(READ_ONLY_GIT_SUBCOMMANDS),
+            "allowed_shell_commands": allowed_shell_commands,
+            "read_only_git_subcommands": read_only_git_subcommands,
             "execution_backend": executor.backend,
             "execution": execution,
             "container_isolation": bool(execution.get("containerized")),
@@ -1166,8 +1170,8 @@ def build_registry(
             "- File paths are resolved inside the workspace; path escape attempts are blocked.",
             "- `delete_file` requires `confirm=true` and refuses directories.",
             "- Shell commands are tokenized with `shlex`, executed with `shell=False`, and shell operators are blocked.",
-            f"- Allowed shell executables: {', '.join(metadata['allowed_shell_commands'])}",
-            f"- Read-only Git subcommands: {', '.join(metadata['read_only_git_subcommands'])}",
+            f"- Allowed shell executables: {', '.join(allowed_shell_commands)}",
+            f"- Read-only Git subcommands: {', '.join(read_only_git_subcommands)}",
             "- Force flags and mutating Git subcommands are blocked.",
             f"- Command execution backend: {executor.backend}.",
             (

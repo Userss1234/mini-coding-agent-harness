@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
 import difflib
+from datetime import datetime
 from pathlib import Path
 
 from .tools import ToolRegistry

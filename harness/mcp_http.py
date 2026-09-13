@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from pathlib import Path
 import secrets
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlsplit
 
 from .mcp_server import (
     ERROR_INVALID_REQUEST,
-    MCPToolServer,
     SUPPORTED_PROTOCOL_VERSION,
+    MCPToolServer,
 )
 from .tools import build_registry
 from .trace import TraceLogger
-
 
 MCP_SESSION_HEADER = "MCP-Session-Id"
 MCP_PROTOCOL_HEADER = "MCP-Protocol-Version"
@@ -118,6 +117,7 @@ class MCPStreamableHTTPServer(ThreadingHTTPServer):
 
 
 class MCPStreamableHTTPRequestHandler(BaseHTTPRequestHandler):
+    server: MCPStreamableHTTPServer
     protocol_version = "HTTP/1.1"
     server_version = "MiniCodingAgentMCP/0.1"
 
@@ -172,9 +172,9 @@ class MCPStreamableHTTPRequestHandler(BaseHTTPRequestHandler):
                 if requested == SUPPORTED_PROTOCOL_VERSION
                 else SUPPORTED_PROTOCOL_VERSION
             )
-            session_id, session = self.server.sessions.create(negotiated)
-            with session.lock:
-                response = session.server.handle_message(message)
+            session_id, initialized_session = self.server.sessions.create(negotiated)
+            with initialized_session.lock:
+                response = initialized_session.server.handle_message(message)
             self._send_json(200, response, {MCP_SESSION_HEADER: session_id})
             return
 

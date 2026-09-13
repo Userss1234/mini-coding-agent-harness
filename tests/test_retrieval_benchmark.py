@@ -12,7 +12,6 @@ from harness.retrieval_benchmark import (
     write_retrieval_benchmark_outputs,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

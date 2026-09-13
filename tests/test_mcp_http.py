@@ -1,26 +1,26 @@
 from __future__ import annotations
 
 import http.client
-from io import StringIO
 import json
-from pathlib import Path
 import threading
-from typing import Any, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
+from io import StringIO
+from pathlib import Path
+from typing import Any
 
 import pytest
 
 from harness.mcp_http import (
     MCP_PROTOCOL_HEADER,
     MCP_SESSION_HEADER,
-    MCPHTTPSessionStore,
     SUPPORTED_PROTOCOL_VERSION,
+    MCPHTTPSessionStore,
     build_mcp_http_server,
     normalize_endpoint,
     normalize_origin,
 )
 from harness.mcp_server import build_mcp_server, serve_stdio
-
 
 TOKEN = "test-mcp-bearer-token"
 

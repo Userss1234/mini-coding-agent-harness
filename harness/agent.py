@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
-from pathlib import Path
 import re
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 try:
     from anthropic import Anthropic
@@ -17,9 +18,8 @@ try:
 except ImportError:  # pragma: no cover
     load_dotenv = None
 
-from .tools import ToolRegistry, ToolResult
 from .model_clients import create_default_model_client
-
+from .tools import ToolRegistry, ToolResult
 
 BASE_SYSTEM_PROMPT = """You are a coding agent operating inside a local repository.
 Use tools to inspect files and run checks. Prefer small, evidence-backed steps.
@@ -90,7 +90,7 @@ class RetrievalPreflightBudget:
     max_chars: int = 2400
 
     @classmethod
-    def from_env(cls) -> "RetrievalPreflightBudget":
+    def from_env(cls) -> RetrievalPreflightBudget:
         return cls(
             limit=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_LIMIT", 2, 1, 8),
             chunk_lines=_bounded_env_int("AGENT_RETRIEVAL_PREFLIGHT_CHUNK_LINES", 48, 8, 200),

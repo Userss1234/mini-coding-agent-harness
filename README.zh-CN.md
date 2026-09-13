@@ -18,6 +18,24 @@ python main.py retrieval-benchmark
 python main.py demo --task python_bugfix
 ```
 
+仓库分别维护固定版本的运行时和开发依赖锁文件。提交前可以运行与 Python 3.10-3.12 CI
+矩阵相同的质量门槛：
+
+```powershell
+python -m pip install -r requirements-dev.lock
+python -m ruff check main.py harness tests
+python -m mypy
+python -m pytest --cov=harness --cov-report=term-missing
+```
+
+依赖范围变化后重新生成锁文件：
+
+```powershell
+python -m pip install "pip-tools>=7.4,<8"
+python -m piptools compile requirements.txt --output-file requirements.lock --strip-extras
+python -m piptools compile pyproject.toml --extra dev --output-file requirements-dev.lock --strip-extras
+```
+
 lexical backend 不需要额外模型依赖。若要运行本地 hybrid benchmark，安装 retrieval 可选依赖并显式选择 backend：
 
 ```powershell

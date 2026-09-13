@@ -20,11 +20,11 @@ from harness.mcp_http import build_mcp_http_server, serve_streamable_http
 from harness.mcp_http_smoke import run_mcp_http_smoke
 from harness.mcp_server import build_mcp_server, serve_stdio
 from harness.mcp_smoke import run_mcp_smoke
-from harness.review import inspect_repo
 from harness.retrieval_benchmark import (
     run_retrieval_benchmark,
     write_retrieval_benchmark_outputs,
 )
+from harness.review import inspect_repo
 from harness.tools import build_registry
 from harness.trace import TraceLogger
 from harness.trace_viewer import build_trace_report
@@ -248,8 +248,9 @@ def cmd_mcp_http(args) -> None:
         session_ttl_seconds=args.session_ttl,
     )
     host, port = server.server_address[:2]
+    host_text = host.decode() if isinstance(host, bytes) else str(host)
     print(
-        f"MCP Streamable HTTP listening on http://{host}:{port}{server.config.endpoint}",
+        f"MCP Streamable HTTP listening on http://{host_text}:{port}{server.config.endpoint}",
         flush=True,
     )
     print(

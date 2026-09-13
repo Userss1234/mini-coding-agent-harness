@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, TextIO
 from urllib.parse import unquote
 
 from .retrieval import build_workspace_index, format_index_summary
 from .tools import ToolRegistry, build_registry, safe_path
 from .trace import TraceLogger
-
 
 SUPPORTED_PROTOCOL_VERSION = "2025-11-25"
 TEXT_MIME = "text/markdown"
@@ -39,7 +38,7 @@ class MCPToolServer:
         self.initialized = False
         self.resources = _build_resource_catalog(registry.workspace)
 
-    def handle_message(self, message: dict[str, Any]) -> dict[str, Any] | None:
+    def handle_message(self, message: Any) -> dict[str, Any] | None:
         if not isinstance(message, dict):
             return _error_response(None, ERROR_INVALID_REQUEST, "Request must be a JSON object.")
 
@@ -241,7 +240,10 @@ def serve_stdio(server: MCPToolServer, stdin: TextIO | None = None, stdout: Text
         out_stream.flush()
 
 
-def _handle_json_line(server: MCPToolServer, line: str) -> dict[str, Any] | None:
+def _handle_json_line(
+    server: MCPToolServer,
+    line: str,
+) -> dict[str, Any] | list[dict[str, Any]] | None:
     try:
         message = json.loads(line)
     except json.JSONDecodeError as exc:

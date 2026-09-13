@@ -3,22 +3,21 @@ from __future__ import annotations
 import http.client
 import json
 import os
-from pathlib import Path
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
+from .hybrid_retrieval import (
+    DEFAULT_EMBEDDING_MODEL,
+    get_sentence_transformer_embedder,
+)
 from .mcp_http import (
     MCP_PROTOCOL_HEADER,
     MCP_SESSION_HEADER,
     SUPPORTED_PROTOCOL_VERSION,
     build_mcp_http_server,
 )
-from .hybrid_retrieval import (
-    DEFAULT_EMBEDDING_MODEL,
-    get_sentence_transformer_embedder,
-)
-
 
 CROSS_FEATURE_TOKEN = "cross-feature-local-token"
 CROSS_FEATURE_QUERY = "Streamable HTTP Origin authentication session lifecycle"

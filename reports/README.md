@@ -8,6 +8,7 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 ## CI Closure
 
 - [GitHub Actions run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902): passing `validate` and `cross-feature` jobs for commit `e4504a3`; retained artifacts are `validation-artifacts` and `cross-feature-validation`.
+- `ENGINEERING_QUALITY.md`: locked dependencies, Ruff/mypy gates, 75% branch coverage threshold, Python 3.10-3.12 CI matrix, and local 177-test/40-task verification.
 
 ## Local Demo
 

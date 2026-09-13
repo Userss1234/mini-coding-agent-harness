@@ -18,6 +18,24 @@ python main.py retrieval-benchmark
 python main.py demo --task python_bugfix
 ```
 
+The repository keeps separately compiled runtime and development lock files. Before opening a
+pull request, run the same quality gates used by the Python 3.10-3.12 CI matrix:
+
+```powershell
+python -m pip install -r requirements-dev.lock
+python -m ruff check main.py harness tests
+python -m mypy
+python -m pytest --cov=harness --cov-report=term-missing
+```
+
+Regenerate the lock files after changing dependency ranges:
+
+```powershell
+python -m pip install "pip-tools>=7.4,<8"
+python -m piptools compile requirements.txt --output-file requirements.lock --strip-extras
+python -m piptools compile pyproject.toml --extra dev --output-file requirements-dev.lock --strip-extras
+```
+
 The lexical backend has no optional model dependency. To run the local hybrid benchmark, install the retrieval extra and select the backend explicitly:
 
 ```powershell

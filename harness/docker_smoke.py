@@ -5,7 +5,6 @@ from typing import Any
 
 from .execution import CommandExecutor, DockerExecutor
 
-
 SMOKE_SCRIPT = """import os
 import pathlib
 import socket

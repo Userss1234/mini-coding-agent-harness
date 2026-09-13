@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
 import json
 import math
-from pathlib import Path
+from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 from functools import partial
-from typing import Any, Callable, Mapping, Sequence
+from pathlib import Path
+from typing import Any
 
 from .retrieval import search_workspace
-
 
 SearchFunction = Callable[..., Mapping[str, Any]]
 

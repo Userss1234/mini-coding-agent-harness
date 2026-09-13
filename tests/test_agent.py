@@ -14,8 +14,8 @@ from harness.agent import (
     _compact_on_max_turns,
     _response_usage,
     decide_retrieval_activation,
+    run_agent,
 )
-from harness.agent import run_agent
 from harness.tools import ToolResult, build_registry
 from harness.trace import TraceLogger
 

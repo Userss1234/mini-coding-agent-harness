@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import datetime
 import json
 import os
-from pathlib import Path
 import shutil
 import time
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from .tools import ToolRegistry, build_registry
 from .trace import TraceLogger
@@ -1141,7 +1142,7 @@ def run_rag_symbol_retrieval_task(registry: ToolRegistry) -> bool:
     first = matches[0] if matches else {}
     return (
         result.ok
-        and metadata.get("count") >= 1
+        and int(metadata.get("count") or 0) >= 1
         and str(first.get("path", "")).endswith("billing/invoice.py")
         and int(first.get("start_line", 0)) == 1
         and "invoice_total" in result.output
