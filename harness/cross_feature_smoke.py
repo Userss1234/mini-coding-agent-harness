@@ -127,6 +127,7 @@ def run_live_hybrid_mcp_check(
     )
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
+    _wait_for_server(server, thread)
     port = int(server.server_address[1])
     origin = f"http://127.0.0.1:{port}"
     headers = {
@@ -247,6 +248,14 @@ def run_live_hybrid_mcp_check(
         "cache_written": bool(cache.get("written", False)) if isinstance(cache, dict) else False,
         "tool_error": output_text if result.get("isError") else "none",
     }
+
+
+def _wait_for_server(server: Any, thread: threading.Thread) -> None:
+    deadline = time.monotonic() + 10
+    while not server.started and thread.is_alive() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    if not server.started:
+        raise RuntimeError("SDK HTTP cross-feature server did not start.")
 
 
 def preflight_embedding_model(*, allow_model_download: bool) -> dict[str, Any]:
