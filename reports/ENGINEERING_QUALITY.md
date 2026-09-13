@@ -31,6 +31,11 @@ Validated on Python 3.10 with the committed development lock:
 The generated coverage database and benchmark workspaces remain local and are ignored by Git.
 GitHub Actions is the authoritative cross-version and Docker runtime check.
 
+The first ownership split moved the deterministic task catalog and fixtures into
+`harness/eval_tasks.py`. `harness/evaluation.py` decreased from 2,998 to 1,277 lines while retaining
+the original task IDs and compatibility export used by existing callers. Post-split verification
+passed 177 tests at 79.31% branch coverage and the 40/40 scripted benchmark.
+
 ## Claim Boundary
 
 This report proves a repeatable engineering gate, not complete static typing or exhaustive test

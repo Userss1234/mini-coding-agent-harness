@@ -68,7 +68,8 @@ flowchart TD
 | `harness/retrieval.py` | Shared safe chunk index, lexical retrieval, read-plan generation, and path filtering. |
 | `harness/hybrid_retrieval.py` | Optional local MiniLM embeddings, lexical/semantic score fusion, and incremental embedding cache. |
 | `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
-| `harness/evaluation.py` | Scripted and real-agent benchmark runners, task fixtures, backend-neutral verifiers, order-controlled retrieval/backend comparisons, report generation. |
+| `harness/eval_tasks.py` | Deterministic task catalog, isolated repository fixtures, scripted runners, and backend-neutral verifiers. |
+| `harness/evaluation.py` | Scripted and real-agent benchmark orchestration, order-controlled retrieval/backend comparisons, metrics, and report generation. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | Shared MCP protocol surface plus stdio transport. |
 | `harness/mcp_http.py` | Streamable HTTP JSON-response transport, Origin/auth guards, and expiring sessions. |
