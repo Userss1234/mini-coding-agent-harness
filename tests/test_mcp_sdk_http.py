@@ -17,7 +17,12 @@ from mcp.client.streamable_http import (
     streamable_http_client,
 )
 
-from harness.mcp_http import MCP_PROTOCOL_HEADER, MCP_SESSION_HEADER
+from harness.mcp_http_config import (
+    MCP_PROTOCOL_HEADER,
+    MCP_SESSION_HEADER,
+    normalize_endpoint,
+    normalize_origin,
+)
 from harness.mcp_sdk_http import MCPSDKHTTPServer, build_mcp_sdk_http_server
 
 TOKEN = "test-sdk-http-bearer-token"
@@ -206,6 +211,16 @@ def test_sdk_http_rejects_unsafe_defaults(tmp_path: Path) -> None:
             auth_token=TOKEN,
             session_ttl_seconds=0,
         )
+
+
+def test_sdk_http_endpoint_and_origin_normalization() -> None:
+    assert normalize_endpoint("/mcp/") == "/mcp"
+    assert normalize_origin("https://Example.com") == "https://example.com:443"
+    assert normalize_origin("http://localhost:8000/") == "http://localhost:8000"
+    with pytest.raises(ValueError, match="absolute path"):
+        normalize_endpoint("mcp")
+    with pytest.raises(ValueError, match="Invalid MCP HTTP origin"):
+        normalize_origin("https://example.com/path")
 
 
 async def _exercise_http(

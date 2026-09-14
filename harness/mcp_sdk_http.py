@@ -15,7 +15,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from .mcp_http import (
+from .mcp_http_config import (
     DEFAULT_HTTP_ENDPOINT,
     DEFAULT_HTTP_HOST,
     DEFAULT_HTTP_PORT,

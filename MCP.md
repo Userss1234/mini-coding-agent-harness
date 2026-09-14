@@ -15,7 +15,8 @@ trace behavior in automatic `2026-07-28` mode and legacy `2025-11-25` mode.
 The user-facing `mcp-http` command and its smoke and cross-feature consumers now use
 `harness/mcp_sdk_http.py`. Real-network tests cover Bearer authentication, exact Origin/CORS
 handling, session deletion and expiry, and official-client negotiation in both protocol eras.
-The compatibility implementation remains only until the switched cross-feature path passes CI.
+The switched cross-feature path passed CI, so the hand-written HTTP transport was removed.
+Only transport-neutral HTTP configuration and normalization helpers remain outside the SDK adapter.
 
 ## Run
 

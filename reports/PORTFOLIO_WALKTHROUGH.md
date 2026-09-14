@@ -58,7 +58,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
    Explain that ranking gains were tested separately from agent workflow gains. The lexical-first 8-task pair did not show hybrid efficiency gains and exposed a verifier hardcoded to lexical metadata even though hybrid ranked the target first. The defect was fixed, a targeted pair passed on both backends, and the original report was preserved rather than rewritten.
 
 11. Open `reports/CROSS_FEATURE_VALIDATION.md`.
-   Show the final integration evidence: six Docker runtime markers pass, an authenticated MCP HTTP session selects `local_chunk_hybrid_scoring`, MiniLM returns `harness/mcp_http.py` in the top three, and the warm rerun exercises the incremental embedding-cache hit path. State the boundary clearly: Docker execution and hybrid retrieval are joined as evidence, but MiniLM is not claimed to run inside the sandbox.
+   Show the final integration evidence: six Docker runtime markers pass, an authenticated MCP HTTP session selects `local_chunk_hybrid_scoring`, and MiniLM returns `harness/mcp_sdk_http.py` in the top three. State the boundary clearly: Docker execution and hybrid retrieval are joined as evidence, but MiniLM is not claimed to run inside the sandbox.
 
 ## Key Architecture Points
 
@@ -68,7 +68,7 @@ python main.py --workspace . --trace artifacts/mcp_trace.jsonl mcp-server
 - `harness/evaluation.py` owns deterministic and model-backed benchmark execution, controllable retrieval comparison order, and per-configuration task-result retention.
 - `harness/eval_analysis.py` turns JSON eval reports into comparison, history, failure-mode, repeated-run, aggregate retrieval, and task-level paired-variance evidence.
 - `harness/execution.py` implements the host/Docker executor boundary, resource policy, environment filtering, and timeout cleanup.
-- `harness/mcp_server.py` owns the shared MCP methods and stdio transport; `harness/mcp_http.py` adds the localhost-safe HTTP boundary without duplicating tool policy.
+- `harness/mcp_server.py` owns the shared MCP surface; `harness/mcp_sdk.py` and `harness/mcp_sdk_http.py` adapt it to official SDK v2 stdio and localhost-safe Streamable HTTP without duplicating tool policy.
 
 ## Claims To Make
 

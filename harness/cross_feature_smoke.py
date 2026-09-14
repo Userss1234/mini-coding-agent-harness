@@ -12,10 +12,10 @@ from .hybrid_retrieval import (
     DEFAULT_EMBEDDING_MODEL,
     get_sentence_transformer_embedder,
 )
-from .mcp_http import (
+from .mcp_http_config import (
+    LEGACY_PROTOCOL_VERSION,
     MCP_PROTOCOL_HEADER,
     MCP_SESSION_HEADER,
-    SUPPORTED_PROTOCOL_VERSION,
 )
 from .mcp_sdk_http import build_mcp_sdk_http_server
 
@@ -147,7 +147,7 @@ def run_live_hybrid_mcp_check(
             "id": 1,
             "method": "initialize",
             "params": {
-                "protocolVersion": SUPPORTED_PROTOCOL_VERSION,
+                "protocolVersion": LEGACY_PROTOCOL_VERSION,
                 "capabilities": {},
                 "clientInfo": {"name": "cross-feature-smoke", "version": "0.1.0"},
             },
@@ -155,7 +155,7 @@ def run_live_hybrid_mcp_check(
         session_id = initialized[1].get(MCP_SESSION_HEADER.lower(), "")
         session_headers = dict(headers)
         session_headers[MCP_SESSION_HEADER] = session_id
-        session_headers[MCP_PROTOCOL_HEADER] = SUPPORTED_PROTOCOL_VERSION
+        session_headers[MCP_PROTOCOL_HEADER] = LEGACY_PROTOCOL_VERSION
         notification = _request(
             port,
             {"jsonrpc": "2.0", "method": "notifications/initialized"},

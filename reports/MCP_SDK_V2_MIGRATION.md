@@ -2,7 +2,7 @@
 
 ## Status
 
-Stage 4 public HTTP consumer switch complete; cross-feature CI and compatibility retirement remain.
+Complete. Official SDK v2 now owns public stdio and Streamable HTTP transports.
 
 - Official dependency: `mcp==2.2.0`
 - SDK server API: low-level `Server`, preserving explicit harness JSON Schemas
@@ -11,8 +11,11 @@ Stage 4 public HTTP consumer switch complete; cross-feature CI and compatibility
 - CLI stdio: official SDK v2 transport, pass in real subprocess tests
 - Public HTTP runtime: official SDK v2 over a real localhost socket
 - HTTP security/session tests: 5 passed
-- Full regression: 199 tests passed at 79.63% branch coverage
+- Compatibility HTTP transport: removed after parity and switched CI validation
+- Full regression: 193 tests passed at 79.45% branch coverage
 - Scripted benchmark: 40/40 passed
+- Normal CI: [run 34760413509](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760413509), pass
+- Cross-feature CI: [run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827), pass
 
 ## Verified Surface
 
@@ -40,14 +43,13 @@ Windows-only wheel.
 ## Claim Boundary
 
 This report proves in-memory, real CLI stdio, and public authenticated HTTP protocol-era parity
-through the official SDK. The `mcp-http`, HTTP smoke, and cross-feature code paths now use the
-SDK runtime. The project must not claim completed compatibility retirement until the switched
-cross-feature path passes CI and the hand-written runtime is removed.
+through the official SDK. The `mcp-http`, HTTP smoke, and cross-feature code paths use the SDK
+runtime. The hand-written HTTP transport and transport-specific tests were removed only after
+the switched Docker + hybrid RAG + MCP workflow passed.
 
 ## Next Gate
 
-1. Run the switched Docker + hybrid RAG + MCP cross-feature path in CI and commit its evidence.
-2. Extract the remaining shared HTTP configuration helpers and remove the hand-written runtime.
+P1 is closed. The next roadmap gate is P2 durable run state and resume with SQLite.
 
 ## Sources
 

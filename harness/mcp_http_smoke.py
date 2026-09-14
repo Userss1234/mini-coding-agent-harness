@@ -11,7 +11,7 @@ from typing import Any
 from mcp import Client
 from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
 
-from .mcp_http import MCP_PROTOCOL_HEADER, MCP_SESSION_HEADER
+from .mcp_http_config import MCP_PROTOCOL_HEADER, MCP_SESSION_HEADER
 from .mcp_sdk_http import build_mcp_sdk_http_server
 
 SMOKE_TOKEN = "mcp-http-smoke-token"

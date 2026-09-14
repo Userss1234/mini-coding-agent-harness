@@ -2,46 +2,39 @@
 
 Status: **pass**
 
-## Evidence Model
+## Verified Run
 
-- Docker evidence source: `reports\DOCKER_SANDBOX_SMOKE.md`
-- Docker evidence mode: committed or current CI runtime report inspection
-- Hybrid RAG evidence mode: live `rag_search` call through localhost MCP Streamable HTTP
-- Expected implementation evidence: `harness/mcp_http.py` within the top 3 matches
+- Workflow: [GitHub Actions run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827)
+- Commit: `9da0a8bfb49172dc907af62a89581435e4bb9a61`
+- Cross-feature job: **pass**
+- Validate job: **pass**
+- Python quality matrix: **3.10 / 3.11 / 3.12 pass**
 
-## Docker Boundary
+## Behavioral Gates
 
-| Check | Status |
+| Gate | Result |
 |---|---|
-| status | pass |
-| backend | pass |
-| non_root | pass |
-| workspace | pass |
-| network | pass |
-| no_fallback | pass |
+| Docker image build | pass |
+| Current Docker runtime evidence | pass |
+| Non-root user, workspace mount, blocked network, no host fallback | pass |
+| Authenticated localhost MCP Streamable HTTP session | pass |
+| Official SDK HTTP runtime | pass |
+| Hybrid retrieval marker `local_chunk_hybrid_scoring` | pass |
+| Expected implementation `harness/mcp_sdk_http.py` in top 3 | pass |
+| Cross-feature artifact upload | pass |
 
-Docker result: **pass** (all Docker runtime markers present)
+The workflow step requires the generated report to contain both `Status: **pass**` and
+`local_chunk_hybrid_scoring`. The command's pass state also requires successful initialization,
+session creation, initialized notification, tool invocation, a non-error hybrid result, and the
+expected SDK HTTP implementation path in the returned matches.
 
-## Live MCP + Hybrid Retrieval
+## Boundary
 
-| Check | Observed |
-|---|---|
-| Initialize HTTP status | 200 |
-| Session issued | yes |
-| Initialized notification status | 202 |
-| Tool HTTP status | 200 |
-| Retrieval marker | `local_chunk_hybrid_scoring` |
-| Embedding model | `sentence-transformers/all-MiniLM-L6-v2` |
-| Embedding preflight | 9.5s |
-| Live validation duration | 13.614s |
-| Expected implementation path found | yes |
-| Embedding cache H/M/W | 181/0/0 |
-| Tool/request error | none |
+This report joins two independently observable paths. Docker runtime evidence covers the command
+execution boundary. The live MCP call proves that the authenticated official SDK HTTP transport
+reaches the shared permission-checked registry and selects local hybrid retrieval. It does not
+claim that MiniLM executes inside the Docker sandbox or that hybrid retrieval improves agent
+efficiency.
 
-Top matches: `harness/mcp_http.py`, `harness/mcp_http.py`, `harness/mcp_http.py`
-
-Live MCP + hybrid result: **pass**
-
-## Interpretation
-
-This report joins two evidence paths without claiming that the embedding model runs inside the Docker sandbox. The Docker report proves the command-execution boundary. The live HTTP call proves that an authenticated MCP session reaches the shared permission-checked registry, selects the local hybrid backend, and returns implementation evidence. A passing CI rerun rebuilds the Docker image before generating this report.
+Exact per-run latency and embedding-cache counters remain in the uploaded CI artifact and are not
+repeated here because they are environment-specific rather than pass criteria.

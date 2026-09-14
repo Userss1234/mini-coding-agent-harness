@@ -148,7 +148,6 @@ Evidence:
 - `harness/mcp_sdk_http.py`
 - `MCP.md`
 - `tests/test_mcp_server.py`
-- `tests/test_mcp_http.py`
 - `tests/test_mcp_sdk.py`
 - `tests/test_mcp_sdk_http.py`
 - `reports/MCP_SMOKE.md`

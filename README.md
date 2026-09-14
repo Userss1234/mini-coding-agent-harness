@@ -58,7 +58,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Retrieval quality:** a committed 10-query relevance-judged corpus measures ranking independently from the agent loop. The offline lexical baseline reaches 0.8000 MRR and 0.70/0.80/0.80 Recall@1/3/5. The optional local MiniLM hybrid backend reaches 0.9000 MRR and 0.70/1.00/1.00 Recall@1/3/5, recovering both retained semantic cases at rank 2 without a model API.
 - **Backend agent evidence:** a lexical-first 8-task DeepSeek comparison preserved task-level pairs and cache metrics. The original report was lexical 8/8 versus hybrid 7/8 because one verifier hardcoded lexical metadata even though hybrid ranked the target first. After fixing the backend-biased verifier, a targeted rerun passed 1/1 on both sides. Hybrid still used more tools/tokens in these runs, so no agent-efficiency claim is made.
 - **Docker execution:** pluggable host/Docker command backends route shell, pytest, and compilation through one execution boundary. Docker mode is non-root, network-disabled, capability-dropped, resource-limited, timeout-cleaned, and fail-closed unless host fallback is explicitly enabled.
-- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted and retrieval-quality benchmarks, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke. The focused Docker + authenticated MCP HTTP + hybrid RAG workflow passed on commit `e4504a3`; its artifacts are retained in [run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902).
+- **CI:** `.github/workflows/ci.yml` runs tests, syntax checks, scripted and retrieval-quality benchmarks, trace rendering, MCP smoke validation, plus a real Docker image build and sandbox smoke. The focused Docker + authenticated SDK HTTP + hybrid RAG workflow passed on commit `9da0a8b` in [run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827).
 - **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md), [`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md), and [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md).
 
 ## Portfolio Walkthrough
@@ -108,7 +108,7 @@ Show these committed artifacts while explaining the system:
 - [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md): GitHub Actions runtime evidence for non-root execution, the workspace mount, and disabled outbound networking.
 - [`reports/MCP_SMOKE.md`](reports/MCP_SMOKE.md): MCP protocol transcript exposing tools, resources, and prompts.
 - [`reports/MCP_HTTP_SMOKE.md`](reports/MCP_HTTP_SMOKE.md): official SDK v2 Streamable HTTP authentication, Origin, dual-protocol, and session-lifecycle evidence.
-- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md): staged official SDK v2 migration evidence and the remaining cross-feature retirement gate.
+- [`reports/MCP_SDK_V2_MIGRATION.md`](reports/MCP_SDK_V2_MIGRATION.md): completed official SDK v2 stdio/HTTP migration, compatibility retirement, and dual-protocol evidence.
 - [`reports/CROSS_FEATURE_VALIDATION.md`](reports/CROSS_FEATURE_VALIDATION.md): passing Docker runtime markers plus a live cached MiniLM retrieval call through authenticated MCP HTTP.
 
 ## What It Does
@@ -386,7 +386,7 @@ For client integration, copy `examples/mcp_config.example.json` and replace `/ab
 
 `workflow_dispatch` also starts a focused `cross-feature` job. It installs the optional retrieval dependencies, caches MiniLM, rebuilds the Docker image, generates current Docker runtime evidence, and runs live hybrid `rag_search` through MCP HTTP before uploading `CROSS_FEATURE_VALIDATION.md`.
 
-Release-readiness evidence: [workflow run 34015905902](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34015905902) completed both `validate` and `cross-feature` successfully on commit `e4504a3`, uploading `validation-artifacts` and `cross-feature-validation`.
+Current cross-feature evidence: [workflow run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827) completed both `validate` and `cross-feature` successfully on commit `9da0a8b`, including Docker runtime evidence and live hybrid retrieval through the official SDK HTTP transport.
 
 ## Evaluation
 
