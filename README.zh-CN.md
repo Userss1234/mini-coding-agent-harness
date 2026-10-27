@@ -10,6 +10,11 @@
 
 ## 快速开始
 
+`ask` 现在默认将运行状态、消息和工具执行检查点保存到 SQLite。`resume` 可恢复中断任务，
+复用已完成的工具结果；无法确定执行结果的调用会停止，待人工核对后再继续。
+`runs` 用于查看和导出记录，`ask --no-persist` 可关闭持久化。
+命令示例和恢复边界见 [运行恢复说明](docs/RUN_RECOVERY.md)。
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest

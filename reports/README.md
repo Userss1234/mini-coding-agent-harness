@@ -8,7 +8,8 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 ## CI Closure
 
 - [GitHub Actions run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827): passing `validate` and `cross-feature` jobs for the official SDK HTTP path on commit `9da0a8b`.
-- `ENGINEERING_QUALITY.md`: locked dependencies, Ruff/mypy gates, 75% branch coverage threshold, Python 3.10-3.12 CI matrix, and local 193-test/40-task verification.
+- `ENGINEERING_QUALITY.md`: locked dependencies, Ruff/mypy gates, 75% branch coverage threshold, Python 3.10-3.12 CI matrix, and local 214-test/40-task verification.
+- `RUN_RECOVERY.md`: Priority 1 local SQLite durability, real process-termination recovery, tool-result reuse, unknown-outcome reconciliation and credential-redacted export evidence.
 
 ## Local Demo
 

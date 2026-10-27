@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from harness.retrieval_benchmark import (
     write_retrieval_benchmark_outputs,
 )
 from harness.review import inspect_repo
+from harness.run_store import SQLiteRunStore
 from harness.tools import build_registry
 from harness.trace import TraceLogger
 from harness.trace_viewer import build_trace_report
@@ -80,8 +82,57 @@ def cmd_ask(args) -> None:
         enable_context_pack=args.retrieval != "off",
         retrieval_backend=args.retrieval_backend,
     )
-    print(run_agent(args.prompt, registry, retrieval_mode=args.retrieval))
+    store = SQLiteRunStore(Path(args.run_db)) if not args.no_persist else None
+    existing_ids = {run["id"] for run in store.list_runs()} if store else set()
+    print(run_agent(
+        args.prompt, registry, retrieval_mode=args.retrieval,
+        max_turns=args.max_turns, run_store=store,
+    ))
+    if store:
+        print(f"Run database: {store.path}")
+        for run in store.list_runs():
+            if run["id"] not in existing_ids:
+                print(f"Run ID: {run['id']}")
     print(f"Trace written to {Path(args.trace).resolve()}")
+
+
+def cmd_resume(args) -> None:
+    if args.fresh_trace:
+        raise SystemExit("Resume cannot delete the original trace; omit --fresh-trace")
+    store = SQLiteRunStore(Path(args.run_db))
+    saved = store.load(args.run_id)
+    policy = saved["policy"]
+    if args.execution_backend and args.execution_backend != policy["execution_backend"]:
+        raise SystemExit("Resume requires the original execution backend")
+    os.environ["HARNESS_EXECUTION_BACKEND"] = policy["execution_backend"]
+    registry = make_registry(
+        Path(args.workspace), Path(saved["artifacts"]["trace"]),
+        allow_write=args.allow_write,
+        enable_context_pack="context_pack" in policy["tool_names"],
+        retrieval_backend=policy["retrieval_backend"],
+    )
+    print(run_agent("", registry, max_turns=args.max_turns, run_store=store,
+                    resume_run_id=args.run_id))
+
+
+def cmd_runs(args) -> None:
+    store = SQLiteRunStore(Path(args.run_db))
+    if args.export:
+        if not args.run_id:
+            raise SystemExit("--export requires --run-id")
+        store.export(args.run_id, Path(args.export))
+        print(f"Run exported to {args.export}")
+    elif args.run_id:
+        print(json.dumps({"state": store.load(args.run_id), "calls": store.calls(args.run_id)},
+                         ensure_ascii=False, indent=2))
+    else:
+        print(json.dumps(store.list_runs(), indent=2))
+
+
+def cmd_run_resolve(args) -> None:
+    store = SQLiteRunStore(Path(args.run_db))
+    store.reconcile(args.run_id, args.call_id, args.result, is_error=not args.succeeded)
+    print("Recorded operator reconciliation; resume the run to continue.")
 
 
 def cmd_eval(args) -> None:
@@ -421,6 +472,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")
+    ask.add_argument("--run-db", default="artifacts/runs.sqlite3", help="Durable run database")
+    ask.add_argument("--no-persist", action="store_true", help="Use an in-memory run only")
+    ask.add_argument("--max-turns", type=int, default=8)
     ask.add_argument(
         "--retrieval",
         choices=["on", "auto", "off"],
@@ -434,6 +488,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Default ranking backend for retrieval tools and preflight",
     )
     ask.set_defaults(func=cmd_ask)
+
+    resume = sub.add_parser("resume", help="Resume a durable run from its last checkpoint")
+    resume.add_argument("run_id")
+    resume.add_argument("--run-db", default="artifacts/runs.sqlite3")
+    resume.add_argument("--max-turns", type=int, default=8)
+    resume.set_defaults(func=cmd_resume)
+
+    runs = sub.add_parser("runs", help="List, inspect or export durable run records")
+    runs.add_argument("--run-db", default="artifacts/runs.sqlite3")
+    runs.add_argument("--run-id")
+    runs.add_argument("--export", help="Write a portable JSONL run export")
+    runs.set_defaults(func=cmd_runs)
+
+    resolve = sub.add_parser("run-resolve", help="Record an inspected unknown tool outcome")
+    resolve.add_argument("run_id")
+    resolve.add_argument("call_id")
+    resolve.add_argument("--run-db", default="artifacts/runs.sqlite3")
+    resolve.add_argument("--result", required=True, help="Operator-verified outcome; never reexecutes")
+    resolve.add_argument("--succeeded", action="store_true", help="Record a verified successful outcome")
+    resolve.set_defaults(func=cmd_run_resolve)
 
     eval_cmd = sub.add_parser("eval", help="Run the harness evaluation suite")
     eval_cmd.add_argument("--output", default="EVAL.md", help="Evaluation report path")

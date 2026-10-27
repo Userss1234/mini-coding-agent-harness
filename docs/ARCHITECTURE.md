@@ -21,6 +21,8 @@ flowchart TD
     Evidence --> Model["Model turn"]
 
     Agent --> Model
+    Agent --> RunSession["RunSession checkpoints and tool ledger"]
+    RunSession --> RunStore["RunStore / SQLite"]
     Model --> ToolUse["Tool request"]
     ToolUse --> Registry["ToolRegistry.call"]
     Registry --> Policy["Permission policy"]
@@ -66,6 +68,8 @@ side-effect-free decisions before dispatching a tool handler.
 |---|---|
 | `main.py` | CLI entry point for agent runs, evals, report analysis, trace rendering, demos, and MCP. |
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
+| `harness/run_store.py` | Storage contract, versioned SQLite snapshots and tool ledger, process exclusion, operator reconciliation and redacted JSONL export. |
+| `harness/run_session.py` | Normalized message checkpoints, resume-policy validation and completed/unknown tool-call handling around the shared agent loop. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
 | `harness/permissions.py` | Workspace path scope, transient-error classification, and Shell/Git allowlist policy. |
 | `harness/execution.py` | Host and Docker command executors, resource policy, environment filtering, and timeout cleanup. |
@@ -84,6 +88,14 @@ side-effect-free decisions before dispatching a tool handler.
 | `harness/trace_viewer.py` | Self-contained interactive HTML trace rendering, metrics, and event filtering. |
 
 ## Tool Registry Boundary
+
+`ask` uses a durable run session by default; `resume` restores normalized messages, todos and
+the negotiated tool surface from its last committed checkpoint. Pending calls still dispatch
+through `ToolRegistry.call`. Completed results are reused. An interrupted `started` call blocks
+until an operator reconciles the external effect. See [Run Recovery](RUN_RECOVERY.md) for
+transaction boundaries, local process locking, schema versioning and redaction limits.
+
+The in-memory loop remains the default API behavior for evaluation and existing callers.
 
 All tool execution goes through `ToolRegistry.call(...)`.
 

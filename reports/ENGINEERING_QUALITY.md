@@ -17,19 +17,22 @@ repeatable checks before they enter the integration workflow.
 
 ## Local Verification
 
-Validated on Python 3.10 with the committed development lock:
+Current local verification uses Windows and Python 3.12.2 with the development environment:
 
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 25 source files |
-| pytest | pass, 193 tests |
-| Branch coverage | 79.45% (75% required) |
+| mypy | pass, 27 source files |
+| pytest | pass, 214 tests |
+| Branch coverage | 81.18% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
 The generated coverage database and benchmark workspaces remain local and are ignored by Git.
 GitHub Actions is the authoritative cross-version and Docker runtime check.
+
+Priority 1 adds durable SQLite run recovery. The current stage is locally verified and not yet
+pushed; the existing remote CI results predate this change. See `reports/RUN_RECOVERY.md`.
 
 The first ownership split moved the deterministic task catalog and fixtures into
 `harness/eval_tasks.py`. `harness/evaluation.py` decreased from 2,998 to 1,277 lines while retaining

@@ -139,16 +139,17 @@ def _convert_assistant_blocks(blocks: list[Any]) -> dict[str, Any]:
     text_parts: list[str] = []
     tool_calls: list[dict[str, Any]] = []
     for block in blocks:
-        block_type = getattr(block, "type", None)
+        get = block.get if isinstance(block, dict) else lambda key, default=None: getattr(block, key, default)
+        block_type = get("type")
         if block_type == "text":
-            text_parts.append(str(getattr(block, "text", "")))
+            text_parts.append(str(get("text", "")))
         elif block_type == "tool_use":
             tool_calls.append({
-                "id": getattr(block, "id", ""),
+                "id": get("id", ""),
                 "type": "function",
                 "function": {
-                    "name": getattr(block, "name", ""),
-                    "arguments": json.dumps(getattr(block, "input", {}) or {}),
+                    "name": get("name", ""),
+                    "arguments": json.dumps(get("input", {}) or {}),
                 },
             })
     message: dict[str, Any] = {

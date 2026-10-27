@@ -51,6 +51,8 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 
 ## Project Snapshot
 
+- **Durable runs:** `ask` stores checkpoints and tool-call state in SQLite; `resume` reuses completed results and blocks unknown interrupted outcomes for operator reconciliation. See [run recovery](docs/RUN_RECOVERY.md).
+
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
 - **Recovery fix:** tightened the `error_recovery` agent prompt after the second run; targeted and full-suite post-fix DeepSeek validations now pass with the expected `edit_match_failed` recovery path.
@@ -62,6 +64,18 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Reports:** Start with [`reports/AGENT_EVAL_40_TASKS_RUN2.md`](reports/AGENT_EVAL_40_TASKS_RUN2.md), [`reports/EVAL_STABILITY_40_TASKS.md`](reports/EVAL_STABILITY_40_TASKS.md), [`reports/RETRIEVAL_QUALITY_HYBRID.md`](reports/RETRIEVAL_QUALITY_HYBRID.md), [`reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md`](reports/RETRIEVAL_BACKEND_8_TASKS_ANALYSIS.md), and [`reports/DOCKER_SANDBOX_SMOKE.md`](reports/DOCKER_SANDBOX_SMOKE.md).
 
 ## Portfolio Walkthrough
+
+Durable agent commands (provider credentials are required to start a real model run):
+
+```powershell
+python main.py --workspace . --trace artifacts/task_trace.jsonl --allow-write ask "Fix the failing test"
+python main.py runs
+python main.py --workspace . --allow-write resume RUN_ID
+python main.py runs --run-id RUN_ID --export artifacts/run-export.jsonl
+```
+
+Use `ask --no-persist` for the earlier in-memory behavior. Recovery preserves the saved tool
+permissions and execution policy; it does not silently retry a tool with an unknown outcome.
 
 Use this route when demonstrating the project in an interview:
 

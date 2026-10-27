@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 try:
@@ -19,6 +20,8 @@ except ImportError:  # pragma: no cover
     load_dotenv = None
 
 from .model_clients import create_default_model_client
+from .run_session import RunSession, normalize_blocks
+from .run_store import RunStore, new_run_id
 from .tools import ToolRegistry, ToolResult
 
 BASE_SYSTEM_PROMPT = """You are a coding agent operating inside a local repository.
@@ -191,8 +194,55 @@ def run_agent(
     retrieval_preflight_budget: RetrievalPreflightBudget | None = None,
     retrieval_mode: str | None = None,
     retrieval_gate_decision: RetrievalGateDecision | None = None,
+    run_store: RunStore | None = None,
+    resume_run_id: str | None = None,
+) -> str:
+    if max_turns <= 0:
+        raise ValueError("max_turns must be positive")
+    options: dict[str, Any] = dict(
+        max_turns=max_turns, max_retries=max_retries, client=client, model=model,
+        retrieval_preflight=retrieval_preflight, retrieval_query=retrieval_query,
+        retrieval_preflight_budget=retrieval_preflight_budget,
+        retrieval_mode=retrieval_mode, retrieval_gate_decision=retrieval_gate_decision,
+    )
+    if run_store is None:
+        if resume_run_id:
+            raise ValueError("Resume requires a run store")
+        return _run_agent(prompt, registry, **options)
+    run_id = resume_run_id or new_run_id()
+    with run_store.lock(run_id):
+        session = RunSession(run_store, run_id, registry, resume=bool(resume_run_id))
+        try:
+            return _run_agent(prompt, registry, persistence=session, **options)
+        except BaseException:
+            if session.state and session.state.get("status") != "blocked":
+                # Preserve the last committed boundary, not partially mutated live messages.
+                checkpoint = run_store.load(run_id)
+                checkpoint["status"] = "interrupted"
+                run_store.save(run_id, checkpoint)
+            raise
+
+
+def _run_agent(
+    prompt: str,
+    registry: ToolRegistry,
+    max_turns: int = 8,
+    max_retries: int = 4,
+    client: Any | None = None,
+    model: str | None = None,
+    retrieval_preflight: bool = True,
+    retrieval_query: str | None = None,
+    retrieval_preflight_budget: RetrievalPreflightBudget | None = None,
+    retrieval_mode: str | None = None,
+    retrieval_gate_decision: RetrievalGateDecision | None = None,
+    persistence: RunSession | None = None,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
+    saved = persistence.saved if persistence else None
+    if saved and saved["status"] == "completed":
+        return str(saved["answer"])
+    if saved and persistence:
+        persistence.ensure_recoverable()
     if client is None:
         if load_dotenv:
             load_dotenv()
@@ -205,6 +255,16 @@ def run_agent(
             return f"Error: {exc}"
         model = model or config.default_model
     model = model or os.getenv("MODEL_ID", "claude-3-5-sonnet-latest")
+    client_identity = _client_identity(client)
+    if saved and persistence:
+        if saved["client_identity"] != client_identity:
+            raise ValueError("Resume requires the original model provider and endpoint")
+        registry.trace.log("run_resumed", run_id=persistence.run_id, turn=saved["turn"])
+        return _run_turns(
+            registry, client, saved["model"], saved["system_prompt"], saved["model_tools"],
+            saved["messages"], set(saved["evidence_terms"]), max_turns, max_retries,
+            persistence, saved["turn"],
+        )
     preflight_budget = retrieval_preflight_budget or RetrievalPreflightBudget.from_env()
     effective_retrieval_mode = retrieval_mode or ("on" if retrieval_preflight else "off")
     if not retrieval_preflight:
@@ -260,43 +320,83 @@ def run_agent(
         evidence_terms.add("retrieve_then_read")
         evidence_terms.update(preflight.get("paths", []))
 
-    for turn in range(max_turns):
+    if persistence:
+        persistence.initialize(
+            messages=messages, model=model, model_tools=model_tools,
+            system_prompt=system_prompt, evidence_terms=sorted(evidence_terms),
+            client_identity=client_identity,
+        )
+    return _run_turns(
+        registry, client, str(model), system_prompt, model_tools, messages, evidence_terms,
+        max_turns, max_retries, persistence, 0,
+    )
+
+
+def _run_turns(
+    registry: ToolRegistry,
+    client: Any,
+    model: str,
+    system_prompt: str,
+    model_tools: list[dict[str, Any]],
+    messages: list[dict[str, Any]],
+    evidence_terms: set[str],
+    max_turns: int,
+    max_retries: int,
+    persistence: RunSession | None,
+    start_turn: int,
+) -> str:
+    for turn in range(start_turn, start_turn + max_turns):
+        pending = bool(persistence and persistence.state["phase"] == "tools")
         try:
-            response = _call_with_retries(
-                lambda: client.messages.create(
-                    model=model,
-                    system=system_prompt,
-                    messages=messages,
-                    tools=model_tools,
-                    max_tokens=4000,
-                ),
-                trace=registry.trace,
-                event_name="model_request_retry",
-                max_retries=max_retries,
-            )
+            if pending:
+                response = SimpleNamespace(
+                    stop_reason="tool_use",
+                    content=[SimpleNamespace(**block) for block in messages[-1]["content"]],
+                )
+            else:
+                response = _call_with_retries(
+                    lambda: client.messages.create(
+                        model=model, system=system_prompt, messages=messages,
+                        tools=model_tools, max_tokens=4000,
+                    ),
+                    trace=registry.trace, event_name="model_request_retry",
+                    max_retries=max_retries,
+                )
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
             registry.trace.log("agent_error", error=error)
+            if persistence:
+                persistence.save(status="paused")
             return f"Error: model request failed after retries: {error}"
-        messages.append({"role": "assistant", "content": response.content})
-        registry.trace.log(
-            "agent_response",
-            turn=turn,
-            stop_reason=response.stop_reason,
-            usage=_response_usage(response),
-        )
+        if not pending:
+            messages.append({"role": "assistant", "content": (
+                normalize_blocks(response.content) if persistence else response.content
+            )})
+            registry.trace.log(
+                "agent_response", turn=turn, stop_reason=response.stop_reason,
+                usage=_response_usage(response),
+            )
 
         if response.stop_reason != "tool_use":
             answer = _text_from_blocks(response.content)
             check = _check_answer_evidence(answer, evidence_terms)
             registry.trace.log("evidence_check", **check)
             registry.trace.log("agent_end", todos=registry.todos)
+            if persistence:
+                persistence.save(status="completed", answer=answer, messages=messages)
             return answer
 
+        if persistence and not pending:
+            persistence.plan(messages, turn, response.content)
         tool_results = []
         for block in response.content:
             if getattr(block, "type", None) != "tool_use":
                 continue
+            if persistence:
+                previous = persistence.result(block.id)
+                if previous is not None:
+                    tool_results.append(previous)
+                    continue
             result = registry.call(block.name, **block.input)
             evidence_terms.add(block.name)
             if block.name == "read_file" and isinstance(block.input, dict):
@@ -320,16 +420,23 @@ def run_agent(
             if block.name == "todo_write":
                 registry.trace.log("todo_state", todos=registry.todos)
             content = _augment_failed_tool_result(block.name, result, registry)
-            tool_results.append({
+            tool_result = {
                 "type": "tool_result",
                 "tool_use_id": block.id,
                 "content": content,
                 "is_error": not result.ok,
-            })
+            }
+            tool_results.append(tool_result)
+            if persistence:
+                persistence.complete(tool_result, evidence_terms)
         messages.append({"role": "user", "content": tool_results})
+        if persistence:
+            persistence.save(messages=messages, phase="model", turn=turn + 1)
 
     summary = _compact_on_max_turns(registry)
     registry.trace.log("agent_end", todos=registry.todos, stopped="max_turns")
+    if persistence:
+        persistence.save(status="paused", summary=summary)
     if summary:
         return f"Stopped: max_turns reached.\n\nContext summary:\n{summary}"
     return "Stopped: max_turns reached."
@@ -341,6 +448,15 @@ def _text_from_blocks(blocks: list[Any]) -> str:
         if getattr(block, "type", None) == "text":
             chunks.append(block.text)
     return "\n".join(chunks).strip()
+
+
+def _client_identity(client: Any) -> str:
+    import hashlib
+
+    endpoint = getattr(getattr(client, "messages", None), "base_url", None)
+    endpoint = endpoint or getattr(client, "base_url", "injected")
+    identity = f"{type(client).__module__}.{type(client).__qualname__}:{endpoint}"
+    return hashlib.sha256(identity.encode()).hexdigest()
 
 
 def _build_system_prompt(registry: ToolRegistry, retrieval_enabled: bool = True) -> str:
