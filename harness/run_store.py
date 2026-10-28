@@ -18,13 +18,19 @@ _INLINE_SECRET = re.compile(
     r"(?i)((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;\"'}]+"
 )
 _BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]+=*")
+_TOKEN_METRICS = {
+    "max_input_tokens", "summary_tokens", "before_estimated_tokens", "after_estimated_tokens",
+}
 
 
 def redact(value: Any) -> Any:
     """Sanitize durable state; intentionally independent from live model messages."""
     if isinstance(value, dict):
         return {
-            str(key): REDACTED if _SECRET_KEY.search(str(key)) else redact(item)
+            str(key): REDACTED if (
+                _SECRET_KEY.search(str(key))
+                and not (key in _TOKEN_METRICS and isinstance(item, int) and not isinstance(item, bool))
+            ) else redact(item)
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple)):

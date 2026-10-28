@@ -15,6 +15,9 @@
 `runs` 用于查看和导出记录，`ask --no-persist` 可关闭持久化。
 命令示例和恢复边界见 [运行恢复说明](docs/RUN_RECOVERY.md)。
 
+模型请求前会按可配置预算检查上下文，超限时用结构化摘要替换旧历史，并保留原始任务与最近完整工具交互。
+压缩状态可随 SQLite 检查点恢复；估算方式、配置和本地验证见 [上下文管理](docs/CONTEXT_WINDOW.md)。
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest

@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from dataclasses import asdict
 from pathlib import Path
 
 from harness.agent import run_agent
+from harness.context_window import ContextConfig
 from harness.cross_feature_smoke import run_cross_feature_smoke
 from harness.demo import run_demo
 from harness.docker_smoke import run_docker_smoke
@@ -87,6 +89,7 @@ def cmd_ask(args) -> None:
     print(run_agent(
         args.prompt, registry, retrieval_mode=args.retrieval,
         max_turns=args.max_turns, run_store=store,
+        context_config=_context_config(args),
     ))
     if store:
         print(f"Run database: {store.path}")
@@ -112,7 +115,22 @@ def cmd_resume(args) -> None:
         retrieval_backend=policy["retrieval_backend"],
     )
     print(run_agent("", registry, max_turns=args.max_turns, run_store=store,
-                    resume_run_id=args.run_id))
+                    resume_run_id=args.run_id,
+                    context_config=_context_config(args, saved.get("context_config"))))
+
+
+def _context_config(args, saved: dict | None = None) -> ContextConfig:
+    values = saved.copy() if saved else asdict(ContextConfig())
+    for option, key in (
+        ("context_budget", "max_input_tokens"),
+        ("context_summary_budget", "summary_tokens"),
+        ("context_recent_turns", "keep_recent_turns"),
+    ):
+        if getattr(args, option, None) is not None:
+            values[key] = getattr(args, option)
+    if args.context_management is not None:
+        values["enabled"] = args.context_management
+    return ContextConfig(**values)
 
 
 def cmd_runs(args) -> None:
@@ -475,6 +493,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("--run-db", default="artifacts/runs.sqlite3", help="Durable run database")
     ask.add_argument("--no-persist", action="store_true", help="Use an in-memory run only")
     ask.add_argument("--max-turns", type=int, default=8)
+    _add_context_options(ask)
     ask.add_argument(
         "--retrieval",
         choices=["on", "auto", "off"],
@@ -493,6 +512,7 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("run_id")
     resume.add_argument("--run-db", default="artifacts/runs.sqlite3")
     resume.add_argument("--max-turns", type=int, default=8)
+    _add_context_options(resume)
     resume.set_defaults(func=cmd_resume)
 
     runs = sub.add_parser("runs", help="List, inspect or export durable run records")
@@ -682,6 +702,16 @@ def build_parser() -> argparse.ArgumentParser:
     retrieval_benchmark.set_defaults(func=cmd_retrieval_benchmark)
 
     return parser
+
+
+def _add_context_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--context-budget", type=int, help="Estimated total input-token budget")
+    parser.add_argument("--context-summary-budget", type=int, help="Estimated summary-token budget")
+    parser.add_argument("--context-recent-turns", type=int, help="Complete recent turns to preserve")
+    parser.add_argument(
+        "--context-management", action=argparse.BooleanOptionalAction, default=None,
+        help="Enable/disable budget compaction (resume inherits the saved choice)",
+    )
 
 
 def main() -> None:

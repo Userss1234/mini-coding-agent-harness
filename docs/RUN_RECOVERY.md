@@ -79,8 +79,9 @@ model messages unchanged. Redacted pending arguments cannot be automatically rep
 a new run with fresh input instead. Keep databases local and avoid credentials in prompts.
 
 The existing execution trace has its own behavior; centralized trace redaction is Priority 3.
-This stage does not replace historical messages with a compacted context window (Priority 2),
-approve host patches (Priority 3), or persist hidden model/provider state. Initial retrieval
+Priority 2 now saves compacted model messages, structured summaries and context-budget settings
+in the same checkpoint path; see [Context-Window Management](CONTEXT_WINDOW.md). Recovery does not
+approve host patches (Priority 3) or persist hidden model/provider state. Initial retrieval
 preflight runs before the first durable checkpoint; interrupted initialization may need a new run.
 External workspace changes are not rolled back or conflict-checked by resume.
 

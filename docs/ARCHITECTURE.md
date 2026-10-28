@@ -21,6 +21,8 @@ flowchart TD
     Evidence --> Model["Model turn"]
 
     Agent --> Model
+    Agent --> ContextWindow["Context budget / atomic history groups / structured summary"]
+    ContextWindow --> Model
     Agent --> RunSession["RunSession checkpoints and tool ledger"]
     RunSession --> RunStore["RunStore / SQLite"]
     Model --> ToolUse["Tool request"]
@@ -68,6 +70,7 @@ side-effect-free decisions before dispatching a tool handler.
 |---|---|
 | `main.py` | CLI entry point for agent runs, evals, report analysis, trace rendering, demos, and MCP. |
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
+| `harness/context_window.py` | Input-envelope byte estimates, atomic tool history validation, bounded historical summaries and protected-context budget stops. |
 | `harness/run_store.py` | Storage contract, versioned SQLite snapshots and tool ledger, process exclusion, operator reconciliation and redacted JSONL export. |
 | `harness/run_session.py` | Normalized message checkpoints, resume-policy validation and completed/unknown tool-call handling around the shared agent loop. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |
@@ -96,6 +99,12 @@ until an operator reconciles the external effect. See [Run Recovery](RUN_RECOVER
 transaction boundaries, local process locking, schema versioning and redaction limits.
 
 The in-memory loop remains the default API behavior for evaluation and existing callers.
+
+Before a new model request, `ContextWindow` validates complete tool groups and checks the total
+estimated input budget. It preserves the original task and configured recent groups, replaces
+older groups with a merged structured summary, and checkpoints the new conversation before
+request dispatch. Oversized protected context pauses execution. The legacy `compact_context`
+tool remains a trace-summary utility. See [Context-Window Management](CONTEXT_WINDOW.md).
 
 All tool execution goes through `ToolRegistry.call(...)`.
 

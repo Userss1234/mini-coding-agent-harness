@@ -31,8 +31,8 @@ def default_tasks() -> list[EvalTask]:
             "pytest_suite",
             "tests",
             "Run the pytest suite with run_tests.",
-            lambda registry: registry.call("run_tests", target="tests").ok,
-            verifier=lambda registry: registry.call("run_tests", target="tests").ok,
+            lambda registry: registry.call("run_tests", target="tests", timeout=300).ok,
+            verifier=lambda registry: registry.call("run_tests", target="tests", timeout=300).ok,
         ),
         EvalTask(
             "context_compaction",

@@ -52,6 +52,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 ## Project Snapshot
 
 - **Durable runs:** `ask` stores checkpoints and tool-call state in SQLite; `resume` reuses completed results and blocks unknown interrupted outcomes for operator reconciliation. See [run recovery](docs/RUN_RECOVERY.md).
+- **Context windows:** before each new model request, a configurable input budget can replace old complete history with a structured summary while preserving the original task and recent tool-use/result batches. Compacted state survives resume. See [context management](docs/CONTEXT_WINDOW.md) for estimation limits and local evidence.
 
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.

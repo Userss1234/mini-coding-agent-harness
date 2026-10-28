@@ -1,0 +1,23 @@
+{
+  "managed": {
+    "completed": true,
+    "steps": 12,
+    "model_requests": 13,
+    "tool_calls": 36,
+    "compactions": 10,
+    "peak_estimated_input_tokens": 11211,
+    "total_estimated_input_tokens": 125386,
+    "estimator": "utf8_bytes_v1"
+  },
+  "baseline": {
+    "completed": true,
+    "steps": 12,
+    "model_requests": 13,
+    "tool_calls": 36,
+    "compactions": 0,
+    "peak_estimated_input_tokens": 40061,
+    "total_estimated_input_tokens": 294624,
+    "estimator": "utf8_bytes_v1"
+  },
+  "claim_boundary": "Deterministic local workload; byte estimates, not provider tokens or cost."
+}

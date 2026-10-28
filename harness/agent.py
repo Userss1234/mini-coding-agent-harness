@@ -4,7 +4,7 @@ import os
 import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -19,6 +19,7 @@ try:
 except ImportError:  # pragma: no cover
     load_dotenv = None
 
+from .context_window import ContextBudgetExceeded, ContextConfig, ContextWindow
 from .model_clients import create_default_model_client
 from .run_session import RunSession, normalize_blocks
 from .run_store import RunStore, new_run_id
@@ -196,6 +197,7 @@ def run_agent(
     retrieval_gate_decision: RetrievalGateDecision | None = None,
     run_store: RunStore | None = None,
     resume_run_id: str | None = None,
+    context_config: ContextConfig | None = None,
 ) -> str:
     if max_turns <= 0:
         raise ValueError("max_turns must be positive")
@@ -204,6 +206,7 @@ def run_agent(
         retrieval_preflight=retrieval_preflight, retrieval_query=retrieval_query,
         retrieval_preflight_budget=retrieval_preflight_budget,
         retrieval_mode=retrieval_mode, retrieval_gate_decision=retrieval_gate_decision,
+        context_config=context_config,
     )
     if run_store is None:
         if resume_run_id:
@@ -236,9 +239,11 @@ def _run_agent(
     retrieval_mode: str | None = None,
     retrieval_gate_decision: RetrievalGateDecision | None = None,
     persistence: RunSession | None = None,
+    context_config: ContextConfig | None = None,
 ) -> str:
     """Run a minimal tool loop against an Anthropic-like client interface."""
     saved = persistence.saved if persistence else None
+    context_config = context_config or ContextConfig(**(saved or {}).get("context_config", {}))
     if saved and saved["status"] == "completed":
         return str(saved["answer"])
     if saved and persistence:
@@ -264,6 +269,7 @@ def _run_agent(
             registry, client, saved["model"], saved["system_prompt"], saved["model_tools"],
             saved["messages"], set(saved["evidence_terms"]), max_turns, max_retries,
             persistence, saved["turn"],
+            context_config,
         )
     preflight_budget = retrieval_preflight_budget or RetrievalPreflightBudget.from_env()
     effective_retrieval_mode = retrieval_mode or ("on" if retrieval_preflight else "off")
@@ -325,10 +331,12 @@ def _run_agent(
             messages=messages, model=model, model_tools=model_tools,
             system_prompt=system_prompt, evidence_terms=sorted(evidence_terms),
             client_identity=client_identity,
+            context_config=asdict(context_config),
         )
     return _run_turns(
         registry, client, str(model), system_prompt, model_tools, messages, evidence_terms,
         max_turns, max_retries, persistence, 0,
+        context_config,
     )
 
 
@@ -344,9 +352,34 @@ def _run_turns(
     max_retries: int,
     persistence: RunSession | None,
     start_turn: int,
+    context_config: ContextConfig,
 ) -> str:
+    window = ContextWindow(
+        context_config, persistence.state.get("context_state") if persistence else None,
+    )
     for turn in range(start_turn, start_turn + max_turns):
         pending = bool(persistence and persistence.state["phase"] == "tools")
+        if not pending:
+            try:
+                messages, context_metrics = window.prepare(
+                    system_prompt, model_tools, messages, registry.todos,
+                )
+            except ContextBudgetExceeded as exc:
+                registry.trace.log("context_budget_exceeded", turn=turn, reason=str(exc))
+                registry.trace.log("agent_end", stopped="context_budget")
+                if persistence:
+                    persistence.save(
+                        status="paused", stop_reason="context_budget",
+                        context_config=asdict(context_config), context_state=window.state,
+                    )
+                return f"Stopped: context budget exceeded: {exc}"
+            if persistence:
+                persistence.save(
+                    messages=messages, context_state=window.state,
+                    context_config=asdict(context_config), context_metrics=context_metrics,
+                    status="running", stop_reason=None,
+                )
+            registry.trace.log("context_request", turn=turn, **context_metrics)
         try:
             if pending:
                 response = SimpleNamespace(

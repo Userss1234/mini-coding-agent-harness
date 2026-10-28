@@ -22,9 +22,9 @@ Current local verification uses Windows and Python 3.12.2 with the development e
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 27 source files |
-| pytest | pass, 214 tests |
-| Branch coverage | 81.18% (75% required) |
+| mypy | pass, 28 source files |
+| pytest | pass, 237 tests |
+| Branch coverage | 81.59% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
@@ -33,6 +33,9 @@ GitHub Actions is the authoritative cross-version and Docker runtime check.
 
 Priority 1 adds durable SQLite run recovery. The current stage is locally verified and not yet
 pushed; the existing remote CI results predate this change. See `reports/RUN_RECOVERY.md`.
+
+Priority 2 adds budgeted context replacement and persisted structured summaries, with local
+long-task and real process-restart evidence in `reports/CONTEXT_WINDOW.md`.
 
 The first ownership split moved the deterministic task catalog and fixtures into
 `harness/eval_tasks.py`. `harness/evaluation.py` decreased from 2,998 to 1,277 lines while retaining

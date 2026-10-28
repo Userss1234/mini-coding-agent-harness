@@ -63,3 +63,17 @@ def test_cli_operator_resolution_only_records_verified_result(tmp_path: Path):
            "--result", "Inspected: change already applied", "--succeeded")
     assert store.calls("sample")[0]["result"]["is_error"] is False
     assert store.load("sample")["reconciliation"]["source"] == "operator"
+
+
+def test_cli_context_options_override_or_inherit_checkpoint_config():
+    saved = {"max_input_tokens": 12000, "summary_tokens": 1500,
+             "keep_recent_turns": 1, "enabled": False}
+    parser = main.build_parser()
+    inherited = parser.parse_args(["resume", "sample"])
+    assert main._context_config(inherited, saved).enabled is False
+    changed = parser.parse_args(["resume", "sample", "--context-budget", "20000", "--context-management"])
+    config = main._context_config(changed, saved)
+    assert config.enabled and config.max_input_tokens == 20000
+    assert config.summary_tokens == 1500 and config.keep_recent_turns == 1
+    disabled = parser.parse_args(["ask", "task", "--no-context-management"])
+    assert main._context_config(disabled).enabled is False
