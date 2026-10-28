@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "chunk_strategy": "python",
+  "warm_repeats": 3,
+  "execution_orders": [
+    [
+      "lexical"
+    ]
+  ],
+  "unavailable_backends": [
+    "hybrid"
+  ],
+  "rows": [
+    {
+      "order": 0,
+      "backend": "lexical",
+      "quality": {
+        "case_count": 28,
+        "mrr": 0.9285714285714286,
+        "recall_at_k": {
+          "1": 0.9107142857142857,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "hit_rate_at_k": {
+          "1": 0.9285714285714286,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "zero_result_queries": 1,
+        "quality_gate_passed": true,
+        "quality_gate_checks": [
+          {
+            "metric": "mrr",
+            "actual": 0.9285714285714286,
+            "minimum": 0.6,
+            "passed": true
+          },
+          {
+            "metric": "recall_at_5",
+            "actual": 0.9285714285714286,
+            "minimum": 0.85,
+            "passed": true
+          }
+        ]
+      },
+      "cold_median_ms": 24.543049978092313,
+      "warm_median_ms": 24.548300076276064,
+      "samples": [
+        {
+          "case_id": "stock_atomic",
+          "cold_ms": 24.372899904847145,
+          "warm_median_ms": 24.432499893009663,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_available",
+          "cold_ms": 24.601599667221308,
+          "warm_median_ms": 24.552499875426292,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_duplicate",
+          "cold_ms": 24.63990030810237,
+          "warm_median_ms": 24.610300082713366,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_project",
+          "cold_ms": 25.00650007277727,
+          "warm_median_ms": 24.684600066393614,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_pins",
+          "cold_ms": 24.593899957835674,
+          "warm_median_ms": 24.610700085759163,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_time",
+          "cold_ms": 24.590000044554472,
+          "warm_median_ms": 25.042700115591288,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_sort",
+          "cold_ms": 25.28599975630641,
+          "warm_median_ms": 24.9463003128767,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_end",
+          "cold_ms": 24.38659965991974,
+          "warm_median_ms": 24.69509979709983,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_bool",
+          "cold_ms": 24.408900178968906,
+          "warm_median_ms": 24.451199918985367,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_order",
+          "cold_ms": 24.722100235521793,
+          "warm_median_ms": 24.59700033068657,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_boundary",
+          "cold_ms": 24.602700024843216,
+          "warm_median_ms": 24.611099623143673,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_symbol",
+          "cold_ms": 24.28850019350648,
+          "warm_median_ms": 24.357800371944904,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_renew",
+          "cold_ms": 24.5555997826159,
+          "warm_median_ms": 24.6713999658823,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_fencing",
+          "cold_ms": 24.566899985074997,
+          "warm_median_ms": 24.519499856978655,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_deadline",
+          "cold_ms": 24.26740014925599,
+          "warm_median_ms": 24.482099805027246,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_columns",
+          "cold_ms": 24.47899989783764,
+          "warm_median_ms": 24.682799819856882,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_private",
+          "cold_ms": 24.445499759167433,
+          "warm_median_ms": 24.544100277125835,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_symbol",
+          "cold_ms": 24.47029994800687,
+          "warm_median_ms": 24.414800107479095,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_cap",
+          "cold_ms": 24.532100185751915,
+          "warm_median_ms": 24.520699866116047,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_deadline",
+          "cold_ms": 24.43790016695857,
+          "warm_median_ms": 24.525700137019157,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_duplicate",
+          "cold_ms": 24.449999909847975,
+          "warm_median_ms": 24.49969993904233,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_chain",
+          "cold_ms": 24.69470025971532,
+          "warm_median_ms": 24.541900027543306,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_changed",
+          "cold_ms": 24.55399977043271,
+          "warm_median_ms": 24.78089975193143,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cross_expiration",
+          "cold_ms": 24.85270006582141,
+          "warm_median_ms": 24.50890000909567,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_owner",
+          "cold_ms": 24.486400187015533,
+          "warm_median_ms": 24.6717999689281,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_freshest",
+          "cold_ms": 24.644499644637108,
+          "warm_median_ms": 24.593000300228596,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_spreadsheet",
+          "cold_ms": 24.356700014322996,
+          "warm_median_ms": 24.472199846059084,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_duplicate",
+          "cold_ms": 24.39380018040538,
+          "warm_median_ms": 24.369100108742714,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        }
+      ]
+    }
+  ],
+  "counterbalanced_complete": false,
+  "measurement_scope": "Full retrieval calls; cold=empty document embedding cache, not OS/model cold. Lexical rebuilds its index on every call. Quality pass preloads the model before timing; cache paths are fresh per case/order. Filesystem caches remain uncontrolled.",
+  "claim_boundary": "Small public offline fixture; timings are local observations, not agent gains or an SLA."
+}

@@ -275,7 +275,7 @@ def write_retrieval_benchmark_outputs(
 
 def _search_backend(name: str, options: Mapping[str, Any]) -> SearchFunction:
     if name == "lexical":
-        return search_workspace
+        return partial(search_workspace, chunk_strategy=options.get("chunk_strategy"))
     if name == "hybrid":
         from .hybrid_retrieval import search_workspace_hybrid
 
@@ -285,6 +285,7 @@ def _search_backend(name: str, options: Mapping[str, Any]) -> SearchFunction:
             cache_dir=(Path(str(options["cache_dir"])) if options.get("cache_dir") else None),
             lexical_weight=float(options.get("lexical_weight", 0.35)),
             semantic_weight=float(options.get("semantic_weight", 0.65)),
+            chunk_strategy=options.get("chunk_strategy"),
         )
     raise ValueError(f"Unsupported retrieval benchmark backend: {name}")
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import fnmatch
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -58,6 +60,7 @@ class RetrievalIndex:
     chunks_indexed: int
     ignored_parts: tuple[str, ...]
     ignored_names: tuple[str, ...]
+    chunk_strategy: str = "lines"
 
     def metadata(self) -> dict[str, Any]:
         return {
@@ -66,6 +69,7 @@ class RetrievalIndex:
             "chunks_indexed": self.chunks_indexed,
             "ignored_parts": list(self.ignored_parts),
             "ignored_names": list(self.ignored_names),
+            "chunk_strategy": self.chunk_strategy,
         }
 
 
@@ -90,8 +94,12 @@ def build_workspace_index(
     chunk_lines: int = 80,
     overlap: int = 10,
     max_file_chars: int = 200_000,
+    chunk_strategy: str | None = None,
 ) -> RetrievalIndex:
     root = workspace.resolve()
+    strategy = chunk_strategy or os.getenv("HARNESS_RETRIEVAL_CHUNK_STRATEGY", "lines")
+    if strategy not in {"lines", "python"}:
+        raise ValueError("chunk_strategy must be lines or python")
     chunk_size = max(int(chunk_lines), 1)
     overlap_size = max(min(int(overlap), chunk_size - 1), 0)
     chunks: list[RetrievalChunk] = []
@@ -103,6 +111,9 @@ def build_workspace_index(
             continue
         rel = path.relative_to(root)
         rel_text = _normalize_path(rel)
+        if path.is_symlink() or not path.resolve().is_relative_to(root):
+            files_skipped += 1
+            continue
         if _path_is_ignored(rel) or not _matches_glob(rel_text, glob_pattern) or not _looks_textual(path):
             files_skipped += 1
             continue
@@ -116,7 +127,9 @@ def build_workspace_index(
             continue
         if len(text) > max_file_chars:
             text = text[:max_file_chars]
-        file_chunks = _chunk_file(rel_text, text, chunk_size, overlap_size)
+        file_chunks = (_chunk_python(rel_text, text, chunk_size, overlap_size)
+                       if strategy == "python" and path.suffix == ".py"
+                       else _chunk_file(rel_text, text, chunk_size, overlap_size))
         if file_chunks:
             chunks.extend(file_chunks)
             files_indexed += 1
@@ -130,6 +143,7 @@ def build_workspace_index(
         chunks_indexed=len(chunks),
         ignored_parts=tuple(sorted(IGNORED_PATH_PARTS)),
         ignored_names=tuple(sorted(IGNORED_FILE_NAMES)),
+        chunk_strategy=strategy,
     )
 
 
@@ -142,12 +156,14 @@ def search_workspace(
     chunk_lines: int = 80,
     overlap: int = 10,
     max_chars_per_chunk: int = 1200,
+    chunk_strategy: str | None = None,
 ) -> dict[str, Any]:
     index = build_workspace_index(
         workspace,
         glob_pattern=glob_pattern,
         chunk_lines=chunk_lines,
         overlap=overlap,
+        chunk_strategy=chunk_strategy,
     )
     return search_retrieval_index(
         index,
@@ -407,6 +423,30 @@ def format_retrieved_context(result: dict[str, Any]) -> str:
         retrieval=result.get("retrieval", "local_chunk_lexical_scoring"),
         sections="\n\n".join(sections),
     )
+
+
+def _chunk_python(path: str, text: str, chunk_lines: int, overlap: int) -> list[RetrievalChunk]:
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError):
+        return _chunk_file(path, text, chunk_lines, overlap)
+    lines = text.splitlines()
+    starts = {1, len(lines) + 1}
+    definitions = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+    for node in tree.body:
+        if isinstance(node, definitions):
+            starts.add(min([node.lineno] + [item.lineno for item in node.decorator_list]))
+            if isinstance(node, ast.ClassDef):
+                for method in node.body:
+                    if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        starts.add(min([method.lineno] + [item.lineno for item in method.decorator_list]))
+    chunks = []
+    boundaries = sorted(starts)
+    for start, end in zip(boundaries, boundaries[1:]):
+        for chunk in _chunk_file(path, "\n".join(lines[start - 1:end - 1]) + "\n", chunk_lines, overlap):
+            chunks.append(RetrievalChunk(path, chunk.start_line + start - 1,
+                                         chunk.end_line + start - 1, chunk.text, chunk.tokens))
+    return chunks
 
 
 def _chunk_file(path: str, text: str, chunk_lines: int, overlap: int) -> list[RetrievalChunk]:

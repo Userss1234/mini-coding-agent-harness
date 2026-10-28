@@ -117,6 +117,7 @@ def search_workspace_hybrid(
     cache_dir: Path | None = None,
     lexical_weight: float = DEFAULT_LEXICAL_WEIGHT,
     semantic_weight: float = DEFAULT_SEMANTIC_WEIGHT,
+    chunk_strategy: str | None = None,
 ) -> dict[str, Any]:
     query_text = str(query).strip()
     tokens = tokenize_query(query_text)
@@ -127,6 +128,7 @@ def search_workspace_hybrid(
         glob_pattern=glob_pattern,
         chunk_lines=chunk_lines,
         overlap=overlap,
+        chunk_strategy=chunk_strategy,
     )
     if not query_text or not tokens or limit <= 0:
         return {

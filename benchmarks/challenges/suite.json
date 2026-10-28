@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "split": "public_author_known_challenges_not_blind_holdout",
+  "tasks": [
+    {"id": "reservation_atomicity", "expected_tests": 9, "prompt": "Reservation requests must succeed completely or leave stock unchanged. Repeated products consume their combined quantity. Reject missing products, insufficient stock and quantities that are not positive integers, including booleans. Do not mutate request data. Preserve the public API.", "editable": ["catalog.py", "service.py"]},
+    {"id": "retention_groups", "expected_tests": 2, "prompt": "Retention must keep the newest minimum records in each project and always keep pinned records. Only records strictly older than now minus ttl may be removed. Return removable IDs in sorted order without modifying inputs. For equal timestamps, lower IDs are retained first. Preserve the public API.", "editable": ["retention.py"]},
+    {"id": "cursor_pages", "expected_tests": 6, "prompt": "Pages must return records in ascending ID order, strictly after the supplied cursor ID, regardless of input order. Return a next cursor only when another record remains. Do not modify input data. Page size must be a positive integer, not a boolean. Preserve the public API.", "editable": ["pages.py"]}
+  ]
+}

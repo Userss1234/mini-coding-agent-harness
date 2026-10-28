@@ -28,9 +28,12 @@ Do not push commits or trigger remote CI: the user will push all accumulated com
 Do not edit resume content until all four priorities have finished. Do not add a vector DB,
 PostgreSQL, a dashboard or multi-agent orchestration to increase the technology list.
 
-Current stage: Priority 3 complete and locally verified (276 tests passed, one optional
-symlink skip, 82.38% branch-enabled coverage, 40/40 scripted regression). See
-reports/WORKSPACE_ISOLATION.md and WORKSPACE_ISOLATION_SMOKE.json. Docker mount/policy/cleanup
-tests pass; no new local Docker runtime run was possible because Docker is unavailable.
-Priority 4 is next; stop here until the user asks to continue. Changes remain local for
-the user's combined push. Resume content remains deferred.
+Current stage: Priority 4 engineering/local acceptance complete (295 tests passed, one optional
+symlink skip, 82.78% branch-enabled coverage, 40/40 legacy scripted regression). See
+reports/EVALUATION_CREDIBILITY.md. Three public author-known challenges have external acceptance;
+3/3 reference validation over 17 cases is NOT an agent score or blind holdout result. New 28-query,
+24-file lexical MRR is 0.9107 for lines and 0.9286 for Python boundaries, with identical 0.9286
+Recall@5 and two retained semantic misses. Do not compare those scores directly to the old corpus.
+All four priorities are locally implemented. STOP and report before further work. Docker runtime,
+actual hybrid forward/reverse and new paid agent ABBA trials remain unrun; preserve these gaps.
+Next user-authorized work may rewrite resume claims using only verified evidence. Do not push.

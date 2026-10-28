@@ -22,6 +22,10 @@
 `workspace-apply` 要求终端人工确认完整摘要，并检查原文件冲突；JSONL、SQLite 和 HTML 共用脱敏逻辑。
 副本并非操作系统沙箱，不可信代码仍应使用 Docker。命令和边界见 [工作区隔离](docs/WORKSPACE_ISOLATION.md)。
 
+40-task 兼容性回归之外，新增三个行为描述型公开挑战及外置验收；参考实现通过不等于模型通过。
+检索补充可选 Python AST 分块、24 文件/28 查询语料、冷暖观测与证据路径跟进统计。
+真实 Docker/hybrid/Agent 反向对照尚未在本机运行。说明见 [评测可信度](docs/EVALUATION_CREDIBILITY.md)。
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest

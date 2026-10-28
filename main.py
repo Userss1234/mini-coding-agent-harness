@@ -9,6 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from harness.agent import run_agent
+from harness.challenge_eval import run_challenges
 from harness.context_window import ContextConfig
 from harness.cross_feature_smoke import run_cross_feature_smoke
 from harness.demo import run_demo
@@ -21,6 +22,7 @@ from harness.eval_analysis import (
     build_stability_report,
 )
 from harness.evaluation import run_evaluation
+from harness.evidence_metrics import summarize_evidence_use
 from harness.mcp_http_smoke import run_mcp_http_smoke
 from harness.mcp_sdk import build_mcp_sdk_server, serve_mcp_sdk_stdio
 from harness.mcp_sdk_http import build_mcp_sdk_http_server, serve_mcp_sdk_http
@@ -29,11 +31,12 @@ from harness.retrieval_benchmark import (
     run_retrieval_benchmark,
     write_retrieval_benchmark_outputs,
 )
+from harness.retrieval_study import run_retrieval_study
 from harness.review import inspect_repo
 from harness.run_store import SQLiteRunStore
 from harness.tools import build_registry
 from harness.trace import TraceLogger
-from harness.trace_viewer import build_trace_report
+from harness.trace_viewer import build_trace_report, load_trace_events
 from harness.workspace import WorkspaceSession
 
 
@@ -61,6 +64,49 @@ def make_registry(
 def cmd_tools(args) -> None:
     registry = make_registry(Path(args.workspace), Path(args.trace), args.fresh_trace, args.allow_write)
     print("\n".join(registry.names()))
+
+
+def cmd_challenges(args) -> None:
+    result = run_challenges(Path(args.suite), Path(args.output_dir), mode=args.mode,
+                            backend=args.backend, compare_backends=args.compare_backends,
+                            max_turns=args.max_turns)
+    for row in result["rows"]:
+        row["baseline"].pop("output", None)
+        row["verdict"].pop("output", None)
+    if args.json_output:
+        output = Path(args.json_output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(result, indent=2))
+    if not all(not row["baseline"]["passed"] and row["baseline"]["returncode"] == 1
+               and row["verdict"]["passed"] for row in result["rows"]):
+        raise SystemExit("Challenge acceptance failed")
+
+
+def cmd_retrieval_study(args) -> None:
+    if args.include_hybrid:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    result = run_retrieval_study(Path(args.judgments), include_hybrid=args.include_hybrid,
+                                 chunk_strategy=args.chunk_strategy, repeats=args.repeats)
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    print(f"Study: {output.resolve()}; unavailable backends: {result['unavailable_backends']}")
+
+
+def cmd_evidence_report(args) -> None:
+    rows = []
+    for trace in args.trace_input:
+        events, errors = load_trace_events(Path(trace))
+        rows.append({"trace": Path(trace).name, "parse_errors": errors,
+                     **summarize_evidence_use(events)})
+    result = {"schema_version": 1, "source_label": args.label, "rows": rows,
+              "claim_boundary": "Observed path follow-up only; source label is operator supplied, not authenticated provenance."}
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    print(f"Evidence report: {output.resolve()}")
 
 
 def cmd_manual(args) -> None:
@@ -297,9 +343,10 @@ def cmd_retrieval_stability(args) -> None:
 
 
 def cmd_retrieval_benchmark(args) -> None:
-    backend_options = {}
+    backend_options = {"chunk_strategy": args.chunk_strategy}
     if args.backend == "hybrid":
         backend_options = {
+            "chunk_strategy": args.chunk_strategy,
             "embedding_model": args.embedding_model,
             "cache_dir": args.cache_dir,
             "lexical_weight": args.lexical_weight,
@@ -447,6 +494,30 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub = parser.add_subparsers(dest="command", required=True)
+
+    challenge = sub.add_parser("challenge-eval", help="Separate public maintenance challenges with external acceptance")
+    challenge.add_argument("--suite", default="benchmarks/challenges/suite.json")
+    challenge.add_argument("--output-dir", required=True, help="New directory outside the suite")
+    challenge.add_argument("--mode", choices=["validate", "agent"], default="validate")
+    challenge.add_argument("--backend", choices=["host", "docker"], default="host")
+    challenge.add_argument("--compare-backends", action="store_true", help="Actual agent ABBA lexical/hybrid order")
+    challenge.add_argument("--max-turns", type=int, default=12)
+    challenge.add_argument("--json-output", help="Portable result without raw pytest output")
+    challenge.set_defaults(func=cmd_challenges)
+
+    study = sub.add_parser("retrieval-study", help="Local ranking and document-cache cold/warm observations")
+    study.add_argument("--judgments", default="benchmarks/retrieval-v2/judgments.json")
+    study.add_argument("--include-hybrid", action="store_true", help="Offline-only paired forward/reverse orders")
+    study.add_argument("--chunk-strategy", choices=["lines", "python"], default="python")
+    study.add_argument("--repeats", type=int, default=3)
+    study.add_argument("--output", default="artifacts/retrieval-study.json")
+    study.set_defaults(func=cmd_retrieval_study)
+
+    evidence = sub.add_parser("evidence-report", help="Measure temporal retrieval-to-read/edit path follow-up")
+    evidence.add_argument("--trace-input", action="append", required=True)
+    evidence.add_argument("--label", required=True, help="Explicit source and mode label")
+    evidence.add_argument("--output", required=True)
+    evidence.set_defaults(func=cmd_evidence_report)
 
     tools = sub.add_parser("tools", help="List registered tools")
     tools.set_defaults(func=cmd_tools)
@@ -739,6 +810,7 @@ def build_parser() -> argparse.ArgumentParser:
         "retrieval-benchmark",
         help="Measure retrieval Recall@K and MRR over committed relevance judgments",
     )
+    retrieval_benchmark.add_argument("--chunk-strategy", choices=["lines", "python"], default="lines")
     retrieval_benchmark.add_argument(
         "--judgments",
         default="benchmarks/retrieval/judgments.json",

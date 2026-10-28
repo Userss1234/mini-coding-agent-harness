@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "mode": "validate",
+  "split": "public_author_known_challenges_not_blind_holdout",
+  "backend": "host",
+  "execution_order": [
+    "lexical"
+  ],
+  "protected_inputs_unchanged": true,
+  "rows": [
+    {
+      "task_id": "reservation_atomicity",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      }
+    },
+    {
+      "task_id": "retention_groups",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      }
+    },
+    {
+      "task_id": "cursor_pages",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "host"
+      }
+    }
+  ],
+  "passed": 3,
+  "interpretation": "Reference validation, not an agent score"
+}

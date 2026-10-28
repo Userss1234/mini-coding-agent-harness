@@ -88,6 +88,9 @@ side-effect-free decisions before dispatching a tool handler.
 | `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
 | `harness/eval_tasks.py` | Deterministic task catalog, isolated repository fixtures, scripted runners, and backend-neutral verifiers. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark orchestration, order-controlled retrieval/backend comparisons, metrics, and report generation. |
+| `harness/challenge_eval.py` | Separate public behavioral challenges, external acceptance, fresh submission verification and Docker-only agent ABBA trials. |
+| `harness/retrieval_study.py` | Offline ranking and first/repeated document-cache observations with forward/reverse backend orders. |
+| `harness/evidence_metrics.py` | Temporal path-level retrieval follow-up proxy, excluding failures and verifier activity. |
 | `harness/eval_analysis.py` | Eval comparison, trend history, failure dashboard, repeated-run, and retrieval-pair stability reports. |
 | `harness/mcp_server.py` | Shared MCP protocol surface plus stdio transport. |
 | `harness/mcp_http_config.py` | Streamable HTTP constants, immutable configuration, endpoint normalization, and Origin normalization. |

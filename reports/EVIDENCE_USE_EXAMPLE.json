@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source_label": "scripted-regression-no-real-model",
+  "rows": [
+    {
+      "trace": "agent_loop_simulation.jsonl",
+      "parse_errors": 0,
+      "retrieved_paths": [
+        "README.md"
+      ],
+      "preflight_injected_paths": [
+        "README.md"
+      ],
+      "subsequently_read_paths": [
+        "README.md"
+      ],
+      "subsequently_edited_paths": [],
+      "path_followup_ratio": 1.0,
+      "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+    },
+    {
+      "trace": "rag_retrieve_then_read.jsonl",
+      "parse_errors": 0,
+      "retrieved_paths": [
+        "orders.py"
+      ],
+      "preflight_injected_paths": [],
+      "subsequently_read_paths": [],
+      "subsequently_edited_paths": [],
+      "path_followup_ratio": 0.0,
+      "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+    }
+  ],
+  "claim_boundary": "Observed path follow-up only; source label is operator supplied, not authenticated provenance."
+}

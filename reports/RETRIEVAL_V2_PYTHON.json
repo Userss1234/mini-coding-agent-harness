@@ -1,0 +1,777 @@
+{
+  "schema_version": 1,
+  "generated": "2026-10-28T14:46:10",
+  "backend": "lexical",
+  "judgments": "benchmarks\\retrieval-v2\\judgments.json",
+  "corpus_root": "benchmarks\\retrieval-v2\\corpus",
+  "configuration": {
+    "glob": "*.py",
+    "chunk_lines": 20,
+    "overlap": 3,
+    "k_values": [
+      1,
+      3,
+      5
+    ],
+    "ranking_unit": "deduplicated_path",
+    "backend_options": {
+      "chunk_strategy": "python"
+    },
+    "backend_runtime": {}
+  },
+  "summary": {
+    "case_count": 28,
+    "mrr": 0.9285714285714286,
+    "recall_at_k": {
+      "1": 0.9107142857142857,
+      "3": 0.9285714285714286,
+      "5": 0.9285714285714286
+    },
+    "hit_rate_at_k": {
+      "1": 0.9285714285714286,
+      "3": 0.9285714285714286,
+      "5": 0.9285714285714286
+    },
+    "zero_result_queries": 1,
+    "quality_gate_passed": true,
+    "quality_gate_checks": [
+      {
+        "metric": "mrr",
+        "actual": 0.9285714285714286,
+        "minimum": 0.6,
+        "passed": true
+      },
+      {
+        "metric": "recall_at_5",
+        "actual": 0.9285714285714286,
+        "minimum": 0.85,
+        "passed": true
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "stock_atomic",
+      "query": "atomic stock reservation validate quantities",
+      "rationale": "",
+      "relevant_paths": [
+        "inventory.py"
+      ],
+      "ranked_paths": [
+        "inventory.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "stock_available",
+      "query": "warehouse availability subtract reserved inventory",
+      "rationale": "",
+      "relevant_paths": [
+        "inventory.py"
+      ],
+      "ranked_paths": [
+        "inventory.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "stock_duplicate",
+      "query": "combined product quantity reservation",
+      "rationale": "",
+      "relevant_paths": [
+        "inventory.py"
+      ],
+      "ranked_paths": [
+        "inventory.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retention_project",
+      "query": "keep newest records independently per project minimum",
+      "rationale": "",
+      "relevant_paths": [
+        "retention.py"
+      ],
+      "ranked_paths": [
+        "retention.py",
+        "sorting.py",
+        "pagination.py",
+        "cleanup.py",
+        "cache.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retention_pins",
+      "query": "pinned artifacts strict expiration cutoff",
+      "rationale": "",
+      "relevant_paths": [
+        "retention.py"
+      ],
+      "ranked_paths": [
+        "retention.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retention_time",
+      "query": "leave equal timestamps intact expire",
+      "rationale": "",
+      "relevant_paths": [
+        "retention.py"
+      ],
+      "ranked_paths": [
+        "retention.py",
+        "cache.py",
+        "leases.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "cursor_sort",
+      "query": "cursor record ID sort page not offset",
+      "rationale": "",
+      "relevant_paths": [
+        "pagination.py"
+      ],
+      "ranked_paths": [
+        "pagination.py",
+        "sorting.py",
+        "retention.py",
+        "validation.py",
+        "notifications.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "cursor_end",
+      "query": "next cursor only when records remain",
+      "rationale": "",
+      "relevant_paths": [
+        "pagination.py"
+      ],
+      "ranked_paths": [
+        "pagination.py",
+        "retention.py",
+        "sorting.py",
+        "retry_jobs.py",
+        "audit.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "cursor_bool",
+      "query": "boolean positive integer page size",
+      "rationale": "",
+      "relevant_paths": [
+        "pagination.py"
+      ],
+      "ranked_paths": [
+        "pagination.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "routing_order",
+      "query": "exact route outranks directory prefix fallback",
+      "rationale": "",
+      "relevant_paths": [
+        "routing.py"
+      ],
+      "ranked_paths": [
+        "routing.py",
+        "auth.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "routing_boundary",
+      "query": "api apix directory boundary matching",
+      "rationale": "",
+      "relevant_paths": [
+        "routing.py"
+      ],
+      "ranked_paths": [
+        "routing.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "routing_symbol",
+      "query": "route_specificity",
+      "rationale": "",
+      "relevant_paths": [
+        "routing.py"
+      ],
+      "ranked_paths": [
+        "routing.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "lease_renew",
+      "query": "expired lease owners cannot renew generation",
+      "rationale": "",
+      "relevant_paths": [
+        "leases.py"
+      ],
+      "ranked_paths": [
+        "leases.py",
+        "auth.py",
+        "cache.py",
+        "retention.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "lease_fencing",
+      "query": "fencing generation acquisition renewal",
+      "rationale": "",
+      "relevant_paths": [
+        "leases.py"
+      ],
+      "ranked_paths": [
+        "leases.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "lease_deadline",
+      "query": "lease expiration now expires",
+      "rationale": "",
+      "relevant_paths": [
+        "leases.py"
+      ],
+      "ranked_paths": [
+        "leases.py",
+        "cache.py",
+        "retry_jobs.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "csv_columns",
+      "query": "CSV stable column order delimiters quote",
+      "rationale": "",
+      "relevant_paths": [
+        "exports.py"
+      ],
+      "ranked_paths": [
+        "exports.py",
+        "pagination.py",
+        "sorting.py",
+        "log_export.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "csv_private",
+      "query": "remove private fields exported records",
+      "rationale": "",
+      "relevant_paths": [
+        "exports.py"
+      ],
+      "ranked_paths": [
+        "exports.py",
+        "validation.py",
+        "retention.py",
+        "pagination.py",
+        "sorting.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "csv_symbol",
+      "query": "export_csv StringIO DictWriter",
+      "rationale": "",
+      "relevant_paths": [
+        "exports.py"
+      ],
+      "ranked_paths": [
+        "exports.py",
+        "log_export.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retry_cap",
+      "query": "job exponential retry backoff maximum delay cap",
+      "rationale": "",
+      "relevant_paths": [
+        "retry_jobs.py"
+      ],
+      "ranked_paths": [
+        "retry_jobs.py",
+        "response_codes.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retry_deadline",
+      "query": "schedule another retry exceed job deadline",
+      "rationale": "",
+      "relevant_paths": [
+        "retry_jobs.py"
+      ],
+      "ranked_paths": [
+        "retry_jobs.py",
+        "response_codes.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "retry_duplicate",
+      "query": "idempotency repeated job submission first payload",
+      "rationale": "",
+      "relevant_paths": [
+        "retry_jobs.py"
+      ],
+      "ranked_paths": [
+        "retry_jobs.py",
+        "response_codes.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "audit_chain",
+      "query": "audit SHA256 hash chain prior digest",
+      "rationale": "",
+      "relevant_paths": [
+        "audit.py"
+      ],
+      "ranked_paths": [
+        "audit.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "audit_changed",
+      "query": "detect altered audit records recompute digest",
+      "rationale": "",
+      "relevant_paths": [
+        "audit.py"
+      ],
+      "ranked_paths": [
+        "audit.py",
+        "retention.py",
+        "pagination.py",
+        "sorting.py",
+        "exports.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "cross_expiration",
+      "query": "expired lease and artifact cutoff",
+      "rationale": "",
+      "relevant_paths": [
+        "leases.py",
+        "retention.py"
+      ],
+      "ranked_paths": [
+        "retention.py",
+        "leases.py",
+        "cleanup.py",
+        "audit.py",
+        "cache.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 0.5,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "semantic_owner",
+      "query": "stop two machines acting as the current owner",
+      "rationale": "",
+      "relevant_paths": [
+        "leases.py"
+      ],
+      "ranked_paths": [
+        "leases.py",
+        "retry_jobs.py",
+        "theme.py",
+        "audit.py",
+        "auth.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "semantic_freshest",
+      "query": "do not throw away the freshest build for each app",
+      "rationale": "",
+      "relevant_paths": [
+        "retention.py"
+      ],
+      "ranked_paths": [
+        "retention.py",
+        "retry_jobs.py",
+        "theme.py",
+        "inventory.py",
+        "cleanup.py"
+      ],
+      "first_relevant_rank": 1,
+      "reciprocal_rank": 1.0,
+      "recall_at_k": {
+        "1": 1.0,
+        "3": 1.0,
+        "5": 1.0
+      },
+      "hit_at_k": {
+        "1": true,
+        "3": true,
+        "5": true
+      },
+      "missing_relevant_at_max_k": []
+    },
+    {
+      "case_id": "semantic_spreadsheet",
+      "query": "spreadsheet friendly comma separated download",
+      "rationale": "",
+      "relevant_paths": [
+        "exports.py"
+      ],
+      "ranked_paths": [],
+      "first_relevant_rank": null,
+      "reciprocal_rank": 0.0,
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "hit_at_k": {
+        "1": false,
+        "3": false,
+        "5": false
+      },
+      "missing_relevant_at_max_k": [
+        "exports.py"
+      ]
+    },
+    {
+      "case_id": "semantic_duplicate",
+      "query": "avoid doing identical background work twice",
+      "rationale": "",
+      "relevant_paths": [
+        "retry_jobs.py"
+      ],
+      "ranked_paths": [
+        "auth.py",
+        "cache.py"
+      ],
+      "first_relevant_rank": null,
+      "reciprocal_rank": 0.0,
+      "recall_at_k": {
+        "1": 0.0,
+        "3": 0.0,
+        "5": 0.0
+      },
+      "hit_at_k": {
+        "1": false,
+        "3": false,
+        "5": false
+      },
+      "missing_relevant_at_max_k": [
+        "retry_jobs.py"
+      ]
+    }
+  ]
+}

@@ -8,10 +8,14 @@ This directory contains committed portfolio artifacts that can be reviewed witho
 ## CI Closure
 
 - [GitHub Actions run 34760601827](https://github.com/Userss1234/mini-coding-agent-harness/actions/runs/34760601827): passing `validate` and `cross-feature` jobs for the official SDK HTTP path on commit `9da0a8b`.
-- `ENGINEERING_QUALITY.md`: locked dependencies, Ruff/mypy gates, 75% branch coverage threshold, Python 3.10-3.12 CI matrix, and local 276-test/40-task verification (plus one optional symlink skip).
+- `ENGINEERING_QUALITY.md`: locked dependencies, Ruff/mypy gates, 75% branch coverage threshold, Python 3.10-3.12 CI matrix, and local 295-test/40-task verification (plus one optional symlink skip).
 - `RUN_RECOVERY.md`: Priority 1 local SQLite durability, real process-termination recovery, tool-result reuse, unknown-outcome reconciliation and credential-redacted export evidence.
 - `CONTEXT_WINDOW.md` and `CONTEXT_WINDOW_COMPARISON.json`: Priority 2 context-budget, complete tool-history and checkpoint continuation evidence, with a local deterministic 12-step comparison.
 - `WORKSPACE_ISOLATION.md` and `WORKSPACE_ISOLATION_SMOKE.json`: Priority 3 copy/review/apply, host-conflict rejection, real process-interruption recovery and centralized trace redaction evidence; Docker runtime not rerun locally.
+- `EVALUATION_CREDIBILITY.md`: Priority 4 separation of compatibility tests, public challenges and retrieval development fixtures; explicit live-run gaps.
+- `CHALLENGE_VALIDATION.json`: three buggy baselines rejected and three references accepted over 17 external cases, not a model score.
+- `RETRIEVAL_V2_LINES.md/.json`, `RETRIEVAL_V2_PYTHON.md/.json` and `RETRIEVAL_V2_STUDY.json`: 28-query/24-file rankings and local first/repeated timings; hybrid unavailable locally.
+- `EVIDENCE_USE_EXAMPLE.json`: temporal path-follow-up proxy on explicitly scripted traces, not causal or model-quality evidence.
 
 ## Local Demo
 
