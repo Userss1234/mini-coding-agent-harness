@@ -1,0 +1,1629 @@
+{
+  "schema_version": 1,
+  "chunk_strategy": "python",
+  "warm_repeats": 3,
+  "execution_orders": [
+    [
+      "lexical",
+      "hybrid"
+    ],
+    [
+      "hybrid",
+      "lexical"
+    ]
+  ],
+  "unavailable_backends": [],
+  "rows": [
+    {
+      "order": 0,
+      "backend": "lexical",
+      "quality": {
+        "case_count": 28,
+        "mrr": 0.9285714285714286,
+        "recall_at_k": {
+          "1": 0.9107142857142857,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "hit_rate_at_k": {
+          "1": 0.9285714285714286,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "zero_result_queries": 1,
+        "quality_gate_passed": true,
+        "quality_gate_checks": [
+          {
+            "metric": "mrr",
+            "actual": 0.9285714285714286,
+            "minimum": 0.6,
+            "passed": true
+          },
+          {
+            "metric": "recall_at_5",
+            "actual": 0.9285714285714286,
+            "minimum": 0.85,
+            "passed": true
+          }
+        ]
+      },
+      "cold_median_ms": 29.080050000629853,
+      "warm_median_ms": 28.944999998202547,
+      "samples": [
+        {
+          "case_id": "stock_atomic",
+          "cold_ms": 27.9086999980791,
+          "warm_median_ms": 28.04459999970277,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_available",
+          "cold_ms": 29.470000001310837,
+          "warm_median_ms": 28.824299999541836,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_duplicate",
+          "cold_ms": 30.321800000820076,
+          "warm_median_ms": 27.946300000621704,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_project",
+          "cold_ms": 28.156199998193188,
+          "warm_median_ms": 28.882700000394834,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_pins",
+          "cold_ms": 28.4310999995796,
+          "warm_median_ms": 28.306800002610544,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_time",
+          "cold_ms": 29.358899999351706,
+          "warm_median_ms": 28.37100000033388,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_sort",
+          "cold_ms": 28.347499999654246,
+          "warm_median_ms": 29.3338000010408,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_end",
+          "cold_ms": 29.64559999963967,
+          "warm_median_ms": 33.310299997538095,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_bool",
+          "cold_ms": 31.773899998370325,
+          "warm_median_ms": 34.27630000078352,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_order",
+          "cold_ms": 34.926499996799976,
+          "warm_median_ms": 32.53419999964535,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_boundary",
+          "cold_ms": 28.6880999992718,
+          "warm_median_ms": 28.470699999161297,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_symbol",
+          "cold_ms": 27.948199996899348,
+          "warm_median_ms": 28.56640000027255,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_renew",
+          "cold_ms": 28.377399998134933,
+          "warm_median_ms": 28.8591999997152,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_fencing",
+          "cold_ms": 28.430899998056702,
+          "warm_median_ms": 28.185899998788955,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_deadline",
+          "cold_ms": 28.42189999864786,
+          "warm_median_ms": 28.531899999507004,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_columns",
+          "cold_ms": 30.04230000078678,
+          "warm_median_ms": 29.79359999881126,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_private",
+          "cold_ms": 28.856500000983942,
+          "warm_median_ms": 28.563500000018394,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_symbol",
+          "cold_ms": 28.921900000568712,
+          "warm_median_ms": 28.906199997436488,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_cap",
+          "cold_ms": 29.983799999172334,
+          "warm_median_ms": 31.408500002726214,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_deadline",
+          "cold_ms": 29.737000000750413,
+          "warm_median_ms": 31.609699999535223,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_duplicate",
+          "cold_ms": 33.41229999932693,
+          "warm_median_ms": 33.10810000039055,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_chain",
+          "cold_ms": 33.622200000536395,
+          "warm_median_ms": 30.72539999993751,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_changed",
+          "cold_ms": 29.72349999981816,
+          "warm_median_ms": 29.970999999932246,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cross_expiration",
+          "cold_ms": 29.238200000690995,
+          "warm_median_ms": 29.413000000204192,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_owner",
+          "cold_ms": 28.756799998518545,
+          "warm_median_ms": 29.415199998766184,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_freshest",
+          "cold_ms": 29.33810000104131,
+          "warm_median_ms": 28.983799998968607,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_spreadsheet",
+          "cold_ms": 28.74370000063209,
+          "warm_median_ms": 28.747099997417536,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_duplicate",
+          "cold_ms": 28.570800001034513,
+          "warm_median_ms": 28.986399996938417,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        }
+      ]
+    },
+    {
+      "order": 0,
+      "backend": "hybrid",
+      "quality": {
+        "case_count": 28,
+        "mrr": 0.9761904761904762,
+        "recall_at_k": {
+          "1": 0.9464285714285714,
+          "3": 1.0,
+          "5": 1.0
+        },
+        "hit_rate_at_k": {
+          "1": 0.9642857142857143,
+          "3": 1.0,
+          "5": 1.0
+        },
+        "zero_result_queries": 0,
+        "quality_gate_passed": true,
+        "quality_gate_checks": [
+          {
+            "metric": "mrr",
+            "actual": 0.9761904761904762,
+            "minimum": 0.6,
+            "passed": true
+          },
+          {
+            "metric": "recall_at_5",
+            "actual": 1.0,
+            "minimum": 0.85,
+            "passed": true
+          }
+        ]
+      },
+      "cold_median_ms": 584.3380999995134,
+      "warm_median_ms": 69.72819999828062,
+      "samples": [
+        {
+          "case_id": "stock_atomic",
+          "cold_ms": 701.1530000017956,
+          "warm_median_ms": 65.94419999964884,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_atomic\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_atomic\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "stock_available",
+          "cold_ms": 548.9004000010027,
+          "warm_median_ms": 69.96259999868926,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_available\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_available\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "stock_duplicate",
+          "cold_ms": 561.7483999994874,
+          "warm_median_ms": 58.293900001444854,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\stock_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_project",
+          "cold_ms": 572.7181999973254,
+          "warm_median_ms": 67.9932999992161,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_project\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_project\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_pins",
+          "cold_ms": 588.657799999055,
+          "warm_median_ms": 83.78929999889806,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_pins\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_pins\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_time",
+          "cold_ms": 601.6614000000118,
+          "warm_median_ms": 71.9186999995145,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_time\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retention_time\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_sort",
+          "cold_ms": 608.5113000008278,
+          "warm_median_ms": 77.60050000069896,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_sort\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_sort\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_end",
+          "cold_ms": 607.3404000017035,
+          "warm_median_ms": 68.28060000043479,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_end\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_end\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_bool",
+          "cold_ms": 594.8987000010675,
+          "warm_median_ms": 88.6398000002373,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_bool\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cursor_bool\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_order",
+          "cold_ms": 605.062499998894,
+          "warm_median_ms": 72.2036000006483,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_order\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_order\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_boundary",
+          "cold_ms": 571.3428999988537,
+          "warm_median_ms": 63.56179999784217,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_boundary\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_boundary\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_symbol",
+          "cold_ms": 576.6417999984697,
+          "warm_median_ms": 68.89050000245334,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\routing_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_renew",
+          "cold_ms": 556.4358999981778,
+          "warm_median_ms": 73.14949999999953,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_renew\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_renew\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_fencing",
+          "cold_ms": 580.1056999989669,
+          "warm_median_ms": 71.77070000034291,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_fencing\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_fencing\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_deadline",
+          "cold_ms": 596.8880000000354,
+          "warm_median_ms": 62.88909999784664,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\lease_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_columns",
+          "cold_ms": 615.5451000013272,
+          "warm_median_ms": 82.86430000225664,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_columns\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_columns\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_private",
+          "cold_ms": 570.2736999992339,
+          "warm_median_ms": 72.83710000046995,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_private\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_private\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_symbol",
+          "cold_ms": 631.5701999992598,
+          "warm_median_ms": 69.49379999787197,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\csv_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_cap",
+          "cold_ms": 577.3659000005864,
+          "warm_median_ms": 64.04610000026878,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_cap\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_cap\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_deadline",
+          "cold_ms": 580.937200000335,
+          "warm_median_ms": 75.02250000106869,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_duplicate",
+          "cold_ms": 581.9685999995272,
+          "warm_median_ms": 66.17729999925359,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\retry_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "audit_chain",
+          "cold_ms": 562.800799998513,
+          "warm_median_ms": 67.70849999884376,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\audit_chain\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\audit_chain\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "audit_changed",
+          "cold_ms": 598.7554999992426,
+          "warm_median_ms": 78.39120000062394,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\audit_changed\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\audit_changed\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cross_expiration",
+          "cold_ms": 589.8502999989432,
+          "warm_median_ms": 65.84269999802927,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cross_expiration\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\cross_expiration\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_owner",
+          "cold_ms": 553.4468999976525,
+          "warm_median_ms": 70.87550000142073,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_owner\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_owner\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_freshest",
+          "cold_ms": 586.7075999994995,
+          "warm_median_ms": 66.58230000175536,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_freshest\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_freshest\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_spreadsheet",
+          "cold_ms": 571.6667999986385,
+          "warm_median_ms": 74.25290000173845,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_spreadsheet\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_spreadsheet\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_duplicate",
+          "cold_ms": 588.7197999982163,
+          "warm_median_ms": 67.48489999881713,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\0\\hybrid\\semantic_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        }
+      ]
+    },
+    {
+      "order": 1,
+      "backend": "hybrid",
+      "quality": {
+        "case_count": 28,
+        "mrr": 0.9761904761904762,
+        "recall_at_k": {
+          "1": 0.9464285714285714,
+          "3": 1.0,
+          "5": 1.0
+        },
+        "hit_rate_at_k": {
+          "1": 0.9642857142857143,
+          "3": 1.0,
+          "5": 1.0
+        },
+        "zero_result_queries": 0,
+        "quality_gate_passed": true,
+        "quality_gate_checks": [
+          {
+            "metric": "mrr",
+            "actual": 0.9761904761904762,
+            "minimum": 0.6,
+            "passed": true
+          },
+          {
+            "metric": "recall_at_5",
+            "actual": 1.0,
+            "minimum": 0.85,
+            "passed": true
+          }
+        ]
+      },
+      "cold_median_ms": 580.0584999997227,
+      "warm_median_ms": 71.59275000230991,
+      "samples": [
+        {
+          "case_id": "stock_atomic",
+          "cold_ms": 590.5533000004652,
+          "warm_median_ms": 66.95770000078483,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_atomic\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_atomic\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "stock_available",
+          "cold_ms": 565.2227000027779,
+          "warm_median_ms": 74.12359999943874,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_available\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_available\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "stock_duplicate",
+          "cold_ms": 580.8056999994733,
+          "warm_median_ms": 66.33589999910328,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\stock_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_project",
+          "cold_ms": 564.8485000019718,
+          "warm_median_ms": 64.18620000113151,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_project\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_project\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_pins",
+          "cold_ms": 591.1903000014718,
+          "warm_median_ms": 70.29120000152034,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_pins\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_pins\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retention_time",
+          "cold_ms": 574.3301999973482,
+          "warm_median_ms": 87.40430000034394,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_time\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retention_time\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_sort",
+          "cold_ms": 700.8505999983754,
+          "warm_median_ms": 76.34759999928065,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_sort\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_sort\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_end",
+          "cold_ms": 597.9240999986359,
+          "warm_median_ms": 68.11440000092261,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_end\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_end\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cursor_bool",
+          "cold_ms": 609.0509999994538,
+          "warm_median_ms": 76.68529999864404,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_bool\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cursor_bool\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_order",
+          "cold_ms": 588.1425999978092,
+          "warm_median_ms": 83.6154999997234,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_order\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_order\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_boundary",
+          "cold_ms": 624.0452000020014,
+          "warm_median_ms": 76.65500000075554,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_boundary\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_boundary\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "routing_symbol",
+          "cold_ms": 591.423500001838,
+          "warm_median_ms": 76.21690000087256,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\routing_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_renew",
+          "cold_ms": 606.5450000023702,
+          "warm_median_ms": 63.56750000122702,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_renew\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_renew\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_fencing",
+          "cold_ms": 560.0952999993751,
+          "warm_median_ms": 69.90749999749823,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_fencing\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_fencing\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "lease_deadline",
+          "cold_ms": 592.4947000021348,
+          "warm_median_ms": 71.36590000300203,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\lease_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_columns",
+          "cold_ms": 576.717700001609,
+          "warm_median_ms": 66.94079999942915,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_columns\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_columns\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_private",
+          "cold_ms": 573.7079000027734,
+          "warm_median_ms": 65.5553000033251,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_private\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_private\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "csv_symbol",
+          "cold_ms": 569.6697000021231,
+          "warm_median_ms": 66.5155999995477,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\csv_symbol\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_cap",
+          "cold_ms": 582.5924000018858,
+          "warm_median_ms": 72.35210000362713,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_cap\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_cap\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_deadline",
+          "cold_ms": 577.5763000019651,
+          "warm_median_ms": 80.95889999822248,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_deadline\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "retry_duplicate",
+          "cold_ms": 630.0372000005154,
+          "warm_median_ms": 79.92820000072243,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\retry_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "audit_chain",
+          "cold_ms": 565.9802000009222,
+          "warm_median_ms": 69.59890000143787,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\audit_chain\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\audit_chain\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "audit_changed",
+          "cold_ms": 574.6071999965352,
+          "warm_median_ms": 72.84380000055535,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\audit_changed\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\audit_changed\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "cross_expiration",
+          "cold_ms": 570.8861999992223,
+          "warm_median_ms": 72.61830000061309,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cross_expiration\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\cross_expiration\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_owner",
+          "cold_ms": 572.8820000003907,
+          "warm_median_ms": 64.6229999983916,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_owner\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_owner\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_freshest",
+          "cold_ms": 579.3112999999721,
+          "warm_median_ms": 72.22379999802797,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_freshest\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_freshest\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_spreadsheet",
+          "cold_ms": 593.3165000024019,
+          "warm_median_ms": 62.73270000019693,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_spreadsheet\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_spreadsheet\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        },
+        {
+          "case_id": "semantic_duplicate",
+          "cold_ms": 565.3978000009374,
+          "warm_median_ms": 71.8196000016178,
+          "cold_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 0,
+            "misses": 37,
+            "entries": 37,
+            "written": true
+          },
+          "last_warm_cache": {
+            "path": "C:\\Users\\lenovo\\AppData\\Local\\Temp\\mini-agent-retrieval-study-drjw9c3_\\1\\hybrid\\semantic_duplicate\\5c15f270423ab5af-e9e2c8815f70.json",
+            "hits": 37,
+            "misses": 0,
+            "entries": 37,
+            "written": false
+          }
+        }
+      ]
+    },
+    {
+      "order": 1,
+      "backend": "lexical",
+      "quality": {
+        "case_count": 28,
+        "mrr": 0.9285714285714286,
+        "recall_at_k": {
+          "1": 0.9107142857142857,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "hit_rate_at_k": {
+          "1": 0.9285714285714286,
+          "3": 0.9285714285714286,
+          "5": 0.9285714285714286
+        },
+        "zero_result_queries": 1,
+        "quality_gate_passed": true,
+        "quality_gate_checks": [
+          {
+            "metric": "mrr",
+            "actual": 0.9285714285714286,
+            "minimum": 0.6,
+            "passed": true
+          },
+          {
+            "metric": "recall_at_5",
+            "actual": 0.9285714285714286,
+            "minimum": 0.85,
+            "passed": true
+          }
+        ]
+      },
+      "cold_median_ms": 31.029150000904338,
+      "warm_median_ms": 31.03209999972023,
+      "samples": [
+        {
+          "case_id": "stock_atomic",
+          "cold_ms": 31.04180000082124,
+          "warm_median_ms": 31.086999999388354,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_available",
+          "cold_ms": 31.693600001744926,
+          "warm_median_ms": 31.089100000826875,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "stock_duplicate",
+          "cold_ms": 30.360400000063237,
+          "warm_median_ms": 30.6230999995023,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_project",
+          "cold_ms": 30.762999998842133,
+          "warm_median_ms": 30.716100001882296,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_pins",
+          "cold_ms": 30.558800001017516,
+          "warm_median_ms": 31.798500000149943,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retention_time",
+          "cold_ms": 31.32760000153212,
+          "warm_median_ms": 30.549999999493593,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_sort",
+          "cold_ms": 31.66369999962626,
+          "warm_median_ms": 31.698300001153257,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_end",
+          "cold_ms": 30.658300001960015,
+          "warm_median_ms": 30.380100000911625,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cursor_bool",
+          "cold_ms": 30.31800000098883,
+          "warm_median_ms": 30.618000000686152,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_order",
+          "cold_ms": 31.016500000987435,
+          "warm_median_ms": 30.53880000152276,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_boundary",
+          "cold_ms": 29.942799999844283,
+          "warm_median_ms": 29.950000000098953,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "routing_symbol",
+          "cold_ms": 29.636700000992278,
+          "warm_median_ms": 30.194300001312513,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_renew",
+          "cold_ms": 30.520200001774356,
+          "warm_median_ms": 31.557800000882708,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_fencing",
+          "cold_ms": 31.260899999324465,
+          "warm_median_ms": 32.20579999833717,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "lease_deadline",
+          "cold_ms": 30.723399999260437,
+          "warm_median_ms": 30.472800001007272,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_columns",
+          "cold_ms": 29.54729999692063,
+          "warm_median_ms": 30.747799999517156,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_private",
+          "cold_ms": 30.054200000449782,
+          "warm_median_ms": 30.977200000052107,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "csv_symbol",
+          "cold_ms": 32.165600001462735,
+          "warm_median_ms": 31.60360000038054,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_cap",
+          "cold_ms": 31.236699996952666,
+          "warm_median_ms": 29.95290000035311,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_deadline",
+          "cold_ms": 29.644300000654766,
+          "warm_median_ms": 30.380099997273646,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "retry_duplicate",
+          "cold_ms": 31.93960000135121,
+          "warm_median_ms": 30.42719999939436,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_chain",
+          "cold_ms": 29.89729999899282,
+          "warm_median_ms": 32.77359999992768,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "audit_changed",
+          "cold_ms": 32.770799996796995,
+          "warm_median_ms": 32.55849999914062,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "cross_expiration",
+          "cold_ms": 31.713200001831865,
+          "warm_median_ms": 37.21850000147242,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_owner",
+          "cold_ms": 60.20569999964209,
+          "warm_median_ms": 59.948599999188446,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_freshest",
+          "cold_ms": 47.7245000001858,
+          "warm_median_ms": 54.05059999975492,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_spreadsheet",
+          "cold_ms": 56.1243000011018,
+          "warm_median_ms": 52.3551000005682,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        },
+        {
+          "case_id": "semantic_duplicate",
+          "cold_ms": 55.23990000074264,
+          "warm_median_ms": 58.56770000173128,
+          "cold_cache": {},
+          "last_warm_cache": {}
+        }
+      ]
+    }
+  ],
+  "counterbalanced_complete": true,
+  "measurement_scope": "Full retrieval calls; cold=empty document embedding cache, not OS/model cold. Lexical rebuilds its index on every call. Quality pass preloads the model before timing; cache paths are fresh per case/order. Filesystem caches remain uncontrolled.",
+  "claim_boundary": "Small public offline fixture; timings are local observations, not agent gains or an SLA."
+}

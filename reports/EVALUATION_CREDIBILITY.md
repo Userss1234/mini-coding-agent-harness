@@ -2,6 +2,10 @@
 
 Status: **local engineering complete; live Docker/hybrid/agent evidence remains outstanding**
 
+Historical stage status above is retained. Follow-up actual local Docker, hybrid reverse-order,
+MCP and paid agent ABBA results are in [LIVE_VALIDATION_20261028.md](LIVE_VALIDATION_20261028.md).
+The agent submissions pass 9/12, not 12/12; seven attempts reach their turn limit.
+
 ## Delivered Evidence
 
 - Three separate public, author-known maintenance challenges with behavioral prompts, fresh

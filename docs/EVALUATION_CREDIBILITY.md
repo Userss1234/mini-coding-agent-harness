@@ -48,6 +48,10 @@ proof of correctness. Do not use this implementation as a hostile multi-tenant g
 
 ## Counterbalanced Agent Trials
 
+Completed local follow-up: [actual validation report](../reports/LIVE_VALIDATION_20261028.md)
+and dated portable artifacts preserve all 12 attempts, including three failed submissions and
+seven turn-budget stops. The original engineering-stage statements below are historical.
+
 When Docker, dependencies and model credentials are available, explicitly run:
 
 ```powershell

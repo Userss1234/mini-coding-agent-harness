@@ -24,7 +24,7 @@
 
 40-task 兼容性回归之外，新增三个行为描述型公开挑战及外置验收；参考实现通过不等于模型通过。
 检索补充可选 Python AST 分块、24 文件/28 查询语料、冷暖观测与证据路径跟进统计。
-真实 Docker/hybrid/Agent 反向对照尚未在本机运行。说明见 [评测可信度](docs/EVALUATION_CREDIBILITY.md)。
+本机真实 Docker 与 MCP/hybrid 联调已通过；DeepSeek ABBA 共 12 次提交，外部验收通过 9/12（lexical 4/6、hybrid 5/6），其中 7 次触及轮数上限，不能表述为 9 次完整自主完成或 hybrid 稳定更强。详见[实际运行报告](reports/LIVE_VALIDATION_20261028.md)与[评测可信度](docs/EVALUATION_CREDIBILITY.md)。
 
 ```powershell
 python -m pip install -r requirements.txt

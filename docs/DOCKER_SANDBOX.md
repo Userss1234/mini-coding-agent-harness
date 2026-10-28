@@ -54,4 +54,10 @@ Docker adds process, filesystem, network, capability, and cgroup boundaries. It 
 
 ## Validation
 
+Local Docker Desktop/WSL runtime validation is now available in
+[`reports/LIVE_VALIDATION_20261028.md`](../reports/LIVE_VALIDATION_20261028.md), including
+resource/permission probes, actual timeout cleanup, protected acceptance and model results.
+The historical CI reports are retained separately. Runtime validation does not imply that
+every model submission passes acceptance.
+
 Unit tests validate Docker argument construction, secret-environment filtering, resource flags, fail-closed behavior, explicit fallback, tool routing, and timeout cleanup without requiring Docker locally. GitHub Actions builds the image and requires the runtime smoke report to pass.

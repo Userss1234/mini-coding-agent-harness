@@ -34,6 +34,13 @@ reports/EVALUATION_CREDIBILITY.md. Three public author-known challenges have ext
 3/3 reference validation over 17 cases is NOT an agent score or blind holdout result. New 28-query,
 24-file lexical MRR is 0.9107 for lines and 0.9286 for Python boundaries, with identical 0.9286
 Recall@5 and two retained semantic misses. Do not compare those scores directly to the old corpus.
-All four priorities are locally implemented. STOP and report before further work. Docker runtime,
-actual hybrid forward/reverse and new paid agent ABBA trials remain unrun; preserve these gaps.
-Next user-authorized work may rewrite resume claims using only verified evidence. Do not push.
+All four priorities are locally implemented. The user subsequently authorized installing Docker
+Desktop and actual API validation. See reports/LIVE_VALIDATION_20261028.md: live Docker,
+protected reference acceptance and MCP/hybrid pass; 28-query hybrid MRR 0.9762/Recall@5 1.0
+versus lexical 0.9286/0.9286 in both orders. One 12-attempt DeepSeek ABBA sequence yields
+9/12 submission acceptance (lexical 4/6, hybrid 5/6), with seven max-turn stops and three
+per-project retention failures. Do not claim stable hybrid gains or normal autonomous completion.
+Preserve this baseline and historical reports. Windows MCP teardown emitted WinError 995.
+STOP and report. Next authorized strengthening should target generic requirement-to-check
+coverage and budget-aware verification, not hardcoded challenge fixes or relaxed acceptance.
+Resume editing and any further paid rerun require user continuation. Do not push.

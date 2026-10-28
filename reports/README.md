@@ -2,6 +2,8 @@
 
 This directory contains committed portfolio artifacts that can be reviewed without rerunning the model.
 
+- `LIVE_VALIDATION_20261028.md`: actual local Docker/WSL, MCP/hybrid, same-corpus reverse-order retrieval and 12-attempt DeepSeek ABBA validation; 9/12 submission acceptance, seven turn-budget stops. Links to new dated portable artifacts; historical stage gaps below are retained as historical evidence.
+
 - `PORTFOLIO_WALKTHROUGH.md`: short interview talk track tying the demo, eval, failure-analysis, and MCP artifacts together.
 - `RESUME_BULLETS.md`: evidence-backed resume bullet options with claim-to-file mapping.
 

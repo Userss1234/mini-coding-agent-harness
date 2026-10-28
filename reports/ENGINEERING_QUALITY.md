@@ -17,6 +17,11 @@ repeatable checks before they enter the integration workflow.
 
 ## Local Verification
 
+Follow-up on 2026-10-28: actual local Docker/WSL, authenticated MCP/hybrid and paid agent
+ABBA validation are now recorded in [LIVE_VALIDATION_20261028.md](LIVE_VALIDATION_20261028.md).
+The per-priority environment limitations below describe their original stage, not the current
+Docker installation. Cross-version remote CI for these local commits remains unrun.
+
 Current local verification uses Windows and Python 3.12.2 with the development environment:
 
 | Check | Result |
