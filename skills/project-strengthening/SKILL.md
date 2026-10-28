@@ -28,7 +28,9 @@ Do not push commits or trigger remote CI: the user will push all accumulated com
 Do not edit resume content until all four priorities have finished. Do not add a vector DB,
 PostgreSQL, a dashboard or multi-agent orchestration to increase the technology list.
 
-Current stage: Priority 2 complete and locally verified (237 tests, 81.59% branch-enabled
-coverage, 40/40 scripted regression). See reports/CONTEXT_WINDOW.md and its deterministic
-long-task comparison. Priority 3 is next; stop here until the user asks to continue.
-Changes remain local for the user's combined push. Resume content remains deferred.
+Current stage: Priority 3 complete and locally verified (276 tests passed, one optional
+symlink skip, 82.38% branch-enabled coverage, 40/40 scripted regression). See
+reports/WORKSPACE_ISOLATION.md and WORKSPACE_ISOLATION_SMOKE.json. Docker mount/policy/cleanup
+tests pass; no new local Docker runtime run was possible because Docker is unavailable.
+Priority 4 is next; stop here until the user asks to continue. Changes remain local for
+the user's combined push. Resume content remains deferred.

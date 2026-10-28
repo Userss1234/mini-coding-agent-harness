@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "backend": "host",
+  "model_calls": 0,
+  "baseline_test_failed": true,
+  "copy_edit_succeeded": true,
+  "copy_test_passed": true,
+  "source_unchanged_before_approval": true,
+  "declined_application_blocked": true,
+  "reviewed_files": 1,
+  "exact_review_id_approved": true,
+  "source_matches_review_after_apply": true,
+  "approval_source": "deterministic fixture callback, not a human terminal session",
+  "claim_boundary": "Local copy/review/apply behavior; no OS sandbox or Docker runtime claim."
+}

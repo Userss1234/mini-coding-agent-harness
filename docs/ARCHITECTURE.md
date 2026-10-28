@@ -8,6 +8,10 @@ This project is a small coding-agent harness for repository maintenance. The mod
 flowchart TD
     U["User or eval task"] --> CLI["main.py CLI"]
     CLI --> Agent["harness.agent.run_agent"]
+    CLI --> Workspace["Optional isolated copy and baseline"]
+    Workspace --> Agent
+    Workspace --> Patch["Content-bound review / interactive approval / conflict check"]
+    Patch --> Source["Original source workspace"]
     CLI --> Scripted["harness.evaluation scripted runners"]
     CLI --> MCPStdio["harness.mcp_sdk stdio"]
     CLI --> MCPHTTP["harness.mcp_sdk_http Streamable HTTP"]
@@ -71,6 +75,8 @@ side-effect-free decisions before dispatching a tool handler.
 | `main.py` | CLI entry point for agent runs, evals, report analysis, trace rendering, demos, and MCP. |
 | `harness/agent.py` | Model-driven loop, retrieval preflight, tool-result feedback, max-turn context compaction. |
 | `harness/context_window.py` | Input-envelope byte estimates, atomic tool history validation, bounded historical summaries and protected-context budget stops. |
+| `harness/workspace.py` | Bounded working copies, baseline diffs, content-bound review, conflict checks, application journal and recovery. |
+| `harness/redaction.py` | Shared best-effort credential sanitization for trace, storage/export and HTML; live values remain unchanged. |
 | `harness/run_store.py` | Storage contract, versioned SQLite snapshots and tool ledger, process exclusion, operator reconciliation and redacted JSONL export. |
 | `harness/run_session.py` | Normalized message checkpoints, resume-policy validation and completed/unknown tool-call handling around the shared agent loop. |
 | `harness/tools.py` | Permission-checked tool registry and tool implementations. |

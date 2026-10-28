@@ -7,6 +7,8 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
+from .redaction import redact
+
 
 def build_trace_report(trace_path: Path, output_path: Path) -> str:
     events, parse_errors = load_trace_events(trace_path)
@@ -31,7 +33,7 @@ def load_trace_events(trace_path: Path) -> tuple[list[dict[str, Any]], int]:
             parse_errors += 1
             continue
         if isinstance(item, dict):
-            events.append(item)
+            events.append(redact(item))
         else:
             parse_errors += 1
     return events, parse_errors
@@ -42,6 +44,7 @@ def render_trace_html(
     events: list[dict[str, Any]],
     parse_errors: int,
 ) -> str:
+    events = redact(events)
     event_counts = Counter(str(item.get("event", "unknown")) for item in events)
     tool_events = [item for item in events if item.get("event") == "tool_call"]
     permission_audit = summarize_permission_events(tool_events)

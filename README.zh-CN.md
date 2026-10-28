@@ -18,6 +18,10 @@
 模型请求前会按可配置预算检查上下文，超限时用结构化摘要替换旧历史，并保留原始任务与最近完整工具交互。
 压缩状态可随 SQLite 检查点恢复；估算方式、配置和本地验证见 [上下文管理](docs/CONTEXT_WINDOW.md)。
 
+`ask --isolate SESSION` 可在独立副本中修改和测试，再通过 `workspace-review` 导出补丁。
+`workspace-apply` 要求终端人工确认完整摘要，并检查原文件冲突；JSONL、SQLite 和 HTML 共用脱敏逻辑。
+副本并非操作系统沙箱，不可信代码仍应使用 Docker。命令和边界见 [工作区隔离](docs/WORKSPACE_ISOLATION.md)。
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest

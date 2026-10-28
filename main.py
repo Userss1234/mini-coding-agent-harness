@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
+from contextlib import nullcontext
 from dataclasses import asdict
 from pathlib import Path
 
@@ -32,6 +34,7 @@ from harness.run_store import SQLiteRunStore
 from harness.tools import build_registry
 from harness.trace import TraceLogger
 from harness.trace_viewer import build_trace_report
+from harness.workspace import WorkspaceSession
 
 
 def make_registry(
@@ -76,32 +79,52 @@ def cmd_inspect(args) -> None:
 
 
 def cmd_ask(args) -> None:
+    workspace, trace_path = Path(args.workspace), Path(args.trace)
+    isolated = None
+    if args.isolate:
+        if args.no_persist:
+            raise SystemExit("Isolated runs require persistence")
+        isolated = WorkspaceSession.create(workspace, Path(args.isolate))
+        workspace, trace_path = isolated.workspace, isolated.path / "trace.jsonl"
+        args.run_db = str(isolated.path / "runs.sqlite3")
+        os.environ["HARNESS_EXECUTION_BACKEND"] = (
+            args.execution_backend or os.getenv("HARNESS_EXECUTION_BACKEND") or "docker"
+        )
     registry = make_registry(
-        Path(args.workspace),
-        Path(args.trace),
+        workspace,
+        trace_path,
         args.fresh_trace,
         args.allow_write,
         enable_context_pack=args.retrieval != "off",
         retrieval_backend=args.retrieval_backend,
     )
+    if isolated:
+        registry.baseline_workspace = isolated.baseline
+        _check_isolated_policy(registry)
     store = SQLiteRunStore(Path(args.run_db)) if not args.no_persist else None
     existing_ids = {run["id"] for run in store.list_runs()} if store else set()
-    print(run_agent(
-        args.prompt, registry, retrieval_mode=args.retrieval,
-        max_turns=args.max_turns, run_store=store,
-        context_config=_context_config(args),
-    ))
+    with isolated.operations.lock("workspace") if isolated else nullcontext():
+        print(run_agent(
+            args.prompt, registry, retrieval_mode=args.retrieval,
+            max_turns=args.max_turns, run_store=store,
+            context_config=_context_config(args),
+        ))
     if store:
         print(f"Run database: {store.path}")
         for run in store.list_runs():
             if run["id"] not in existing_ids:
                 print(f"Run ID: {run['id']}")
-    print(f"Trace written to {Path(args.trace).resolve()}")
+    print(f"Trace written to {trace_path.resolve()}")
+    if isolated:
+        print(f"Isolated session: {isolated.path}; changes staged in copy. Run workspace-review next.")
 
 
 def cmd_resume(args) -> None:
     if args.fresh_trace:
         raise SystemExit("Resume cannot delete the original trace; omit --fresh-trace")
+    isolated = WorkspaceSession(Path(args.isolate)) if args.isolate else None
+    if isolated:
+        args.run_db = str(isolated.path / "runs.sqlite3")
     store = SQLiteRunStore(Path(args.run_db))
     saved = store.load(args.run_id)
     policy = saved["policy"]
@@ -109,14 +132,57 @@ def cmd_resume(args) -> None:
         raise SystemExit("Resume requires the original execution backend")
     os.environ["HARNESS_EXECUTION_BACKEND"] = policy["execution_backend"]
     registry = make_registry(
-        Path(args.workspace), Path(saved["artifacts"]["trace"]),
+        isolated.workspace if isolated else Path(args.workspace), Path(saved["artifacts"]["trace"]),
         allow_write=args.allow_write,
         enable_context_pack="context_pack" in policy["tool_names"],
         retrieval_backend=policy["retrieval_backend"],
     )
-    print(run_agent("", registry, max_turns=args.max_turns, run_store=store,
-                    resume_run_id=args.run_id,
-                    context_config=_context_config(args, saved.get("context_config"))))
+    if isolated:
+        registry.baseline_workspace = isolated.baseline
+        _check_isolated_policy(registry)
+    with isolated.operations.lock("workspace") if isolated else nullcontext():
+        if isolated:
+            isolated.ensure_available()
+        print(run_agent("", registry, max_turns=args.max_turns, run_store=store,
+                        resume_run_id=args.run_id,
+                        context_config=_context_config(args, saved.get("context_config"))))
+
+
+def _check_isolated_policy(registry) -> None:
+    policy = registry.execution_policy
+    if registry.execution_backend == "host":
+        print("Warning: host execution is not a security sandbox; use Docker for untrusted code.")
+    elif (
+        policy.get("network") != "none" or not policy.get("read_only_root")
+        or policy.get("fallback_to_host") or int(str(policy.get("user", "0")).split(":")[0]) == 0
+    ):
+        raise SystemExit("Isolated Docker runs require no network, non-root, read-only root and no host fallback")
+
+
+def _approve_workspace(review_id: str) -> bool:
+    if not sys.stdin.isatty():
+        raise SystemExit("Human approval requires an interactive terminal; piping/--yes is not supported")
+    return input(f"Type APPLY {review_id} to authorize this exact operation: ").strip() == f"APPLY {review_id}"
+
+
+def cmd_workspace(args) -> None:
+    if args.command == "workspace-create":
+        session = WorkspaceSession.create(Path(args.workspace), Path(args.session))
+        print(f"Workspace: {session.workspace}")
+        return
+    session = WorkspaceSession(Path(args.session))
+    if args.command == "workspace-review":
+        review = session.review()
+        print(f"Review: {session.path / 'review.patch'}")
+        print(f"Review ID: {review['id']}; changed files: {len(review['entries'])}")
+    elif args.command == "workspace-apply":
+        print((session.path / "review.patch").read_text(encoding="utf-8"))
+        session.apply(args.review, _approve_workspace)
+        print("Reviewed changes applied to source. Session retained for audit.")
+    else:
+        print("Recovery restores the original pre-application files; it does not finish applying changes.")
+        session.recover(_approve_workspace)
+        print("Interrupted application rolled back; review again before applying.")
 
 
 def _context_config(args, saved: dict | None = None) -> ContextConfig:
@@ -490,6 +556,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")
+    ask.add_argument("--isolate", help="Create a new isolated session outside the source workspace")
     ask.add_argument("--run-db", default="artifacts/runs.sqlite3", help="Durable run database")
     ask.add_argument("--no-persist", action="store_true", help="Use an in-memory run only")
     ask.add_argument("--max-turns", type=int, default=8)
@@ -510,10 +577,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     resume = sub.add_parser("resume", help="Resume a durable run from its last checkpoint")
     resume.add_argument("run_id")
+    resume.add_argument("--isolate", help="Resume using an existing isolated session")
     resume.add_argument("--run-db", default="artifacts/runs.sqlite3")
     resume.add_argument("--max-turns", type=int, default=8)
     _add_context_options(resume)
     resume.set_defaults(func=cmd_resume)
+
+    for command, help_text in (
+        ("workspace-create", "Copy a bounded source snapshot without model calls"),
+        ("workspace-review", "Export an exact content-bound text review"),
+        ("workspace-apply", "Interactively approve and apply an unchanged review"),
+        ("workspace-recover", "Interactively roll back an interrupted application"),
+    ):
+        workspace_cmd = sub.add_parser(command, help=help_text)
+        workspace_cmd.add_argument("session")
+        if command == "workspace-apply":
+            workspace_cmd.add_argument("--review", required=True, help="Full reviewed SHA-256 ID")
+        workspace_cmd.set_defaults(func=cmd_workspace)
 
     runs = sub.add_parser("runs", help="List, inspect or export durable run records")
     runs.add_argument("--run-db", default="artifacts/runs.sqlite3")

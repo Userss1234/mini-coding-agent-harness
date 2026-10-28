@@ -37,6 +37,8 @@ class RunSession:
             "tool_schema_hash": hashlib.sha256(schema.encode()).hexdigest(),
             "tool_names": registry.names(),
         }
+        if registry.baseline_workspace is not None:
+            self.policy["baseline_workspace"] = str(registry.baseline_workspace)
         if self.saved is not None:
             if self.saved["policy"] != self.policy:
                 raise ValueError("Resume requires the original workspace, permissions, backend and tools")

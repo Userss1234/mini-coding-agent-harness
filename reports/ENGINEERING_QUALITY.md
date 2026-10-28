@@ -22,9 +22,9 @@ Current local verification uses Windows and Python 3.12.2 with the development e
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 28 source files |
-| pytest | pass, 237 tests |
-| Branch coverage | 81.59% (75% required) |
+| mypy | pass, 30 source files |
+| pytest | pass, 276 tests; 1 optional symlink skip |
+| Branch coverage | 82.38% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
@@ -36,6 +36,11 @@ pushed; the existing remote CI results predate this change. See `reports/RUN_REC
 
 Priority 2 adds budgeted context replacement and persisted structured summaries, with local
 long-task and real process-restart evidence in `reports/CONTEXT_WINDOW.md`.
+
+Priority 3 adds isolated copies, content-bound terminal review, conflict-aware source application,
+application recovery and shared trace/storage/HTML redaction. See `reports/WORKSPACE_ISOLATION.md`.
+Docker is not installed locally for this stage; Docker command-policy/cleanup tests pass, but
+new Docker runtime and cross-version integration validation await the user's combined push.
 
 The first ownership split moved the deterministic task catalog and fixtures into
 `harness/eval_tasks.py`. `harness/evaluation.py` decreased from 2,998 to 1,277 lines while retaining

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import sqlite3
 from collections.abc import Iterator
@@ -11,37 +10,10 @@ from pathlib import Path
 from typing import Any, Protocol
 from uuid import uuid4
 
+from .redaction import REDACTED as REDACTED
+from .redaction import redact as redact
+
 SCHEMA_VERSION = 1
-REDACTED = "[REDACTED]"
-_SECRET_KEY = re.compile(r"(?i)(api[_-]?key|token|password|secret|authorization|credential)")
-_INLINE_SECRET = re.compile(
-    r"(?i)((?:api[_-]?key|token|password|secret)\s*[=:]\s*)[^\s,;\"'}]+"
-)
-_BEARER = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/-]+=*")
-_TOKEN_METRICS = {
-    "max_input_tokens", "summary_tokens", "before_estimated_tokens", "after_estimated_tokens",
-}
-
-
-def redact(value: Any) -> Any:
-    """Sanitize durable state; intentionally independent from live model messages."""
-    if isinstance(value, dict):
-        return {
-            str(key): REDACTED if (
-                _SECRET_KEY.search(str(key))
-                and not (key in _TOKEN_METRICS and isinstance(item, int) and not isinstance(item, bool))
-            ) else redact(item)
-            for key, item in value.items()
-        }
-    if isinstance(value, (list, tuple)):
-        return [redact(item) for item in value]
-    if isinstance(value, str):
-        for key, secret in os.environ.items():
-            if _SECRET_KEY.search(key) and len(secret) >= 8:
-                value = value.replace(secret, REDACTED)
-        value = _BEARER.sub("Bearer " + REDACTED, value)
-        return _INLINE_SECRET.sub(lambda match: match[1] + REDACTED, value)
-    return value
 
 
 class RunStore(Protocol):

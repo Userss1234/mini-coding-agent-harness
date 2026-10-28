@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .redaction import redact
+
 
 @dataclass
 class TraceEvent:
@@ -25,14 +27,15 @@ class TraceLogger:
         item = TraceEvent(
             event=event,
             timestamp=datetime.now(timezone.utc).isoformat(),
-            data=data,
+            data=redact(data),
         )
         with self.path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(asdict(item), ensure_ascii=False, default=str) + "\n")
+            fh.write(json.dumps(redact(asdict(item)), ensure_ascii=False,
+                                default=lambda value: redact(str(value))) + "\n")
 
 
 def preview(value: Any, limit: int = 1200) -> str:
-    text = str(value)
+    text = str(redact(value))
     if len(text) <= limit:
         return text
     return text[:limit] + f"\n... ({len(text) - limit} more chars)"

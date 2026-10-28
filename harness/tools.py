@@ -75,6 +75,7 @@ class ToolRegistry:
         self.max_tool_retries = max_tool_retries
         self.retry_delay = retry_delay
         self.execution_backend = "host"
+        self.baseline_workspace: Path | None = None
         self.execution_policy: dict[str, object] = {}
         self.retrieval_backend = "lexical"
         self._tools: dict[str, Tool] = {}
@@ -1229,6 +1230,12 @@ def build_registry(
         return ToolResult(True, f"Parsed OK: {len(files)} Python files", metadata)
 
     def git_diff() -> ToolResult:
+        if registry.baseline_workspace is not None:
+            from .workspace import WorkspaceSession
+
+            session = WorkspaceSession(registry.baseline_workspace.parent)
+            patch = session.changes()["patch"]
+            return ToolResult(True, patch or "(no workspace diff)", {"isolated": True})
         started = time.perf_counter()
         repo_check = subprocess.run(
             ["git", "rev-parse", "--is-inside-work-tree"],
