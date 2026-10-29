@@ -492,6 +492,10 @@ The historical 8-task comparison JSON predates task-result retention, so its com
 
 ## Git Baseline
 
+Experimental [requirement/check mapping and turn guidance](docs/VERIFICATION_GUIDANCE.md) is
+available but off by default. A [new 12-attempt comparison](reports/VERIFICATION_GUIDANCE_20261029.md)
+retains 9/12 acceptance and exposes plan-size/helper-file cleanup limits; it is not a success-rate gain.
+
 This project is intended to run inside a Git worktree. `git_diff` uses:
 
 ```powershell

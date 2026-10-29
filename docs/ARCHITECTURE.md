@@ -2,6 +2,11 @@
 
 This project is a small coding-agent harness for repository maintenance. The model chooses actions; the harness owns tools, context loading, permissions, execution, traces, and evaluation.
 
+The existing todo contract can map task clauses to planned checks and self-reported observations.
+When experimental guidance is enabled, bounded remaining-turn advice enters the system prompt and
+context-budget accounting. These are advisory controls, not semantic correctness attestation;
+see [requirement checks and turn budgets](VERIFICATION_GUIDANCE.md).
+
 ## System Overview
 
 ```mermaid

@@ -1,0 +1,462 @@
+{
+  "schema_version": 1,
+  "mode": "agent",
+  "split": "public_author_known_challenges_not_blind_holdout",
+  "backend": "docker",
+  "execution_order": [
+    "lexical",
+    "hybrid",
+    "hybrid",
+    "lexical"
+  ],
+  "protected_inputs_unchanged": true,
+  "rows": [
+    {
+      "task_id": "reservation_atomicity",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": false,
+        "reason": "submission contains missing or unauthorized files"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "preflight_injected_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_read_paths": [],
+        "subsequently_edited_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "retention_groups",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "retention.py"
+        ],
+        "preflight_injected_paths": [
+          "retention.py"
+        ],
+        "subsequently_read_paths": [
+          "retention.py"
+        ],
+        "subsequently_edited_paths": [
+          "retention.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "cursor_pages",
+      "trial": 0,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "pages.py"
+        ],
+        "preflight_injected_paths": [
+          "pages.py"
+        ],
+        "subsequently_read_paths": [
+          "pages.py"
+        ],
+        "subsequently_edited_paths": [
+          "pages.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "reservation_atomicity",
+      "trial": 1,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "preflight_injected_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_read_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_edited_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "retention_groups",
+      "trial": 1,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": false,
+        "reason": "submission contains missing or unauthorized files"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "retention.py"
+        ],
+        "preflight_injected_paths": [
+          "retention.py"
+        ],
+        "subsequently_read_paths": [
+          "retention.py"
+        ],
+        "subsequently_edited_paths": [
+          "retention.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "cursor_pages",
+      "trial": 1,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "pages.py"
+        ],
+        "preflight_injected_paths": [
+          "pages.py"
+        ],
+        "subsequently_read_paths": [
+          "pages.py"
+        ],
+        "subsequently_edited_paths": [
+          "pages.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "reservation_atomicity",
+      "trial": 2,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": false,
+        "reason": "submission contains missing or unauthorized files"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "preflight_injected_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_read_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_edited_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "retention_groups",
+      "trial": 2,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "retention.py"
+        ],
+        "preflight_injected_paths": [
+          "retention.py"
+        ],
+        "subsequently_read_paths": [
+          "retention.py"
+        ],
+        "subsequently_edited_paths": [
+          "retention.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "cursor_pages",
+      "trial": 2,
+      "retrieval_backend": "hybrid",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "pages.py"
+        ],
+        "preflight_injected_paths": [
+          "pages.py"
+        ],
+        "subsequently_read_paths": [
+          "pages.py"
+        ],
+        "subsequently_edited_paths": [
+          "pages.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "reservation_atomicity",
+      "trial": 3,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 9,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "preflight_injected_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_read_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "subsequently_edited_paths": [
+          "catalog.py",
+          "service.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "retention_groups",
+      "trial": 3,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 2,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "retention.py"
+        ],
+        "preflight_injected_paths": [
+          "retention.py"
+        ],
+        "subsequently_read_paths": [
+          "retention.py"
+        ],
+        "subsequently_edited_paths": [
+          "retention.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    },
+    {
+      "task_id": "cursor_pages",
+      "trial": 3,
+      "retrieval_backend": "lexical",
+      "baseline": {
+        "passed": false,
+        "returncode": 1,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "verdict": {
+        "passed": true,
+        "returncode": 0,
+        "test_cases": 6,
+        "acceptance_unchanged": true,
+        "timed_out": false,
+        "backend": "docker"
+      },
+      "evidence_use": {
+        "retrieved_paths": [
+          "pages.py"
+        ],
+        "preflight_injected_paths": [
+          "pages.py"
+        ],
+        "subsequently_read_paths": [
+          "pages.py"
+        ],
+        "subsequently_edited_paths": [
+          "pages.py"
+        ],
+        "path_followup_ratio": 1.0,
+        "interpretation": "Temporal path follow-up proxy; not proof of semantic use, correctness or causality."
+      }
+    }
+  ],
+  "passed": 9,
+  "interpretation": "Public author-known challenge performance; not blind generalization"
+}

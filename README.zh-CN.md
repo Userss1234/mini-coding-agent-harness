@@ -478,6 +478,10 @@ memory-off_context-off
 
 ## Git Baseline
 
+新增可选的[需求检查映射与轮数提示](docs/VERIFICATION_GUIDANCE.md)，默认关闭。
+[12 次真实复验](reports/VERIFICATION_GUIDANCE_20261029.md)仍为 9/12；正常收尾增多，
+但出现计划体积导致的上下文停止和临时检查文件未清理问题，不能宣传为成功率提升。
+
 这个项目应该在 Git worktree 中运行。`git_diff` 使用：
 
 ```powershell

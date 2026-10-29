@@ -2,6 +2,8 @@
 
 This directory contains committed portfolio artifacts that can be reviewed without rerunning the model.
 
+- `VERIFICATION_GUIDANCE_20261029.md` and `CHALLENGE_GUIDANCE_ABBA_20261029.json`: generic requirement/check mapping and budget-guidance experiment; unchanged 9/12 acceptance, fewer turn stops but three context stops and leftover helper files. Guidance remains opt-in, not a promoted default.
+
 - `LIVE_VALIDATION_20261028.md`: actual local Docker/WSL, MCP/hybrid, same-corpus reverse-order retrieval and 12-attempt DeepSeek ABBA validation; 9/12 submission acceptance, seven turn-budget stops. Links to new dated portable artifacts; historical stage gaps below are retained as historical evidence.
 
 - `PORTFOLIO_WALKTHROUGH.md`: short interview talk track tying the demo, eval, failure-analysis, and MCP artifacts together.

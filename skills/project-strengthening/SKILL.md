@@ -41,6 +41,12 @@ versus lexical 0.9286/0.9286 in both orders. One 12-attempt DeepSeek ABBA sequen
 9/12 submission acceptance (lexical 4/6, hybrid 5/6), with seven max-turn stops and three
 per-project retention failures. Do not claim stable hybrid gains or normal autonomous completion.
 Preserve this baseline and historical reports. Windows MCP teardown emitted WinError 995.
-STOP and report. Next authorized strengthening should target generic requirement-to-check
-coverage and budget-aware verification, not hardcoded challenge fixes or relaxed acceptance.
-Resume editing and any further paid rerun require user continuation. Do not push.
+On 2026-10-29 requirement/check/evidence todo mapping and per-turn budget guidance were implemented.
+See reports/VERIFICATION_GUIDANCE_20261029.md: new actual ABBA acceptance remains 9/12; normal
+ends 5->7, max-turn stops 7->2, but context stops 0->3 and failed tools 20->31. Backend winner
+reverses. Guidance is explicitly opt-in via HARNESS_VERIFICATION_GUIDANCE=on, default off;
+new checkpoints preserve the mode. Do not claim an overall success-rate or stable backend gain.
+STOP and report. Next authorized strengthening must address bounded structured-plan summaries
+and scope-safe checks without leftover helper files, not task-specific solutions, relaxed
+acceptance or a larger input ceiling. Preserve both 9/12 reports. Windows MCP teardown remains
+outstanding. Further paid validation, resume edits and pushing await user continuation.

@@ -147,7 +147,8 @@ def test_pause_at_turn_budget_resumes_with_saved_messages_and_todos(tmp_path: Pa
     response = SimpleNamespace(stop_reason="tool_use", content=[SimpleNamespace(
         type="tool_use", id="todo", name="todo_write", input={"todos": [
             {"task": "Inspect source", "status": "in_progress"},
-            {"task": "Verify tests", "status": "pending"},
+            {"task": "Verify tests", "status": "pending", "requirement": "Preserve API",
+             "check": "Run API compatibility checks", "evidence": "not run yet"},
         ]},
     )])
     client = SimpleNamespace(messages=SimpleNamespace(create=lambda **_: response))
@@ -169,6 +170,7 @@ def test_pause_at_turn_budget_resumes_with_saved_messages_and_todos(tmp_path: Pa
     client.messages.create = finish
     assert run_agent("", restored, client=client, run_store=store, resume_run_id=run_id) == "done"
     assert restored.todos == state["todos"]
+    assert restored.todos[1]["check"] == "Run API compatibility checks"
     assert seen[0][0] == state["messages"][0]
     assert seen[0][-2]["content"][0]["tool_use_id"] == "todo"
 

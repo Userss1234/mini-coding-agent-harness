@@ -1033,15 +1033,26 @@ def build_registry(
                 status = str(item.get("status", "pending")).strip().lower()
                 if status not in {"pending", "in_progress", "completed"}:
                     status = "pending"
-                normalized.append({"task": task, "status": status})
+                entry = {"task": task, "status": status}
+                for field in ("requirement", "check", "evidence"):
+                    value = item.get(field, "")
+                    if not isinstance(value, str) or len(value) > 600:
+                        return ToolResult(False, f"Todo {field} must be a string of at most 600 characters")
+                    if value.strip():
+                        entry[field] = value.strip()
+                normalized.append(entry)
         is_initial_plan = not registry.todos
         quality = _check_todo_quality(normalized, is_initial_plan=is_initial_plan)
         registry.todos = normalized
         registry.trace.log("todo_quality", **quality)
+        coverage = todo_verification_summary(normalized)
         return ToolResult(
             True,
-            f"Updated {len(normalized)} todo(s)",
-            {"todos": normalized, "quality": quality},
+            f"Updated {len(normalized)} todo(s)\nSelf-reported requirement checks: "
+            f"{coverage['requirement_items']}; missing check: {coverage['without_check']}; "
+            f"completed without evidence: {coverage['completed_without_evidence']}. "
+            "These fields do not prove execution or correctness.",
+            {"todos": normalized, "quality": quality, "verification": coverage},
         )
 
     def grep(pattern: str, glob: str = "*.py", limit: int = 80) -> ToolResult:
@@ -1349,6 +1360,12 @@ def build_registry(
                                 "type": "object",
                                 "properties": {
                                     "task": {"type": "string"},
+                                    "requirement": {"type": "string", "maxLength": 600,
+                                                    "description": "Explicit task clause covered by this item."},
+                                    "check": {"type": "string", "maxLength": 600,
+                                              "description": "Concrete verification method and relevant cases."},
+                                    "evidence": {"type": "string", "maxLength": 600,
+                                                 "description": "Observed command/result or explicit unverified limitation; self-reported, not attested."},
                                     "status": {
                                         "type": "string",
                                         "enum": ["pending", "in_progress", "completed"],
@@ -1610,6 +1627,20 @@ def build_registry(
         read_memory,
     ))
     return registry
+
+
+def todo_verification_summary(todos: list[dict[str, str]]) -> dict[str, Any]:
+    requirements = [item for item in todos if item.get("requirement", "").strip()]
+    return {
+        "requirement_items": len(requirements),
+        "without_check": sum(not item.get("check", "").strip() for item in requirements),
+        "completed_without_evidence": sum(
+            item.get("status") == "completed" and not item.get("evidence", "").strip()
+            for item in requirements
+        ),
+        "open_items": sum(item.get("status") != "completed" for item in requirements),
+        "interpretation": "Model-reported mapping only; not complete requirement coverage or execution attestation.",
+    }
 
 
 def _check_todo_quality(todos: list[dict[str, str]], is_initial_plan: bool) -> dict[str, Any]:

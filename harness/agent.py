@@ -23,15 +23,25 @@ from .context_window import ContextBudgetExceeded, ContextConfig, ContextWindow
 from .model_clients import create_default_model_client
 from .run_session import RunSession, normalize_blocks
 from .run_store import RunStore, new_run_id
-from .tools import ToolRegistry, ToolResult
+from .tools import ToolRegistry, ToolResult, todo_verification_summary
 
 BASE_SYSTEM_PROMPT = """You are a coding agent operating inside a local repository.
 Use tools to inspect files and run checks. Prefer small, evidence-backed steps.
 When making claims, mention the source file you inspected.
 For multi-step work, your first tool call must be todo_write.
 Update todo_write as steps move from pending to in_progress to completed.
-Use plain ASCII punctuation and avoid decorative symbols in final answers.
 """
+
+VERIFICATION_GUIDANCE = """\
+For code changes, map explicit task clauses to concise todo items with requirement and check fields.
+Preserve scope qualifiers, boundary cases, rejected inputs and non-mutation constraints from the task.
+Derive checks from those clauses, not just from the implementation you wrote. Do not assume compilation proves behavior.
+Record actual check observations in evidence; label anything not run as unverified. Evidence is a self-report, not proof.
+Batch independent reads or planning updates when safe. Avoid spending turns on repeated planning or broad searches after finding the relevant source.
+Respect the submission file scope: use allowed tests or ephemeral checks without leaving unauthorized helper files.
+"""
+
+FINAL_STYLE_PROMPT = "Use plain ASCII punctuation and avoid decorative symbols in final answers.\n"
 
 RETRIEVAL_TOOL_NAMES = frozenset({
     "index_workspace",
@@ -269,7 +279,7 @@ def _run_agent(
             registry, client, saved["model"], saved["system_prompt"], saved["model_tools"],
             saved["messages"], set(saved["evidence_terms"]), max_turns, max_retries,
             persistence, saved["turn"],
-            context_config,
+            context_config, bool(saved.get("verification_guidance", False)),
         )
     preflight_budget = retrieval_preflight_budget or RetrievalPreflightBudget.from_env()
     effective_retrieval_mode = retrieval_mode or ("on" if retrieval_preflight else "off")
@@ -289,12 +299,16 @@ def _run_agent(
     available_retrieval_schemas = len(RETRIEVAL_TOOL_NAMES.intersection(registry.names()))
     retrieval_active = gate.enabled and available_retrieval_schemas > 0
     model_tools = _model_tool_schemas(registry, retrieval_active)
-    system_prompt = _build_system_prompt(registry, retrieval_active)
+    guidance_enabled = os.getenv("HARNESS_VERIFICATION_GUIDANCE", "off").strip().lower() in {
+        "1", "true", "on",
+    }
+    system_prompt = _build_system_prompt(registry, retrieval_active, guidance_enabled)
     evidence_terms: set[str] = set()
     registry.trace.log(
         "agent_start",
         prompt=prompt,
         model=model,
+        verification_guidance=guidance_enabled,
         retrieval_mode=gate.mode,
     )
     registry.trace.log(
@@ -332,11 +346,12 @@ def _run_agent(
             system_prompt=system_prompt, evidence_terms=sorted(evidence_terms),
             client_identity=client_identity,
             context_config=asdict(context_config),
+            verification_guidance=guidance_enabled,
         )
     return _run_turns(
         registry, client, str(model), system_prompt, model_tools, messages, evidence_terms,
         max_turns, max_retries, persistence, 0,
-        context_config,
+        context_config, guidance_enabled,
     )
 
 
@@ -353,6 +368,7 @@ def _run_turns(
     persistence: RunSession | None,
     start_turn: int,
     context_config: ContextConfig,
+    verification_guidance: bool = False,
 ) -> str:
     window = ContextWindow(
         context_config, persistence.state.get("context_state") if persistence else None,
@@ -360,9 +376,12 @@ def _run_turns(
     for turn in range(start_turn, start_turn + max_turns):
         pending = bool(persistence and persistence.state["phase"] == "tools")
         if not pending:
+            remaining = start_turn + max_turns - turn
+            request_system = (_budgeted_system_prompt(system_prompt, remaining, registry.todos)
+                              if verification_guidance else system_prompt)
             try:
                 messages, context_metrics = window.prepare(
-                    system_prompt, model_tools, messages, registry.todos,
+                    request_system, model_tools, messages, registry.todos,
                 )
             except ContextBudgetExceeded as exc:
                 registry.trace.log("context_budget_exceeded", turn=turn, reason=str(exc))
@@ -380,6 +399,9 @@ def _run_turns(
                     status="running", stop_reason=None,
                 )
             registry.trace.log("context_request", turn=turn, **context_metrics)
+            registry.trace.log("agent_turn_budget", turn=turn, remaining=remaining,
+                               guidance_enabled=verification_guidance,
+                               verification=todo_verification_summary(registry.todos))
         try:
             if pending:
                 response = SimpleNamespace(
@@ -389,7 +411,7 @@ def _run_turns(
             else:
                 response = _call_with_retries(
                     lambda: client.messages.create(
-                        model=model, system=system_prompt, messages=messages,
+                        model=model, system=request_system, messages=messages,
                         tools=model_tools, max_tokens=4000,
                     ),
                     trace=registry.trace, event_name="model_request_retry",
@@ -414,7 +436,8 @@ def _run_turns(
             answer = _text_from_blocks(response.content)
             check = _check_answer_evidence(answer, evidence_terms)
             registry.trace.log("evidence_check", **check)
-            registry.trace.log("agent_end", todos=registry.todos)
+            registry.trace.log("agent_end", todos=registry.todos,
+                               verification=todo_verification_summary(registry.todos))
             if persistence:
                 persistence.save(status="completed", answer=answer, messages=messages)
             return answer
@@ -467,12 +490,29 @@ def _run_turns(
             persistence.save(messages=messages, phase="model", turn=turn + 1)
 
     summary = _compact_on_max_turns(registry)
-    registry.trace.log("agent_end", todos=registry.todos, stopped="max_turns")
+    registry.trace.log("agent_end", todos=registry.todos, stopped="max_turns",
+                       verification=todo_verification_summary(registry.todos))
     if persistence:
         persistence.save(status="paused", summary=summary)
     if summary:
         return f"Stopped: max_turns reached.\n\nContext summary:\n{summary}"
     return "Stopped: max_turns reached."
+
+
+def _budgeted_system_prompt(system: str, remaining: int, todos: list[dict[str, str]]) -> str:
+    coverage = todo_verification_summary(todos)
+    guidance = (
+        "Prioritize targeted implementation and checks; reserve time for verification and the final report."
+        if remaining > 2 else
+        "Verification/finalization budget: run the most relevant allowed check if needed, then report observed results and unverified requirements. Avoid broad exploration or cosmetic work."
+    )
+    return (
+        f"{system}\nHarness turn budget: {remaining} model request(s) remain, including this one. "
+        f"Self-reported requirement items={coverage['requirement_items']}, "
+        f"missing_checks={coverage['without_check']}, "
+        f"completed_without_evidence={coverage['completed_without_evidence']}. "
+        f"{guidance} Do not claim a check passed unless it actually ran successfully.\n"
+    )
 
 
 def _text_from_blocks(blocks: list[Any]) -> str:
@@ -492,8 +532,12 @@ def _client_identity(client: Any) -> str:
     return hashlib.sha256(identity.encode()).hexdigest()
 
 
-def _build_system_prompt(registry: ToolRegistry, retrieval_enabled: bool = True) -> str:
+def _build_system_prompt(registry: ToolRegistry, retrieval_enabled: bool = True,
+                         verification_guidance: bool = False) -> str:
     prompt = BASE_SYSTEM_PROMPT
+    if verification_guidance:
+        prompt += VERIFICATION_GUIDANCE
+    prompt += FINAL_STYLE_PROMPT
     if retrieval_enabled and "retrieve_then_read" in registry.names():
         prompt += "The harness may preload a retrieve_then_read evidence pack before the first model turn; use it as the starting context before broad search.\n"
     if retrieval_enabled and "context_pack" in registry.names():
