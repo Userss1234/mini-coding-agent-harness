@@ -18,7 +18,7 @@ python main.py --workspace . resume RUN_ID --context-management
 | Setting | Default | Meaning |
 |---|---:|---|
 | `--context-budget` | 24000 | Estimated input budget including system prompt, tool schemas and messages |
-| `--context-summary-budget` | 1800 | Maximum estimated size of the structured-summary message |
+| `--context-summary-budget` | 1800 | Maximum historical-summary estimate; the complete current plan separately consumes the same total input budget |
 | `--context-recent-turns` | 2 | Minimum complete recent interaction groups retained verbatim |
 | `--context-management` / `--no-context-management` | enabled | Enable or disable future compaction |
 
@@ -45,13 +45,24 @@ Old complete groups are summarized using deterministic extraction, with no extra
 - bounded paths read and changed;
 - recent failure records and outcome flags;
 - bounded excerpts from tool outputs and assistant notes;
-- the current todo list;
+- the current todo list, rendered as a separately accounted complete plan;
 - a count showing that historical details were omitted.
 
-The original task remains outside this summary. Current todos are kept intact; historical
-details can be trimmed to meet the summary budget. Repeated compaction merges the existing
+The original task remains outside this summary. In schema v2 the historical block is bounded
+by the summary allowance; the complete current plan is rendered alongside it without charging
+that plan to the historical allowance. Both blocks, all system/tool definitions, the original
+task and recent groups still count against the unchanged total input ceiling. This is an
+allocation change, not a larger input limit or silent plan truncation. An oversized complete
+plan still stops before model execution. Current todos are kept intact; historical
+details can be trimmed to meet the history budget. Repeated compaction merges the existing
 summary with newly retired groups, avoiding duplicate counts. Excerpts are marked as historical
 observations rather than instructions or approval. Exact source content should be reread.
+
+Schema v1 saved messages keep their original rendering until a new compaction upgrades them.
+Schema v2 refreshes the current plan from live registry state even when no further compaction
+is needed. Exact requirement/check/evidence fields stay in the checkpoint and request; completed
+plan entries are not silently dropped. This addresses richer plans exhausting the old combined
+summary allowance. It does not guarantee semantic understanding of the retained text.
 
 If the original task, system/tool definitions, minimum recent groups or summary essentials
 cannot fit, the agent returns `Stopped: context budget exceeded` before calling the model.
@@ -71,7 +82,9 @@ The existing model request separately caps output at 4000 tokens. Configure an i
 that leaves suitable output and provider overhead space for the actual model in use.
 
 Each model request emits `context_request` metrics: estimator, configured budget, message
-counts before/after, estimated input before/after, revision and retired-group count. Real
+counts before/after, estimated input before/after, revision and retired-group count.
+For compacted history, `history_summary_estimated_tokens` and `current_plan_estimated_tokens`
+show the separate byte-based allocations. They are not provider token counts. Real
 provider usage, when present, remains in `agent_response.usage`; estimated values must not be
 presented as measured provider tokens or monetary savings.
 

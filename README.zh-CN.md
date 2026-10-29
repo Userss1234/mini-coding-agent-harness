@@ -24,7 +24,7 @@
 
 40-task 兼容性回归之外，新增三个行为描述型公开挑战及外置验收；参考实现通过不等于模型通过。
 检索补充可选 Python AST 分块、24 文件/28 查询语料、冷暖观测与证据路径跟进统计。
-本机真实 Docker 与 MCP/hybrid 联调已通过；DeepSeek ABBA 共 12 次提交，外部验收通过 9/12（lexical 4/6、hybrid 5/6），其中 7 次触及轮数上限，不能表述为 9 次完整自主完成或 hybrid 稳定更强。详见[实际运行报告](reports/LIVE_VALIDATION_20261028.md)与[评测可信度](docs/EVALUATION_CREDIBILITY.md)。
+本机真实 Docker 与 MCP/hybrid 联调已通过，[首轮运行](reports/LIVE_VALIDATION_20261028.md)及历史结果均保留。[最新 12 次复验](reports/SCOPE_SAFE_VERIFICATION_20261029.md)原始验收仍为 9/12，本轮无上下文或文件范围失败，但暴露了题目未明确的异常类型要求。不能表述为 9 次正常自主完成、盲测泛化或 hybrid 稳定更强；评测分层见[说明](docs/EVALUATION_CREDIBILITY.md)。
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -481,6 +481,8 @@ memory-off_context-off
 新增可选的[需求检查映射与轮数提示](docs/VERIFICATION_GUIDANCE.md)，默认关闭。
 [12 次真实复验](reports/VERIFICATION_GUIDANCE_20261029.md)仍为 9/12；正常收尾增多，
 但出现计划体积导致的上下文停止和临时检查文件未清理问题，不能宣传为成功率提升。
+[后续修复](reports/SCOPE_SAFE_VERIFICATION_20261029.md)在本轮 12 次尝试中消除了这两类失败，
+但原始验收仍为 9/12；三次失败涉及题目未明确的异常类型要求，需要先审计评测契约，未放宽验收改分。
 
 这个项目应该在 Git worktree 中运行。`git_diff` 使用：
 

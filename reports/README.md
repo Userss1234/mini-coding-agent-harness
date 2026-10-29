@@ -2,6 +2,8 @@
 
 This directory contains committed portfolio artifacts that can be reviewed without rerunning the model.
 
+- `SCOPE_SAFE_VERIFICATION_20261029.md` and `CHALLENGE_SCOPE_SAFE_ABBA_20261029.json`: lossless current-plan accounting and Docker read-only inline checks; zero context/scope failures in one 12-attempt sequence, unchanged raw 9/12, explicit exception-contract ambiguity.
+
 - `VERIFICATION_GUIDANCE_20261029.md` and `CHALLENGE_GUIDANCE_ABBA_20261029.json`: generic requirement/check mapping and budget-guidance experiment; unchanged 9/12 acceptance, fewer turn stops but three context stops and leftover helper files. Guidance remains opt-in, not a promoted default.
 
 - `LIVE_VALIDATION_20261028.md`: actual local Docker/WSL, MCP/hybrid, same-corpus reverse-order retrieval and 12-attempt DeepSeek ABBA validation; 9/12 submission acceptance, seven turn-budget stops. Links to new dated portable artifacts; historical stage gaps below are retained as historical evidence.

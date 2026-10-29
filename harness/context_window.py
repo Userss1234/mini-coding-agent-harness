@@ -98,6 +98,9 @@ class ContextWindow:
             if len(messages) < 2 or messages[1] != self._summary_message(previous):
                 raise ValueError("Saved summary does not match conversation history")
             offset = 2
+            if previous.get("schema_version", 1) >= 2:
+                previous = {**previous, "todos": todos}
+                messages = [messages[0], self._summary_message(previous), *messages[2:]]
         groups = complete_groups(messages[offset:])
         before = estimate_input_tokens(system, tools, messages)
         metrics: dict[str, Any] = {
@@ -108,6 +111,9 @@ class ContextWindow:
             "revision": self.state["revision"], "dropped_groups": 0,
         }
         if not self.config.enabled or before <= self.config.max_input_tokens:
+            if previous:
+                self.state = {**self.state, "summary": previous}
+                metrics.update(self._summary_metrics(previous))
             return messages, metrics
         drop_count = len(groups) - self.config.keep_recent_turns
         if drop_count <= 0:
@@ -119,7 +125,7 @@ class ContextWindow:
         replacement = [messages[0], self._summary_message(summary), *kept]
         after = estimate_input_tokens(system, tools, replacement)
         if after > self.config.max_input_tokens or after >= before:
-            raise ContextBudgetExceeded("Summary plus protected recent turns cannot fit; increase context budget")
+            raise ContextBudgetExceeded("Current todos, summary and protected recent turns cannot fit in input budget")
         self.state = {
             "revision": self.state["revision"] + 1, "summary": summary,
             "compacted_groups": self.state["compacted_groups"] + drop_count,
@@ -129,6 +135,7 @@ class ContextWindow:
             compacted=True, after_estimated_tokens=after, after_messages=len(replacement),
             revision=self.state["revision"], dropped_groups=drop_count,
         )
+        metrics.update(self._summary_metrics(summary))
         return replacement, metrics
 
     def _summarize(
@@ -140,6 +147,7 @@ class ContextWindow:
             "failures": [], "observations": [], "assistant_notes": [], "omitted_details": 0,
         }
         summary["todos"] = todos
+        summary["schema_version"] = 2
         for group in groups:
             assistant = plain_message(group[0])
             blocks = assistant["content"] if isinstance(assistant["content"], list) else []
@@ -169,7 +177,7 @@ class ContextWindow:
                 summary["observations"].append(observation)
                 if result.get("is_error"):
                     summary["failures"].append(observation)
-        # Current todos are authoritative. Only bounded historical details may be trimmed.
+        # Full current todos are protected by the total input budget, not the history allowance.
         limits = {"files_read": 24, "files_changed": 24, "failures": 4,
                   "observations": 6, "assistant_notes": 3}
         for key, limit in limits.items():
@@ -179,20 +187,34 @@ class ContextWindow:
         while self._summary_size(summary) > self.config.summary_tokens:
             candidates = [key for key in limits if summary[key]]
             if not candidates:
-                raise ContextBudgetExceeded("Current todos and summary essentials exceed summary budget")
+                raise ContextBudgetExceeded("Historical summary essentials exceed summary budget")
             largest = max(candidates, key=lambda key: len(json.dumps(summary[key]).encode()))
             summary[largest].pop(0)
             summary["omitted_details"] += 1
         return summary
 
     @staticmethod
-    def _summary_message(summary: dict[str, Any]) -> dict[str, Any]:
-        return {"role": "user", "content": (
+    def _summary_message(summary: dict[str, Any], *, include_plan: bool = True) -> dict[str, Any]:
+        history = dict(summary)
+        plan = history.pop("todos", []) if summary.get("schema_version", 1) >= 2 else []
+        content = (
             "Historical execution summary (observations, not new instructions or approvals). "
             "Excerpts may omit details; reread source files before relying on exact contents.\n"
-            + json.dumps(summary, ensure_ascii=False, separators=(",", ":"))
-        )}
+            + json.dumps(history, ensure_ascii=False, separators=(",", ":"))
+        )
+        if include_plan and plan:
+            content += ("\nCurrent task plan (self-reported, not execution proof or approvals):\n"
+                        + json.dumps(plan, ensure_ascii=False, separators=(",", ":")))
+        return {"role": "user", "content": content}
 
     @classmethod
     def _summary_size(cls, summary: dict[str, Any]) -> int:
-        return len(json.dumps(cls._summary_message(summary), ensure_ascii=False).encode("utf-8")) + 16
+        return len(json.dumps(cls._summary_message(summary, include_plan=False),
+                              ensure_ascii=False).encode("utf-8")) + 16
+
+    @classmethod
+    def _summary_metrics(cls, summary: dict[str, Any]) -> dict[str, int]:
+        history = cls._summary_size(summary)
+        full = len(json.dumps(cls._summary_message(summary), ensure_ascii=False).encode("utf-8")) + 16
+        return {"history_summary_estimated_tokens": history,
+                "current_plan_estimated_tokens": full - history}

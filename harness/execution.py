@@ -300,6 +300,24 @@ class DockerExecutor:
         return result
 
 
+class ReadOnlyDockerExecutor(DockerExecutor):
+    def __init__(self, workspace: Path, config: DockerExecutionConfig,
+                 docker_executable: str = "docker"):
+        super().__init__(workspace, config, docker_executable)
+        if (config.network != "none" or int(config.user.split(":")[0]) == 0
+                or not config.read_only_root or config.fallback_to_host):
+            raise ValueError("Inline checks require non-root, no-network, read-only Docker without fallback")
+
+    def describe(self) -> dict[str, object]:
+        return {**super().describe(), "workspace_read_only": True}
+
+    def docker_argv(self, argv: Sequence[str], env: Mapping[str, str] | None = None,
+                    container_name: str | None = None) -> list[str]:
+        command = super().docker_argv(argv, env, container_name)
+        command[command.index("--mount") + 1] += ",readonly"
+        return command
+
+
 def build_executor(
     workspace: Path,
     backend: str | None = None,

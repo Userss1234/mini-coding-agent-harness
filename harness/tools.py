@@ -13,7 +13,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .execution import CommandExecutor, ExecutionResult, build_executor
+from .execution import (
+    CommandExecutor,
+    DockerExecutor,
+    ExecutionResult,
+    ReadOnlyDockerExecutor,
+    build_executor,
+)
 from .permissions import (
     ALLOWED_SHELL_COMMANDS,
     READ_ONLY_GIT_SUBCOMMANDS,
@@ -161,7 +167,7 @@ class ToolRegistry:
     def _should_retry_tool(self, tool: Tool, exc: Exception, attempt: int) -> bool:
         if attempt >= self.max_tool_retries:
             return False
-        if tool.risk == "write":
+        if tool.risk == "write" or tool.name == "run_python_check":
             return False
         return is_transient_exception(exc)
 
@@ -1210,6 +1216,29 @@ def build_registry(
             _execution_tool_metadata(executed, tokens),
         )
 
+    def run_python_check(code: str, timeout: int = 30) -> ToolResult:
+        if not isinstance(code, str) or not code.strip() or len(code.encode("utf-8")) > 12000:
+            return ToolResult(False, "Inline Python must be nonempty and at most 12000 UTF-8 bytes")
+        if type(timeout) is not int or not 1 <= timeout <= 60:
+            return ToolResult(False, "Inline check timeout must be an integer from 1 to 60 seconds")
+        if not isinstance(executor, DockerExecutor):
+            return ToolResult(False, "Inline checks require restricted Docker; no host execution")
+        checker = ReadOnlyDockerExecutor(workspace, executor.config, executor.docker_executable)
+        wrapper = ("import os,sys;os.environ['PYTEST_DISABLE_PLUGIN_AUTOLOAD']='1';"
+                   "sys.path.insert(0,os.getcwd());exec(compile(sys.argv[1],'<inline-check>','exec'))")
+        command = [checker.python_executable, "-I", "-B", "-c", wrapper, code]
+        executed = checker.run(command, timeout=timeout, env={
+            "PYTHONDONTWRITEBYTECODE": "1", "PYTEST_ADDOPTS": "-p no:cacheprovider",
+        })
+        metadata = _execution_tool_metadata(executed, command)
+        metadata["inline_check"] = True
+        metadata["output_truncated"] = len(executed.output) > 8000
+        return ToolResult(
+            executed.returncode == 0 and not executed.timed_out,
+            executed.output[:8000] or _execution_error_text(executed, "Inline check produced no output"),
+            metadata,
+        )
+
     def run_py_compile() -> ToolResult:
         files = [Path(line) for line in list_python_files().output.splitlines() if line.strip()]
         if not files:
@@ -1442,6 +1471,17 @@ def build_registry(
         shell,
         risk="shell",
     ))
+    if isinstance(executor, DockerExecutor):
+        registry.register(Tool(
+            "run_python_check",
+            "Run inline Python assertions in restricted Docker with a read-only workspace. No helper script files or host fallback. Imports workspace modules; temporary data may use /tmp. Not a hostile-code or test-correctness proof.",
+            {"type": "object", "properties": {
+                "code": {"type": "string", "description": "Python check code, at most 12000 UTF-8 bytes."},
+                "timeout": {"type": "integer", "minimum": 1, "maximum": 60},
+            }, "required": ["code"]},
+            run_python_check,
+            risk="execute",
+        ))
     registry.register(Tool(
         "run_py_compile",
         "Compile all Python files to check syntax.",

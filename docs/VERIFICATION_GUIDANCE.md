@@ -8,6 +8,10 @@ Default is off: the first actual comparison retained 9/12 acceptance and exposed
 context stops and unfinished helper-file cleanup. Optional todo fields remain available in both
 modes. Resume uses the persisted mode, not a changed environment variable.
 
+Follow-up fixes are documented in [scope-safe verification](SCOPE_SAFE_VERIFICATION.md).
+Historical summaries now account for full plans separately under the same total input cap.
+Restricted Docker registries offer `run_python_check` for inline assertions without helper scripts.
+
 ## Plan Contract
 
 Existing `todo_write` items still accept only `task` and `status`. Three optional string fields

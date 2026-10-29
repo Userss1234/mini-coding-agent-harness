@@ -80,7 +80,7 @@ def test_summary_cannot_discard_active_todos_to_meet_budget():
     messages = [{"role": "user", "content": "task"}] + sum([pair(i) for i in range(8)], [])
     window = ContextWindow(ContextConfig(2200, 400, 1))
     with pytest.raises(ContextBudgetExceeded, match="todos"):
-        window.prepare("system", [], messages, [{"task": "must keep " * 100, "status": "pending"}])
+        window.prepare("system", [], messages, [{"task": "must keep " * 1000, "status": "pending"}])
 
 
 def test_large_recent_batch_is_not_dropped_even_when_older_history_can_be_summarized():
@@ -220,3 +220,60 @@ def test_explicit_budget_increase_can_resume_a_paused_run(tmp_path: Path):
     assert run_agent("", registry_for(tmp_path), client=client, run_store=store,
                      resume_run_id=run_id, context_config=ContextConfig()) == "finished"
     assert store.load(run_id)["context_config"]["max_input_tokens"] == 24000
+
+
+def test_rich_plan_is_lossless_outside_history_allowance_but_inside_total_budget():
+    todos = [{"task": f"Verify clause {i}", "status": "pending",
+              "requirement": f"clause-{i}:" + "r" * 250,
+              "check": "c" * 200, "evidence": "not run yet"} for i in range(5)]
+    messages = [{"role": "user", "content": "Original full task"}] + sum(
+        [pair(i, 1600) for i in range(8)], [])
+    window = ContextWindow(ContextConfig(10000, 1000, 1))
+    result, metrics = window.prepare("system", [], messages, todos)
+    assert window.state["summary"]["schema_version"] == 2
+    assert window.state["summary"]["todos"] == todos
+    assert window._summary_size(window.state["summary"]) <= 1000
+    assert metrics["current_plan_estimated_tokens"] > 1000
+    assert metrics["after_estimated_tokens"] == estimate_input_tokens("system", [], result)
+    assert metrics["after_estimated_tokens"] <= 10000
+    assert result[0] == messages[0] and result[-2:] == pair(7, 1600)
+    for item in todos:
+        assert item["requirement"] in result[1]["content"]
+
+
+def test_current_plan_refreshes_after_compaction_without_stale_requirements():
+    window = ContextWindow(ContextConfig(5000, 1000, 1))
+    task = {"role": "user", "content": "task"}
+    result, _ = window.prepare("system", [], [task] + sum([pair(i) for i in range(8)], []),
+                               [{"task": "Verify", "requirement": "old", "status": "pending"}])
+    state = json.loads(json.dumps(window.state))
+    restored = ContextWindow(window.config, state)
+    todos = [{"task": "Verify", "requirement": "current-exact-clause", "status": "completed",
+              "check": "run boundary assertions", "evidence": "passed"}]
+    refreshed, metrics = restored.prepare("system", [], result, todos)
+    assert "current-exact-clause" in refreshed[1]["content"]
+    assert restored.state["summary"]["todos"] == todos
+    assert not metrics["compacted"]
+    assert refreshed[-2:] == result[-2:]
+    before = json.dumps(restored.state)
+    with pytest.raises(ContextBudgetExceeded):
+        restored.prepare("system", [], refreshed, [{"task": "x" * 10000, "status": "pending"}])
+    assert json.dumps(restored.state) == before
+
+
+def test_legacy_summary_can_load_then_upgrade_without_losing_plan():
+    window = ContextWindow(ContextConfig(5000, 1000, 1))
+    task = {"role": "user", "content": "task"}
+    todos = [{"task": "Verify", "requirement": "keep this clause", "status": "pending"}]
+    result, _ = window.prepare("system", [], [task] + sum([pair(i) for i in range(8)], []), todos)
+    state = json.loads(json.dumps(window.state))
+    state["summary"]["schema_version"] = 1
+    result[1] = window._summary_message(state["summary"])
+    restored = ContextWindow(window.config, state)
+    loaded, _ = restored.prepare("system", [], result, todos)
+    assert loaded == result
+    upgraded, metrics = restored.prepare("system", [], loaded + pair(9, 6000) + pair(10), todos)
+    assert metrics["compacted"]
+    assert restored.state["summary"]["schema_version"] == 2
+    assert restored.state["summary"]["todos"] == todos
+    assert upgraded[-2:] == pair(10)

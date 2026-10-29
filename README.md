@@ -54,7 +54,7 @@ python main.py eval --mode agent --task python_bugfix --task python_add_tests --
 - **Durable runs:** `ask` stores checkpoints and tool-call state in SQLite; `resume` reuses completed results and blocks unknown interrupted outcomes for operator reconciliation. See [run recovery](docs/RUN_RECOVERY.md).
 - **Context windows:** before each new model request, a configurable input budget can replace old complete history with a structured summary while preserving the original task and recent tool-use/result batches. Compacted state survives resume. See [context management](docs/CONTEXT_WINDOW.md) for estimation limits and local evidence.
 - **Reviewed workspaces:** `ask --isolate SESSION` edits a bounded copy, then `workspace-review` exports an exact review and `workspace-apply` requires terminal approval and source-conflict checks. Shared redaction covers traces, durable state and HTML. See [workspace isolation](docs/WORKSPACE_ISOLATION.md) for commands and security limits.
-- **Evaluation boundaries:** the 40-task compatibility suite is separate from three public behavioral challenges with external acceptance. Optional Python AST chunks, a 28-query/24-file retrieval fixture, first/repeated timing and evidence-follow-up reports are documented in [evaluation credibility](docs/EVALUATION_CREDIBILITY.md). [Actual local follow-up](reports/LIVE_VALIDATION_20261028.md) verifies Docker and MCP/hybrid integration: 12 DeepSeek ABBA submissions pass 9/12 external acceptance (lexical 4/6, hybrid 5/6); seven hit the turn budget. This is not evidence of stable hybrid superiority or 9 normal autonomous completions.
+- **Evaluation boundaries:** the 40-task compatibility suite is separate from three public behavioral challenges with external acceptance. Optional Python AST chunks and a 28-query/24-file fixture are documented in [evaluation credibility](docs/EVALUATION_CREDIBILITY.md). [Local Docker/MCP/hybrid evidence](reports/LIVE_VALIDATION_20261028.md) and all historical results are retained. The [latest 12-attempt follow-up](reports/SCOPE_SAFE_VERIFICATION_20261029.md) still scores 9/12, with no context/scope failures but an unspecified exception-class requirement in acceptance. Neither 9/12 nor backend differences establish normal autonomous completion, blind generalization or stable hybrid superiority.
 
 - **Scripted benchmark:** 40 deterministic repository-maintenance tasks, 40/40 passing in the committed snapshot, including nested-package, cross-file, plugin-registry, and dependency/config fixtures.
 - **Real-agent eval:** DeepSeek `deepseek-chat` passed 40/40 in the second complete expanded-suite run after transient request retries were increased from 2 to 4. The first run remains 39/40 because of one provider HTTP 503 before verification; 39/40 -> 40/40 stability evidence is committed without rewriting the original result.
@@ -495,6 +495,9 @@ The historical 8-task comparison JSON predates task-result retention, so its com
 Experimental [requirement/check mapping and turn guidance](docs/VERIFICATION_GUIDANCE.md) is
 available but off by default. A [new 12-attempt comparison](reports/VERIFICATION_GUIDANCE_20261029.md)
 retains 9/12 acceptance and exposes plan-size/helper-file cleanup limits; it is not a success-rate gain.
+The [scope-safe follow-up](reports/SCOPE_SAFE_VERIFICATION_20261029.md) removes those two failure
+modes in its 12 attempts, still scores 9/12, and exposes an unspecified exception-type requirement
+in acceptance. Historical results are retained; no relaxed score or stable backend gain is claimed.
 
 This project is intended to run inside a Git worktree. `git_diff` uses:
 

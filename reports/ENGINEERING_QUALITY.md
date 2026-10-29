@@ -28,8 +28,8 @@ Current local verification uses Windows and Python 3.12.2 with the development e
 |---|---|
 | Ruff | pass, 0 findings |
 | mypy | pass, 33 source files |
-| pytest | pass, 304 tests; 1 optional symlink skip |
-| Branch coverage | 82.94% (75% required) |
+| pytest | pass, 319 tests; 1 optional symlink skip |
+| Branch coverage | 83.01% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
@@ -38,6 +38,9 @@ The generated coverage database and benchmark workspaces remain local and are ig
 The 2026-10-29 [requirement/budget guidance experiment](VERIFICATION_GUIDANCE_20261029.md)
 adds optional plan metadata and an off-by-default advisory mode. Its actual agent acceptance
 remains 9/12, with new context/cleanup limits; this is not a correctness or success-rate gain.
+The [scope-safe follow-up](SCOPE_SAFE_VERIFICATION_20261029.md) verifies v2 plan/history
+accounting and Docker read-only inline execution, retaining raw acceptance failures and
+documenting a newly observed prompt/verifier exception-type ambiguity.
 GitHub Actions is the authoritative cross-version and Docker runtime check.
 
 Priority 1 adds durable SQLite run recovery. The current stage is locally verified and not yet

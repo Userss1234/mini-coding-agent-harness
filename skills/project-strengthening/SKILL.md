@@ -46,7 +46,15 @@ See reports/VERIFICATION_GUIDANCE_20261029.md: new actual ABBA acceptance remain
 ends 5->7, max-turn stops 7->2, but context stops 0->3 and failed tools 20->31. Backend winner
 reverses. Guidance is explicitly opt-in via HARNESS_VERIFICATION_GUIDANCE=on, default off;
 new checkpoints preserve the mode. Do not claim an overall success-rate or stable backend gain.
-STOP and report. Next authorized strengthening must address bounded structured-plan summaries
-and scope-safe checks without leftover helper files, not task-specific solutions, relaxed
-acceptance or a larger input ceiling. Preserve both 9/12 reports. Windows MCP teardown remains
-outstanding. Further paid validation, resume edits and pushing await user continuation.
+Follow-up on 2026-10-29 implements v2 history/complete-plan accounting under the unchanged
+24000 total ceiling and Docker-only read-only run_python_check. Three old failed checkpoints
+replay losslessly within budget. New ABBA: 9/12 raw acceptance, zero context or submission-scope
+failures, 9 normal ends and 3 turn stops; only 6 normal ends also pass acceptance. Three failures
+raise TypeError where acceptance requires ValueError although the task does not specify the
+exception class. Do not silently rescore or call these established algorithmic errors.
+Evidence: reports/SCOPE_SAFE_VERIFICATION_20261029.md; 319 tests/83.01% coverage, 40/40 scripted.
+Guidance remains off by default. Preserve all three 9/12 reports. STOP and report.
+Next authorized priority: audit task/API/acceptance contract consistency, freeze and version any
+explicit contract correction before comparing again; no task-specific agent hints or weakened
+submission scope. Then address Windows MCP teardown. Further paid runs, resume edits and pushing
+await user continuation. No new technology merely to grow the roadmap.

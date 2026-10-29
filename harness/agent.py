@@ -537,6 +537,10 @@ def _build_system_prompt(registry: ToolRegistry, retrieval_enabled: bool = True,
     prompt = BASE_SYSTEM_PROMPT
     if verification_guidance:
         prompt += VERIFICATION_GUIDANCE
+        if "run_python_check" in registry.names():
+            prompt += ("Use run_python_check for inline behavioral assertions without helper files. "
+                       "It uses read-only Docker workspace execution; keep temporary data in /tmp. "
+                       "Do not create auxiliary test scripts outside the permitted submission scope.\n")
     prompt += FINAL_STYLE_PROMPT
     if retrieval_enabled and "retrieve_then_read" in registry.names():
         prompt += "The harness may preload a retrieve_then_read evidence pack before the first model turn; use it as the starting context before broad search.\n"
