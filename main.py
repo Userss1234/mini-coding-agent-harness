@@ -23,6 +23,7 @@ from harness.eval_analysis import (
 )
 from harness.evaluation import run_evaluation
 from harness.evidence_metrics import summarize_evidence_use
+from harness.mcp_client import ExternalMCPTools
 from harness.mcp_http_smoke import run_mcp_http_smoke
 from harness.mcp_sdk import build_mcp_sdk_server, serve_mcp_sdk_stdio
 from harness.mcp_sdk_http import build_mcp_sdk_http_server, serve_mcp_sdk_http
@@ -33,10 +34,12 @@ from harness.retrieval_benchmark import (
 )
 from harness.retrieval_study import run_retrieval_study
 from harness.review import inspect_repo
+from harness.run_controls import RunControlConfig, RunControls
 from harness.run_store import SQLiteRunStore
 from harness.tools import build_registry
 from harness.trace import TraceLogger
 from harness.trace_viewer import build_trace_report, load_trace_events
+from harness.verification import VerificationConfig, VerificationController
 from harness.workspace import WorkspaceSession
 
 
@@ -147,9 +150,12 @@ def cmd_ask(args) -> None:
     if isolated:
         registry.baseline_workspace = isolated.baseline
         _check_isolated_policy(registry)
+    _configure_verification(args, registry)
+    _configure_controls(args, registry)
     store = SQLiteRunStore(Path(args.run_db)) if not args.no_persist else None
     existing_ids = {run["id"] for run in store.list_runs()} if store else set()
-    with isolated.operations.lock("workspace") if isolated else nullcontext():
+    with ExternalMCPTools(registry, Path(args.mcp_config) if getattr(args, "mcp_config", None) else None), \
+            isolated.operations.lock("workspace") if isolated else nullcontext():
         print(run_agent(
             args.prompt, registry, retrieval_mode=args.retrieval,
             max_turns=args.max_turns, run_store=store,
@@ -186,7 +192,11 @@ def cmd_resume(args) -> None:
     if isolated:
         registry.baseline_workspace = isolated.baseline
         _check_isolated_policy(registry)
-    with isolated.operations.lock("workspace") if isolated else nullcontext():
+    _configure_verification(args, registry)
+    _configure_controls(args, registry, policy.get("run_controls"))
+    with ExternalMCPTools(registry, Path(args.mcp_config) if getattr(args, "mcp_config", None) else None,
+                          expected_policy=policy.get("external_tools", {})), \
+            isolated.operations.lock("workspace") if isolated else nullcontext():
         if isolated:
             isolated.ensure_available()
         print(run_agent("", registry, max_turns=args.max_turns, run_store=store,
@@ -203,6 +213,28 @@ def _check_isolated_policy(registry) -> None:
         or policy.get("fallback_to_host") or int(str(policy.get("user", "0")).split(":")[0]) == 0
     ):
         raise SystemExit("Isolated Docker runs require no network, non-root, read-only root and no host fallback")
+
+
+def _configure_verification(args, registry) -> None:
+    path = getattr(args, "verification_config", None)
+    if path:
+        registry.verification_controller = VerificationController(
+            registry.workspace, registry.executor,
+            VerificationConfig.load(Path(path), registry.workspace),
+        )
+
+
+def _configure_controls(args, registry, saved=None) -> None:
+    values = {key: getattr(args, key, None) for key in
+              ("max_seconds", "max_tools", "max_tokens", "repeat_limit", "cancel_file")}
+    if saved is not None:
+        if any(value is not None and value != saved.get(key) for key, value in values.items()):
+            raise ValueError("Resume requires original run-control limits and cancellation signal")
+        values = saved
+    if any(value is not None for value in values.values()):
+        if values.get("cancel_file"):
+            values["cancel_file"] = str(Path(str(values["cancel_file"])).resolve())
+        registry.run_controls = RunControls(RunControlConfig(**values), registry.workspace)
 
 
 def _approve_workspace(review_id: str) -> bool:
@@ -344,7 +376,7 @@ def cmd_retrieval_stability(args) -> None:
 
 def cmd_retrieval_benchmark(args) -> None:
     backend_options = {"chunk_strategy": args.chunk_strategy}
-    if args.backend == "hybrid":
+    if args.backend in {"hybrid", "qdrant"}:
         backend_options = {
             "chunk_strategy": args.chunk_strategy,
             "embedding_model": args.embedding_model,
@@ -360,7 +392,7 @@ def cmd_retrieval_benchmark(args) -> None:
     default_stem = (
         "RETRIEVAL_QUALITY_BASELINE"
         if args.backend == "lexical"
-        else "RETRIEVAL_QUALITY_HYBRID"
+        else "RETRIEVAL_QUALITY_" + args.backend.upper()
     )
     output_path = Path(args.output or f"reports/{default_stem}.md")
     json_output_path = Path(args.json_output or f"reports/{default_stem}.json")
@@ -627,6 +659,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ask = sub.add_parser("ask", help="Run the model-driven agent loop")
     ask.add_argument("prompt")
+    ask.add_argument("--mcp-config", help="Operator-owned external MCP tool configuration")
     ask.add_argument("--isolate", help="Create a new isolated session outside the source workspace")
     ask.add_argument("--run-db", default="artifacts/runs.sqlite3", help="Durable run database")
     ask.add_argument("--no-persist", action="store_true", help="Use an in-memory run only")
@@ -640,7 +673,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ask.add_argument(
         "--retrieval-backend",
-        choices=["lexical", "hybrid"],
+        choices=["lexical", "hybrid", "qdrant"],
         default="lexical",
         help="Default ranking backend for retrieval tools and preflight",
     )
@@ -648,6 +681,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     resume = sub.add_parser("resume", help="Resume a durable run from its last checkpoint")
     resume.add_argument("run_id")
+    resume.add_argument("--mcp-config", help="Original external MCP configuration for resume")
     resume.add_argument("--isolate", help="Resume using an existing isolated session")
     resume.add_argument("--run-db", default="artifacts/runs.sqlite3")
     resume.add_argument("--max-turns", type=int, default=8)
@@ -722,7 +756,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     eval_cmd.add_argument(
         "--retrieval-backend",
-        choices=["lexical", "hybrid"],
+        choices=["lexical", "hybrid", "qdrant"],
         default="lexical",
         help="Ranking backend used by retrieval tools and preflight",
     )
@@ -818,7 +852,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     retrieval_benchmark.add_argument(
         "--backend",
-        choices=["lexical", "hybrid"],
+        choices=["lexical", "hybrid", "qdrant"],
         default="lexical",
         help="Retrieval backend to evaluate",
     )
@@ -857,6 +891,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _add_context_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--verification-config", help="Trusted completion-check JSON outside workspace")
+    parser.add_argument("--max-seconds", type=float, help="Cooperative cumulative active-run wall time")
+    parser.add_argument("--max-tools", type=int, help="Cumulative tool dispatch budget, persisted across resume")
+    parser.add_argument("--max-tokens", type=int, help="Provider-reported cumulative token stop threshold")
+    parser.add_argument("--repeat-limit", type=int, help="Stop after consecutive identical tool observations")
+    parser.add_argument("--cancel-file", help="Operator cancellation file outside workspace")
     parser.add_argument("--context-budget", type=int, help="Estimated total input-token budget")
     parser.add_argument("--context-summary-budget", type=int, help="Estimated summary-token budget")
     parser.add_argument("--context-recent-turns", type=int, help="Complete recent turns to preserve")

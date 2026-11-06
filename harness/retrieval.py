@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import ast
 import fnmatch
+import hashlib
 import math
 import os
-from dataclasses import dataclass
+from collections import OrderedDict
+from dataclasses import dataclass, replace
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 IGNORED_PATH_PARTS = {
@@ -50,6 +53,7 @@ class RetrievalChunk:
     end_line: int
     text: str
     tokens: tuple[str, ...]
+    source_sha256: str = ""
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,8 @@ class RetrievalIndex:
     ignored_parts: tuple[str, ...]
     ignored_names: tuple[str, ...]
     chunk_strategy: str = "lines"
+    chunk_cache_hits: int = 0
+    chunk_cache_misses: int = 0
 
     def metadata(self) -> dict[str, Any]:
         return {
@@ -70,7 +76,33 @@ class RetrievalIndex:
             "ignored_parts": list(self.ignored_parts),
             "ignored_names": list(self.ignored_names),
             "chunk_strategy": self.chunk_strategy,
+            "chunk_cache_hits": self.chunk_cache_hits,
+            "chunk_cache_misses": self.chunk_cache_misses,
         }
+
+
+_CHUNK_CACHE: OrderedDict[tuple, tuple[str, tuple[RetrievalChunk, ...]]] = OrderedDict()
+_CHUNK_CACHE_LOCK = RLock()
+
+
+def _cached_file_chunks(root: Path, path: str, text: str, size: int, overlap: int,
+                        strategy: str) -> tuple[tuple[RetrievalChunk, ...], bool]:
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    key = (str(root), path, size, overlap, strategy)
+    with _CHUNK_CACHE_LOCK:
+        cached = _CHUNK_CACHE.get(key)
+        if cached and cached[0] == digest:
+            _CHUNK_CACHE.move_to_end(key)
+            return cached[1], True
+    raw = (_chunk_python(path, text, size, overlap) if strategy == "python" and path.endswith(".py")
+           else _chunk_file(path, text, size, overlap))
+    chunks = tuple(replace(chunk, source_sha256=digest) for chunk in raw)
+    with _CHUNK_CACHE_LOCK:
+        _CHUNK_CACHE[key] = (digest, chunks)
+        _CHUNK_CACHE.move_to_end(key)
+        while len(_CHUNK_CACHE) > 128:
+            _CHUNK_CACHE.popitem(last=False)
+    return chunks, False
 
 
 def tokenize_query(text: str) -> list[str]:
@@ -105,6 +137,7 @@ def build_workspace_index(
     chunks: list[RetrievalChunk] = []
     files_indexed = 0
     files_skipped = 0
+    cache_hits = cache_misses = 0
 
     for path in root.rglob("*"):
         if not path.is_file():
@@ -127,9 +160,9 @@ def build_workspace_index(
             continue
         if len(text) > max_file_chars:
             text = text[:max_file_chars]
-        file_chunks = (_chunk_python(rel_text, text, chunk_size, overlap_size)
-                       if strategy == "python" and path.suffix == ".py"
-                       else _chunk_file(rel_text, text, chunk_size, overlap_size))
+        file_chunks, hit = _cached_file_chunks(root, rel_text, text, chunk_size, overlap_size, strategy)
+        cache_hits += int(hit)
+        cache_misses += int(not hit)
         if file_chunks:
             chunks.extend(file_chunks)
             files_indexed += 1
@@ -144,6 +177,8 @@ def build_workspace_index(
         ignored_parts=tuple(sorted(IGNORED_PATH_PARTS)),
         ignored_names=tuple(sorted(IGNORED_FILE_NAMES)),
         chunk_strategy=strategy,
+        chunk_cache_hits=cache_hits,
+        chunk_cache_misses=cache_misses,
     )
 
 
@@ -215,6 +250,7 @@ def search_retrieval_index(
             "start_line": chunk.start_line,
             "end_line": chunk.end_line,
             "snippet": snippet,
+            "indexed_source_sha256": chunk.source_sha256,
         })
 
     scored.sort(key=lambda item: (-float(item["score"]), str(item["path"]), int(item["start_line"])))

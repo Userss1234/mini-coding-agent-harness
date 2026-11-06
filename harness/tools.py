@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import difflib
 import fnmatch
+import importlib.metadata
 import importlib.util
 import json
 import os
@@ -9,9 +10,12 @@ import shutil
 import subprocess
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from jsonschema import Draft202012Validator
 
 from .execution import (
     CommandExecutor,
@@ -84,6 +88,11 @@ class ToolRegistry:
         self.baseline_workspace: Path | None = None
         self.execution_policy: dict[str, object] = {}
         self.retrieval_backend = "lexical"
+        self.retrieval_policy: dict[str, Any] = {}
+        self.verification_controller: Any = None
+        self.executor: CommandExecutor | None = None
+        self.code_intelligence_policy: dict[str, Any] = {}
+        self.run_controls: Any = None
         self._tools: dict[str, Tool] = {}
         self.metrics: dict[str, int] = {
             "read_cache_hits": 0,
@@ -91,8 +100,26 @@ class ToolRegistry:
             "read_cache_invalidations": 0,
         }
         self.todos: list[dict[str, str]] = []
+        self.external_tool_policy: dict[str, Any] = {}
 
     def register(self, tool: Tool) -> None:
+        if tool.name in self._tools:
+            raise ValueError(f"Tool name already registered: {tool.name}")
+        if len(json.dumps(tool.input_schema).encode("utf-8")) > 65536:
+            raise ValueError("Tool schema exceeds 64 KiB")
+        pending = [(tool.input_schema, 0)]
+        while pending:
+            value, depth = pending.pop()
+            if depth > 32:
+                raise ValueError("Tool schema nesting exceeds 32 levels")
+            if isinstance(value, dict):
+                if any(ref in value and not str(value[ref]).startswith("#")
+                       for ref in ("$ref", "$dynamicRef", "$recursiveRef")):
+                    raise ValueError("External schema references are not allowed")
+                pending.extend((item, depth + 1) for item in value.values())
+            elif isinstance(value, list):
+                pending.extend((item, depth + 1) for item in value)
+        Draft202012Validator.check_schema(tool.input_schema)
         self._tools[tool.name] = tool
 
     def names(self) -> list[str]:
@@ -103,21 +130,30 @@ class ToolRegistry:
             {
                 "name": tool.name,
                 "description": tool.description,
-                "input_schema": tool.input_schema,
+                "input_schema": self._effective_schema(tool),
             }
             for tool in self._tools.values()
         ]
 
-    def call(self, name: str, **kwargs: Any) -> ToolResult:
+    @staticmethod
+    def _effective_schema(tool: Tool) -> dict[str, Any]:
+        if tool.risk.startswith("external_"):
+            return tool.input_schema
+        return {"additionalProperties": False, **tool.input_schema}
+
+    def call(self, name: str, /, **kwargs: Any) -> ToolResult:
         tool = self._tools.get(name)
         if not tool:
-            result = ToolResult(False, f"Unknown tool: {name}")
-            self.trace.log("tool_call", tool=name, args=kwargs, ok=False, output=result.output)
+            result = ToolResult(False, f"Unknown tool: {name}",
+                                {"tool_error": {"code": "unknown_tool", "retryable": False}})
+            self.trace.log("tool_call", tool=name, args=kwargs, ok=False, output=result.output,
+                           metadata=result.metadata)
             return result
 
         permission = self._permission_decision(tool, kwargs)
         if permission != "allow":
-            result = ToolResult(False, f"Blocked by permission policy: {permission}")
+            result = ToolResult(False, f"Blocked by permission policy: {permission}",
+                                {"tool_error": {"code": "permission_denied", "retryable": False}})
             self.trace.log(
                 "tool_call",
                 tool=name,
@@ -126,10 +162,35 @@ class ToolRegistry:
                 permission=permission,
                 ok=False,
                 output=result.output,
+                metadata=result.metadata,
             )
             return result
 
+        schema = self._effective_schema(tool)
+        try:
+            errors = list(Draft202012Validator(schema).iter_errors(kwargs))
+        except Exception as exc:
+            result = ToolResult(False, f"Tool schema validation failed safely ({type(exc).__name__})",
+                                {"tool_error": {"code": "invalid_schema", "retryable": False}})
+            self.trace.log("tool_call", tool=name, args=kwargs, ok=False,
+                           output=result.output, metadata=result.metadata)
+            return result
+        if errors:
+            error = errors[0]
+            location = ".".join(map(str, error.absolute_path)) or "arguments"
+            result = ToolResult(False, f"Invalid tool arguments at {location}: schema rule {error.validator}",
+                                {"tool_error": {"code": "invalid_arguments", "retryable": False,
+                                                "path": list(error.absolute_path)}})
+            self.trace.log("tool_call", tool=name, args=kwargs, risk=tool.risk,
+                           permission="allow", ok=False, output=result.output, metadata=result.metadata)
+            return result
         result = self._call_handler_with_retries(tool, kwargs)
+        if not result.ok:
+            result.metadata = dict(result.metadata or {})
+            result.metadata.setdefault("tool_error", {
+                "code": "timeout" if result.metadata.get("timed_out") else "execution_failed",
+                "retryable": False,
+            })
 
         self.trace.log(
             "tool_call",
@@ -142,6 +203,17 @@ class ToolRegistry:
             metadata=result.metadata or {},
         )
         return result
+
+    def call_batch(self, calls: list[tuple[str, dict[str, Any]]], workers: int = 1) -> list[ToolResult]:
+        # Only these local read operations are independent of mutations and remote annotations.
+        safe = {"read_file", "grep", "list_python_files"}
+        if not 1 <= workers <= 4:
+            raise ValueError("Read workers must be between 1 and 4")
+        if workers == 1 or len(calls) < 2 or any(name not in safe for name, _ in calls):
+            return [self.call(name, **args) for name, args in calls]
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="harness-read") as pool:
+            futures = [pool.submit(self.call, name, **args) for name, args in calls]
+            return [future.result() for future in futures]
 
     def _call_handler_with_retries(self, tool: Tool, kwargs: dict[str, Any]) -> ToolResult:
         attempt = 0
@@ -165,13 +237,17 @@ class ToolRegistry:
                 attempt += 1
 
     def _should_retry_tool(self, tool: Tool, exc: Exception, attempt: int) -> bool:
+        if getattr(exc, "retryable", True) is False:
+            return False
         if attempt >= self.max_tool_retries:
             return False
-        if tool.risk == "write" or tool.name == "run_python_check":
+        if tool.risk != "read" or tool.name == "run_python_check":
             return False
         return is_transient_exception(exc)
 
     def _permission_decision(self, tool: Tool, kwargs: dict[str, Any]) -> str:
+        if tool.risk == "external_write" and not self.allow_write:
+            return "blocked_external_write_requires_allow_write"
         if tool.name in {"write_file", "edit_file", "delete_file"}:
             raw_path = kwargs.get("path")
             if raw_path is None:
@@ -318,7 +394,7 @@ def build_registry(
     configured_retrieval_backend = str(
         retrieval_backend or os.getenv("HARNESS_RETRIEVAL_BACKEND", "lexical")
     ).strip().lower()
-    if configured_retrieval_backend not in {"lexical", "hybrid"}:
+    if configured_retrieval_backend not in {"lexical", "hybrid", "qdrant"}:
         raise ValueError(
             f"Unsupported retrieval backend: {configured_retrieval_backend}"
         )
@@ -330,8 +406,14 @@ def build_registry(
         retry_delay=retry_delay,
     )
     registry.execution_backend = executor.backend
+    registry.executor = executor
     registry.execution_policy = executor.describe()
     registry.retrieval_backend = configured_retrieval_backend
+    from .qdrant_retrieval import QdrantConfig
+
+    qdrant_config = QdrantConfig.from_env() if configured_retrieval_backend == "qdrant" else None
+    if qdrant_config is not None:
+        registry.retrieval_policy = qdrant_config.policy()
     read_cache: dict[tuple[Any, ...], str] = {}
 
     def list_python_files(include_venv: bool = False) -> ToolResult:
@@ -563,6 +645,7 @@ def build_registry(
             max_chars_per_chunk=max(int(max_chars_per_file), 120),
             backend=backend,
             default_backend=configured_retrieval_backend,
+            qdrant_config=qdrant_config,
         )
         matches = result["matches"]
         output = _format_context_pack(query_text, matches, retrieval=result["retrieval"])
@@ -578,6 +661,7 @@ def build_registry(
                 "index": result["index"],
                 "retrieval": result["retrieval"],
                 "hybrid": result.get("hybrid"),
+                "qdrant": result.get("qdrant"),
             },
         )
 
@@ -618,6 +702,7 @@ def build_registry(
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
             default_backend=configured_retrieval_backend,
+            qdrant_config=qdrant_config,
         )
         return ToolResult(
             True,
@@ -631,6 +716,7 @@ def build_registry(
                 "index": result["index"],
                 "retrieval": result["retrieval"],
                 "hybrid": result.get("hybrid"),
+                "qdrant": result.get("qdrant"),
             },
         )
 
@@ -660,6 +746,7 @@ def build_registry(
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
             default_backend=configured_retrieval_backend,
+            qdrant_config=qdrant_config,
         )
         result["read_plan"] = build_read_plan(
             result.get("matches") or [],
@@ -678,6 +765,7 @@ def build_registry(
                 "index": result["index"],
                 "retrieval": result["retrieval"],
                 "hybrid": result.get("hybrid"),
+                "qdrant": result.get("qdrant"),
             },
         )
 
@@ -708,6 +796,7 @@ def build_registry(
             max_chars_per_chunk=max(int(max_chars_per_chunk), 120),
             backend=backend,
             default_backend=configured_retrieval_backend,
+            qdrant_config=qdrant_config,
         )
         plan_result["read_plan"] = build_read_plan(
             plan_result.get("matches") or [],
@@ -765,6 +854,7 @@ def build_registry(
                 "index": plan_result["index"],
                 "retrieval": plan_result["retrieval"],
                 "hybrid": plan_result.get("hybrid"),
+                "qdrant": plan_result.get("qdrant"),
             },
         )
 
@@ -1358,6 +1448,18 @@ def build_registry(
         {"type": "object", "properties": {"include_venv": {"type": "boolean"}}},
         list_python_files,
     ))
+    def rag_symbols(symbol: str, limit: int = 8) -> ToolResult:
+        from .code_symbols import search_code_symbols
+
+        result = search_code_symbols(workspace, symbol, limit=limit)
+        return ToolResult(True, json.dumps(result, ensure_ascii=False), result)
+
+    registry.register(Tool(
+        "rag_symbols", "Find Python definitions and possible syntactic callers/callees with source lines and hashes. Not runtime resolution.",
+        {"type": "object", "properties": {"symbol": {"type": "string"},
+         "limit": {"type": "integer", "minimum": 1, "maximum": 30}}, "required": ["symbol"]},
+        rag_symbols,
+    ))
     registry.register(Tool(
         "read_file",
         "Read a UTF-8 text file inside the workspace. Supports optional start_line/end_line, line limit, and max_chars.",
@@ -1514,6 +1616,43 @@ def build_registry(
         cache_stats,
     ))
     if enable_context_pack:
+        from .code_intelligence import navigate_python, repository_map
+
+        def repo_map(query: str = "", max_chars: int = 6000) -> ToolResult:
+            result = repository_map(workspace, query, max_chars)
+            return ToolResult(True, json.dumps(result, ensure_ascii=True), result)
+
+        registry.register(Tool(
+            "repo_map", "Return a bounded Python module/signature/import map, with source hashes.",
+            {"type": "object", "properties": {"query": {"type": "string"},
+              "max_chars": {"type": "integer", "minimum": 500, "maximum": 12000}}}, repo_map,
+        ))
+        if os.getenv("HARNESS_PYTHON_LSP", "off").lower() in {"on", "true", "1"}:
+            lsp_timeout = float(os.getenv("HARNESS_PYTHON_LSP_TIMEOUT", "10"))
+            if not 0 < lsp_timeout <= 30:
+                raise ValueError("LSP deadline must be within (0,30] seconds")
+            packages = {}
+            for distribution in ("python-lsp-server", "jedi", "python-lsp-jsonrpc"):
+                try:
+                    packages[distribution] = importlib.metadata.version(distribution)
+                except importlib.metadata.PackageNotFoundError:
+                    packages[distribution] = "not-installed"
+            registry.code_intelligence_policy = {"provider": "python-lsp-server", "timeout": lsp_timeout,
+                                                  "packages": packages}
+
+            def python_navigate(path: str, line: int, column: int = 1,
+                                operation: str = "definition") -> ToolResult:
+                result = navigate_python(workspace, path, line, column, operation, lsp_timeout)
+                return ToolResult(True, json.dumps(result, ensure_ascii=True)[:12000], result)
+
+            registry.register(Tool(
+                "python_navigate", "Use operator-enabled Python LSP for definitions, references or diagnostics. Input positions are 1-based Unicode code points; returned columns are UTF-16.",
+                {"type": "object", "properties": {
+                    "path": {"type": "string"}, "line": {"type": "integer", "minimum": 1},
+                    "column": {"type": "integer", "minimum": 1},
+                    "operation": {"type": "string", "enum": ["definition", "references", "diagnostics"]}},
+                    "required": ["path", "line"]}, python_navigate,
+            ))
         registry.register(Tool(
             "index_workspace",
             "Build a safe local retrieval index summary for workspace text chunks.",
@@ -1539,7 +1678,7 @@ def build_registry(
                     "chunk_lines": {"type": "integer"},
                     "overlap": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
-                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid", "qdrant"]},
                 },
                 "required": ["query"],
             },
@@ -1558,7 +1697,7 @@ def build_registry(
                     "overlap": {"type": "integer"},
                     "read_window": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
-                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid", "qdrant"]},
                 },
                 "required": ["query"],
             },
@@ -1578,7 +1717,7 @@ def build_registry(
                     "read_window": {"type": "integer"},
                     "max_chars_per_read": {"type": "integer"},
                     "max_chars_per_chunk": {"type": "integer"},
-                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid", "qdrant"]},
                 },
                 "required": ["query"],
             },
@@ -1595,7 +1734,7 @@ def build_registry(
                     "limit": {"type": "integer"},
                     "max_chars_per_file": {"type": "integer"},
                     "window": {"type": "integer"},
-                    "backend": {"type": "string", "enum": ["lexical", "hybrid"]},
+                    "backend": {"type": "string", "enum": ["lexical", "hybrid", "qdrant"]},
                 },
                 "required": ["query"],
             },
@@ -1940,6 +2079,7 @@ def _search_workspace_backend(
     max_chars_per_chunk: int,
     backend: str | None,
     default_backend: str | None = None,
+    qdrant_config: Any = None,
 ) -> dict[str, Any]:
     backend_name = str(
         backend
@@ -1956,12 +2096,24 @@ def _search_workspace_backend(
             overlap=overlap,
             max_chars_per_chunk=max_chars_per_chunk,
         )
-    if backend_name != "hybrid":
+    if backend_name not in {"hybrid", "qdrant"}:
         raise ValueError(f"Unsupported retrieval backend: {backend_name}")
 
     from .hybrid_retrieval import search_workspace_hybrid
+    from .qdrant_retrieval import search_workspace_qdrant
 
     cache_value = os.getenv("HARNESS_RETRIEVAL_CACHE_DIR", "").strip()
+    if backend_name == "qdrant":
+        if qdrant_config is None:
+            raise ValueError("Enable Qdrant explicitly as the registry retrieval backend first")
+        return search_workspace_qdrant(
+            workspace, query, glob_pattern=glob_pattern, limit=limit, chunk_lines=chunk_lines,
+            overlap=overlap, max_chars_per_chunk=max_chars_per_chunk, config=qdrant_config,
+            embedding_model=qdrant_config.embedding_model,
+            lexical_weight=qdrant_config.lexical_weight,
+            semantic_weight=qdrant_config.semantic_weight,
+            cache_dir=Path(cache_value) if cache_value else None,
+        )
     return search_workspace_hybrid(
         workspace,
         query,

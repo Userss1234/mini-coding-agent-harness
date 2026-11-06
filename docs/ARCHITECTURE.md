@@ -9,6 +9,16 @@ see [requirement checks and turn budgets](VERIFICATION_GUIDANCE.md).
 
 ## System Overview
 
+The [core stack](CORE_AGENT_STACK.md) adds schema-validated dispatch, a conservative read batch
+executor, operator-owned external MCP sessions, and source-fingerprinted symbol/chunk retrieval.
+Optional [maintenance controls](RELIABLE_MAINTENANCE.md) place trusted completion verification
+and durable budget/cancellation gates around that loop. Python repository maps and operator-enabled
+LSP navigation complement lexical/vector discovery; they do not replace the permission boundary.
+External writes with uncertain outcomes reuse RunStore's operator-reconciliation boundary.
+The [optional Qdrant adapter](QDRANT_RETRIEVAL.md) adds persistent code-vector collections and
+incremental synchronization behind the same retrieval tools. SQLite remains the run ledger;
+the host retrieval service does not relax Docker code-execution network isolation.
+
 ```mermaid
 flowchart TD
     U["User or eval task"] --> CLI["main.py CLI"]
@@ -30,6 +40,10 @@ flowchart TD
     Evidence --> Model["Model turn"]
 
     Agent --> Model
+    Agent --> MCPClient["External MCP client / local allowlist / namespaces / deadlines"]
+    MCPClient --> External["Trusted stdio or authenticated HTTP servers"]
+    RAG --> Symbols["AST symbol evidence / content-fingerprint chunk cache"]
+    RAG --> Qdrant["Optional Qdrant / content-addressed vectors / repository collections"]
     Agent --> ContextWindow["Context budget / atomic history groups / structured summary"]
     ContextWindow --> Model
     Agent --> RunSession["RunSession checkpoints and tool ledger"]
@@ -90,6 +104,7 @@ side-effect-free decisions before dispatching a tool handler.
 | `harness/docker_smoke.py` | Runtime verification for non-root execution, workspace mounting, and disabled networking. |
 | `harness/retrieval.py` | Shared safe chunk index, lexical retrieval, read-plan generation, and path filtering. |
 | `harness/hybrid_retrieval.py` | Optional local MiniLM embeddings, lexical/semantic score fusion, and incremental embedding cache. |
+| `harness/qdrant_retrieval.py` | Optional persistent vector collections, content-addressed synchronization, candidate fusion and local evidence revalidation. |
 | `harness/retrieval_benchmark.py` | Backend-neutral relevance benchmark, path-level Recall@K/MRR, backend-specific quality gates, and reports. |
 | `harness/eval_tasks.py` | Deterministic task catalog, isolated repository fixtures, scripted runners, and backend-neutral verifiers. |
 | `harness/evaluation.py` | Scripted and real-agent benchmark orchestration, order-controlled retrieval/backend comparisons, metrics, and report generation. |
@@ -142,7 +157,9 @@ Docker is an additional containment layer, not an absolute sandbox. Tool permiss
 
 ## Retrieval Boundary
 
-Retrieval is local. The default backend is dependency-free lexical search; the optional hybrid backend adds local embeddings without introducing a model API or vector database.
+Retrieval defaults to dependency-free local lexical search. Optional local hybrid adds local
+embeddings without a model API; optional Qdrant stores code vectors in a separate service.
+Both embedding backends use the existing local model. See [Qdrant lifecycle and limits](QDRANT_RETRIEVAL.md).
 
 ```mermaid
 flowchart TD
@@ -150,9 +167,11 @@ flowchart TD
     Gate -->|inactive| Direct["Direct file and test tools only"]
     Gate -->|active| Index["Index safe text files"]
     Index --> Filter["Skip .env, .git, artifacts, eval_runs, skills"]
-    Filter --> Backend{"lexical or hybrid"}
+    Filter --> Backend{"lexical / hybrid / Qdrant"}
     Backend -->|lexical| Lexical["Token overlap score"]
     Backend -->|hybrid| Cache["Incremental embedding cache"]
+    Backend -->|Qdrant| Persistent["Sync persistent vectors / retrieve candidate union"]
+    Persistent --> Fuse
     Cache --> Semantic["MiniLM cosine score"]
     Semantic --> Fuse["Weighted lexical/semantic fusion"]
     Lexical --> Rank["Rank chunks"]
@@ -237,6 +256,6 @@ The focused cross-feature command keeps evidence ownership explicit: it inspects
 
 - Permission checks are harness-level, not OS-level sandboxing.
 - Docker execution adds an optional container boundary, but the default backend remains host and the writable workspace mount is still in scope.
-- Retrieval defaults to lexical. Hybrid ranking evidence is limited to a 10-query project fixture and uses an in-process scan rather than a vector database. One lexical-first focused agent pair found no efficiency advantage; reverse-order repetition would be required for stability claims.
+- Retrieval defaults to lexical. Local hybrid remains in-process; optional Qdrant uses persistent vectors and bounded candidate fusion. Its fixed 28-query development-fixture metrics match prior hybrid metrics, not a general quality, speed or Agent-efficiency improvement. Historical agent comparison limits remain unchanged.
 - MCP HTTP targets the project's `2025-11-25` compatibility surface. Static Bearer authentication is not full OAuth, and SSE resumability/event replay, the newer `2026-07-28` protocol surface, and resource subscriptions are not implemented.
 - The deterministic suite has 40 tasks. Two complete expanded-suite DeepSeek runs passed 39/40 and 40/40. The only first-run interruption was a provider HTTP 503 before verification; after transient model retries increased from 2 to 4, the second complete run passed all tasks. The stability report records 39 stable passes and one provider-affected fail-to-pass task.

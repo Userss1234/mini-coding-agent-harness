@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from .redaction import redact
@@ -22,6 +23,7 @@ class TraceLogger:
     def __init__(self, path: Path):
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = Lock()
 
     def log(self, event: str, **data: Any) -> None:
         item = TraceEvent(
@@ -29,7 +31,7 @@ class TraceLogger:
             timestamp=datetime.now(timezone.utc).isoformat(),
             data=redact(data),
         )
-        with self.path.open("a", encoding="utf-8") as fh:
+        with self._lock, self.path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(redact(asdict(item)), ensure_ascii=False,
                                 default=lambda value: redact(str(value))) + "\n")
 

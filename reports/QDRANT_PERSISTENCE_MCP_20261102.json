@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "service": "Qdrant 1.16.3 Docker",
+  "real_model": "all-MiniLM-L6-v2",
+  "embedding_dimension": 384,
+  "before_restart": {
+    "collection": "mini_agent_a4dd4c736893de066ab94f3293bc8e0dcb1c63a6",
+    "upserted": 0,
+    "deleted": 0,
+    "reused": 37,
+    "candidate_limit": 40,
+    "candidates_scored": 37
+  },
+  "after_restart": {
+    "collection": "mini_agent_a4dd4c736893de066ab94f3293bc8e0dcb1c63a6",
+    "upserted": 0,
+    "deleted": 0,
+    "reused": 37,
+    "candidate_limit": 40,
+    "candidates_scored": 37
+  },
+  "persistence": "pass",
+  "incorrect_api_key_rejected": true,
+  "mcp_stdio": {
+    "retrieval": "qdrant_hybrid_scoring",
+    "top_path": "inventory.py",
+    "evidence_reads": 2,
+    "sync": {
+      "collection": "mini_agent_a4dd4c736893de066ab94f3293bc8e0dcb1c63a6",
+      "upserted": 0,
+      "deleted": 0,
+      "reused": 37,
+      "candidate_limit": 40,
+      "candidates_scored": 37
+    }
+  }
+}

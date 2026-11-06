@@ -1,0 +1,26 @@
+name: mini-agent-retrieval
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.16.3
+    ports:
+      - "127.0.0.1:${HARNESS_QDRANT_PORT:-6333}:6333"
+    environment:
+      QDRANT__SERVICE__API_KEY: ${HARNESS_QDRANT_API_KEY:?Set HARNESS_QDRANT_API_KEY before starting}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    cpus: 1.0
+    mem_limit: 512m
+    pids_limit: 256
+    restart: unless-stopped
+volumes:
+  qdrant_storage:
+  qdrant_snapshots:

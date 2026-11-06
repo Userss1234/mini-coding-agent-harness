@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import secrets
 import socket
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Event
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -49,6 +52,8 @@ class MCPSDKHTTPServer:
     config: MCPHTTPConfig
     _socket: socket.socket
     _server: uvicorn.Server
+    _serving: Event = field(default_factory=Event)
+    _stopped: Event = field(default_factory=Event)
 
     @property
     def server_address(self) -> tuple[Any, ...]:
@@ -61,12 +66,21 @@ class MCPSDKHTTPServer:
 
     def serve_forever(self, poll_interval: float = 0.2) -> None:
         del poll_interval
-        self._server.run(sockets=[self._socket])
+        self._serving.set()
+        try:
+            self._server.run(sockets=[self._socket])
+        finally:
+            self._stopped.set()
+            self._socket.close()
 
     def shutdown(self) -> None:
         self._server.should_exit = True
 
     def server_close(self) -> None:
+        if self._serving.is_set() and not self._stopped.is_set():
+            self.shutdown()
+            if not self._stopped.wait(timeout=10):
+                raise RuntimeError("MCP HTTP shutdown did not finish; listener not force-closed")
         try:
             self._socket.close()
         except OSError:
@@ -248,6 +262,7 @@ def build_mcp_sdk_http_server(
             access_log=False,
             lifespan="on",
             timeout_graceful_shutdown=5,
+            loop="harness.mcp_sdk_http:http_event_loop" if sys.platform == "win32" else "auto",
         )
         return MCPSDKHTTPServer(
             config=config,
@@ -257,6 +272,11 @@ def build_mcp_sdk_http_server(
     except Exception:
         server_socket.close()
         raise
+
+
+def http_event_loop() -> asyncio.AbstractEventLoop:
+    # HTTP needs sockets, not Windows subprocess pipes; avoid IOCP accept teardown warnings.
+    return asyncio.SelectorEventLoop()
 
 
 def serve_mcp_sdk_http(server: MCPSDKHTTPServer) -> None:

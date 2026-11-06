@@ -39,6 +39,16 @@ class RunSession:
         }
         if registry.baseline_workspace is not None:
             self.policy["baseline_workspace"] = str(registry.baseline_workspace)
+        if registry.external_tool_policy:
+            self.policy["external_tools"] = dict(registry.external_tool_policy)
+        if registry.retrieval_policy:
+            self.policy["retrieval_policy"] = dict(registry.retrieval_policy)
+        if registry.verification_controller is not None:
+            self.policy["verification"] = registry.verification_controller.policy()
+        if registry.code_intelligence_policy:
+            self.policy["code_intelligence"] = dict(registry.code_intelligence_policy)
+        if registry.run_controls is not None:
+            self.policy["run_controls"] = registry.run_controls.policy()
         if self.saved is not None:
             if self.saved["policy"] != self.policy:
                 raise ValueError("Resume requires the original workspace, permissions, backend and tools")

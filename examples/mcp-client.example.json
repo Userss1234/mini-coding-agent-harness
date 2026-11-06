@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "servers": [{
+    "name": "reference",
+    "transport": "stdio",
+    "command": "python",
+    "args": ["main.py", "--workspace", "D:/path/to/reference-repository", "--trace", "artifacts/reference-mcp.jsonl", "mcp-server"],
+    "cwd": "D:/path/to/mini-coding-agent-harness",
+    "timeout": 15,
+    "tools": {
+      "read_file": "read",
+      "rag_search": "read"
+    }
+  }]
+}

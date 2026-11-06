@@ -98,7 +98,7 @@ Evidence:
 
 ## 9. What is retrieval preflight?
 
-Before the first model turn, retrieval can run in `on`, `auto`, or `off` mode. Auto scores explainable task-complexity signals and either suppresses all five retrieval schemas plus preflight or runs the bounded `retrieve_then_read` path. Active preflight merges overlapping ranges, removes exact duplicates, and caps per-read and total evidence. Traces expose the gate decision, schema counts, evidence metrics, and budget.
+Before the first model turn, retrieval can run in `on`, `auto`, or `off` mode. Auto scores explainable task-complexity signals and either suppresses all enabled built-in retrieval schemas plus preflight or runs the bounded `retrieve_then_read` path. Active preflight merges overlapping ranges, removes exact duplicates, and caps per-read and total evidence. Traces expose the gate decision, schema counts, evidence metrics, and budget. The current surface includes a repository map and optional Python LSP navigation; see docs/RELIABLE_MAINTENANCE.md.
 
 Evidence:
 

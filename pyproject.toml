@@ -13,6 +13,8 @@ authors = [{ name = "Liu Yusen" }]
 dependencies = [
   "anthropic>=0.25.0",
   "mcp>=2.2,<3",
+  "httpx2>=2.12,<3",
+  "jsonschema>=4.20,<5",
   "pywin32>=311; sys_platform == 'win32'",
   "python-dotenv>=1.0.0",
 ]
@@ -27,6 +29,10 @@ dev = [
 retrieval = [
   "sentence-transformers>=2.2.2,<6.0",
   "transformers>=4.41,<4.42",
+]
+codeintel = [
+  "python-lsp-server==1.15.0",
+  "pyflakes>=3.2,<4",
 ]
 
 [project.scripts]

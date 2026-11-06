@@ -8,6 +8,19 @@ Chinese documentation: [README.zh-CN.md](README.zh-CN.md)
 
 License: [MIT](LICENSE)
 
+Educational origins and adapted-material notices: [source attribution](THIRD_PARTY_NOTICES.md).
+
+Core capabilities now include JSON-Schema-validated tool dispatch, opt-in safe parallel reads,
+operator-configured external MCP stdio/HTTP tools, and source-grounded Python symbol RAG with
+content-invalidated chunk caching. See [core stack usage](docs/CORE_AGENT_STACK.md) and the
+[integrated verification](reports/CORE_AGENT_STACK_20261029.md).
+An [optional Qdrant backend](docs/QDRANT_RETRIEVAL.md) now adds persistent code vectors,
+incremental synchronization and repository-scoped retrieval; local backends remain available.
+Optional [reliable maintenance controls](docs/RELIABLE_MAINTENANCE.md) add completion checks with
+bounded repair, Python repository maps/LSP navigation and durable run budgets/cancellation.
+See [local P0-P3 evidence](reports/RELIABLE_MAINTENANCE_20261103.md) for 391 passing tests,
+actual Docker/LSP validation and the distinction between deterministic checks and model accuracy.
+
 ## Quick Start
 
 ```powershell
@@ -153,7 +166,7 @@ Current capabilities:
 - Context compaction from long traces and max-turn stops
 - Query-ranked repository context retrieval with file snippets and line ranges
 - Budgeted agent-loop retrieval preflight that merges overlapping reads and caps injected evidence before the first model turn
-- Conditional retrieval gating that suppresses preflight and five model-facing retrieval schemas for simple tasks
+- Conditional retrieval gating that suppresses preflight and all enabled built-in retrieval schemas for simple tasks
 - Query-ranked workflow memory stored in `skills/*.md`
 - Error recovery suggestions for failed tool calls
 - Evidence-backed repository review generation
@@ -193,8 +206,10 @@ When retrieval tools are enabled, `harness.agent.run_agent()` performs a retriev
 | `list_python_files` | List Python files while ignoring caches and evaluation workspaces. |
 | `read_file` | Read workspace files with optional line ranges, line/character limits, and read-cache metadata. |
 | `index_workspace` | Build a safe local retrieval index summary for workspace text chunks. |
-| `rag_search` | Search code and docs with the default lexical or optional local hybrid backend, returning path and line metadata. |
+| `rag_search` | Search code and docs with lexical, local hybrid, or operator-enabled Qdrant retrieval, returning source hashes, paths and line metadata. |
 | `rag_explain` | Convert RAG matches into a concrete `read_file` path and line-range plan. |
+| `rag_symbols` | Find Python definitions and possible syntactic callers/callees with source ranges and hashes. |
+| `mcp__SERVER__TOOL` | Operator-allowlisted external stdio/HTTP tools, imported for `ask`/`resume` with `--mcp-config`. |
 | `retrieve_then_read` | Run RAG, build a read plan, and return the loaded line-range evidence pack. |
 | `context_pack` | Retrieve task-relevant workspace snippets using the same local retrieval layer. |
 | `write_file` | Write files and record diff metadata. |
@@ -476,7 +491,7 @@ memory-on_context-off
 memory-off_context-off
 ```
 
-Use `--retrieval on|auto|off` to always expose, conditionally gate, or hide retrieval tools such as `context_pack`, `rag_search`, `rag_explain`, `retrieve_then_read`, and `index_workspace`. In `auto` mode the gate scores explainable task-complexity signals before the first model call, then either preloads bounded evidence and exposes all five schemas or suppresses both.
+Use `--retrieval on|auto|off` to always expose, conditionally gate, or hide built-in retrieval tools: `context_pack`, `rag_search`, `rag_explain`, `rag_symbols`, `retrieve_then_read`, `index_workspace`, `repo_map`, and operator-enabled `python_navigate`. In `auto` mode the gate scores explainable task-complexity signals before the first model call, then either preloads bounded evidence and exposes the enabled schemas or suppresses both. Explicitly configured external MCP tools retain their operator-defined scope.
 
 Use `--compare-retrieval` to compare the selected `on` or `auto` strategy with retrieval-off under the same memory/context settings.
 Comparison reports include average `retrieve_then_read`, `context_pack`, and `read_file` calls plus average raw/injected preflight evidence characters, so retrieval changes can be inspected beyond pass rate.
@@ -510,7 +525,7 @@ After the initial baseline commit, future tool changes and generated report chan
 ## Current Limitations
 
 - The two same-model 40-task full runs are 39/40 and 40/40. Thirty-nine tasks are stable passes; `shell_no_shell_execution` is still classified as unstable because its first-run provider interruption became a second-run pass. More repeats or another provider/model would be needed for a stronger variance estimate.
-- Workspace RAG defaults to local chunked lexical retrieval. The optional hybrid backend adds local MiniLM embeddings and weighted fusion, but still performs an in-process scan rather than using a vector database. Its 0.9000 MRR result is limited to the committed 10-query project fixture; broader relevance and latency evidence is still missing.
+- Workspace RAG defaults to local lexical retrieval. Local hybrid uses in-process MiniLM scoring; optional Qdrant adds persistent vectors and candidate fusion. Its 28-query development-fixture result is MRR 0.9762 / Recall@5 1.0, matching prior hybrid metrics, not demonstrating speed or general accuracy gains. See [scope and evidence](reports/QDRANT_RETRIEVAL_20261102.md).
 - The lexical/hybrid agent comparison has only one lexical-first 8-task run. It found no agent-efficiency advantage and exposed one lexical-only verifier contract, which is preserved with a targeted post-fix pair. Reverse-order repetition is required before any backend stability claim.
 - Workflow memory can be ranked and injected into agent evaluation prompts, but ranking is still lexical rather than embedding-based.
 - Context compaction is generated for max-turn stops, but automatic resume from that summary is not implemented yet.

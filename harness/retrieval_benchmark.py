@@ -29,6 +29,7 @@ def run_retrieval_benchmark(
     max_k = max(k_values)
     case_results = []
     backend_runtime_samples = []
+    qdrant_samples = []
 
     for case in cases:
         search_result = active_search(
@@ -42,6 +43,8 @@ def run_retrieval_benchmark(
         )
         if isinstance(search_result.get("hybrid"), Mapping):
             backend_runtime_samples.append(search_result["hybrid"])
+        if isinstance(search_result.get("qdrant"), Mapping):
+            qdrant_samples.append(search_result["qdrant"])
         ranked_paths = _dedupe_ranked_paths(search_result.get("matches") or [])
         relevant_paths = [str(path).replace("\\", "/") for path in case["relevant_paths"]]
         relevant_set = set(relevant_paths)
@@ -91,6 +94,12 @@ def run_retrieval_benchmark(
             "ranking_unit": "deduplicated_path",
             "backend_options": _display_backend_options(backend_options or {}),
             "backend_runtime": backend_runtime,
+            **({"qdrant_runtime": {
+                "upserted": sum(s["upserted"] for s in qdrant_samples),
+                "deleted": sum(s["deleted"] for s in qdrant_samples),
+                "reused": sum(s["reused"] for s in qdrant_samples),
+                "candidate_limit": qdrant_samples[0]["candidate_limit"],
+            }} if qdrant_samples else {}),
         },
         "summary": summary,
         "cases": case_results,
@@ -207,6 +216,15 @@ def build_retrieval_benchmark_report(result: Mapping[str, Any]) -> str:
             f"{cache.get('misses', 0)}/{cache.get('writes', 0)}**\n"
         )
     title = "Retrieval Quality Baseline" if result["backend"] == "lexical" else "Retrieval Quality Benchmark"
+    if result["backend"] == "qdrant":
+        stats = result["configuration"].get("qdrant_runtime") or {}
+        runtime_lines = "\n".join(line for line in runtime_lines.splitlines()
+                                   if "Document embedding cache" not in line) + "\n"
+        runtime_lines += (
+            f"- Qdrant sync totals (upserted/deleted/reused observations): **{stats.get('upserted', 0)}/"
+            f"{stats.get('deleted', 0)}/{stats.get('reused', 0)}**\n"
+            "- Reuse totals count repeated observations, not unique stored vectors.\n"
+        )
     interpretation = (
         "This is an offline lexical retrieval baseline over committed relevance judgments. "
         "It measures ranking quality independently from the agent loop and does not claim embedding or semantic retrieval. "
@@ -217,6 +235,14 @@ def build_retrieval_benchmark_report(result: Mapping[str, Any]) -> str:
         "It fuses normalized lexical scores with Sentence Transformers cosine similarity, uses no model API, "
         "and records document-embedding cache behavior. Its gains are project-fixture evidence, not a broad retrieval benchmark claim."
     )
+    if result["backend"] == "qdrant":
+        interpretation = (
+            "This run uses Qdrant semantic and lexical candidate fusion on the fixed development "
+            "corpus, with local embeddings and no model API. Persistent-index synchronization "
+            "statistics are not JSON embedding-cache metrics. Candidate truncation may differ "
+            "from exhaustive local hybrid ranking. Scores do not establish general retrieval "
+            "quality, latency, or Agent completion improvements."
+        )
     return f"""# {title}
 
 ## Summary
@@ -276,11 +302,12 @@ def write_retrieval_benchmark_outputs(
 def _search_backend(name: str, options: Mapping[str, Any]) -> SearchFunction:
     if name == "lexical":
         return partial(search_workspace, chunk_strategy=options.get("chunk_strategy"))
-    if name == "hybrid":
+    if name in {"hybrid", "qdrant"}:
         from .hybrid_retrieval import search_workspace_hybrid
+        from .qdrant_retrieval import search_workspace_qdrant
 
         return partial(
-            search_workspace_hybrid,
+            search_workspace_qdrant if name == "qdrant" else search_workspace_hybrid,
             embedding_model=str(options.get("embedding_model") or "sentence-transformers/all-MiniLM-L6-v2"),
             cache_dir=(Path(str(options["cache_dir"])) if options.get("cache_dir") else None),
             lexical_weight=float(options.get("lexical_weight", 0.35)),

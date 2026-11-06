@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "checks": ["syntax", "ruff", "pytest"],
+  "test_target": "tests",
+  "timeout": 30,
+  "max_repairs": 2
+}

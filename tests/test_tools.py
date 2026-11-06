@@ -589,7 +589,7 @@ def test_rag_search_rejects_unknown_backend(tmp_path: Path) -> None:
     result = registry.call("rag_search", query="service", backend="remote")
 
     assert not result.ok
-    assert "Unsupported retrieval backend" in result.output
+    assert result.metadata["tool_error"]["code"] == "invalid_arguments"
 
 
 def test_rag_explain_returns_read_file_plan(tmp_path: Path) -> None:

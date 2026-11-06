@@ -16,6 +16,7 @@ _PRIVATE_KEY = re.compile(
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.DOTALL
 )
 _TOKEN_METRICS = {
+    "max_tokens",
     "max_input_tokens", "summary_tokens", "before_estimated_tokens", "after_estimated_tokens",
     "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
     "prompt_tokens", "completion_tokens", "total_tokens",

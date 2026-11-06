@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "operator_config_loaded": true,
+  "policy_roundtrip": "pass",
+  "resume_omitted_limits_restored": true,
+  "token_limit_not_redacted": true,
+  "checks": [
+    "syntax",
+    "ruff",
+    "pytest"
+  ],
+  "model_requests": 0
+}

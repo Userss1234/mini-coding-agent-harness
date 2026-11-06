@@ -8,6 +8,13 @@
 
 开源许可证：[MIT](LICENSE)
 
+教学来源与改编材料说明：[来源声明](THIRD_PARTY_NOTICES.md)，不将教学项目等同于官方泄露源码。
+
+核心能力已补齐：工具参数契约与安全只读并行、外部 MCP stdio/HTTP 工具接入、源码符号关系证据与按内容失效的分块缓存。
+使用方法见[核心能力说明](docs/CORE_AGENT_STACK.md)，实测与边界见[整体验证报告](reports/CORE_AGENT_STACK_20261029.md)。
+现已新增[可选 Qdrant 向量检索后端](docs/QDRANT_RETRIEVAL.md)，支持持久化向量、增量更新、删除同步和仓库级索引隔离；默认仍为本地词法检索，SQLite 继续负责运行状态持久化。
+新增[可靠维护控制](docs/RELIABLE_MAINTENANCE.md)：结束前诊断与有界修复、Python 仓库地图与语言服务器导航，以及可持久化的运行预算和取消信号。均保留明确的启用条件和验证边界。
+
 ## 快速开始
 
 `ask` 现在默认将运行状态、消息和工具执行检查点保存到 SQLite。`resume` 可恢复中断任务，
@@ -186,8 +193,10 @@ harness.trace.TraceLogger
 | `list_python_files` | 列出 Python 文件，忽略缓存和评估工作区。 |
 | `read_file` | 读取工作区文件，支持指定行区间、行数/字符数限制和读缓存元数据。 |
 | `index_workspace` | 构建安全的本地检索索引摘要，统计工作区文本 chunk。 |
-| `rag_search` | 使用默认 lexical 或可选本地 hybrid backend 检索代码和文档，返回路径、行号和评分。 |
+| `rag_search` | 使用 lexical、本地 hybrid 或操作者启用的 Qdrant 检索代码和文档，返回源码哈希、路径、行号和评分。 |
 | `rag_explain` | 将 RAG 命中结果转换成具体的 `read_file` 路径和行区间计划。 |
+| `rag_symbols` | 查找 Python 定义与可能的静态调用关系，返回源码路径、行号和哈希。 |
+| `mcp__SERVER__TOOL` | 通过 `ask/resume --mcp-config` 导入、由本地配置授权的外部 stdio/HTTP 工具。 |
 | `retrieve_then_read` | 运行 RAG、生成 read plan，并返回已读取的行区间 evidence pack。 |
 | `context_pack` | 复用同一套本地检索层，按任务 query 返回相关工作区片段。 |
 | `write_file` | 写文件，并记录 diff 元数据。 |
@@ -495,7 +504,7 @@ git diff -- .
 ## 当前限制
 
 - 两次同模型 40-task 全量运行分别为 39/40 和 40/40。39 个任务稳定通过；`shell_no_shell_execution` 因首轮 provider 中断、第二轮通过而仍归类为不稳定。若要得到更强的方差结论，还需要更多重复运行或第二个 provider/model。
-- Workspace RAG 默认使用带路径/行号的本地分块 lexical retrieval。可选 hybrid backend 增加本地 MiniLM embedding 和加权融合，但仍是进程内扫描，不是向量数据库；MRR 0.9000 的证据只覆盖已提交的 10-query 项目 fixture。
+- Workspace RAG 默认使用本地 lexical；本地 hybrid 在进程内计算 MiniLM 相似度，可选 Qdrant 后端提供持久化向量和候选融合。Qdrant 在现有 28 查询开发语料上取得 MRR 0.9762、Recall@5 1.0，与之前本地 hybrid 指标一致，不代表速度或泛化准确率提升。见[实现与证据边界](reports/QDRANT_RETRIEVAL_20261102.md)。
 - lexical/hybrid agent 对比目前只有一次 lexical-first 8-task 运行，没有显示 agent 效率优势，并暴露一个已修复的 lexical-only verifier 契约；backend 稳定性结论仍需要 hybrid-first 复跑。
 - workflow memory 可以按 query 排序并注入 agent 评估提示，但排序仍然是词法匹配，还不是 embedding 检索。
 - max-turn 停止时会生成 context compaction 摘要，但还没有实现基于摘要的自动续跑。

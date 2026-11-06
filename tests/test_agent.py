@@ -315,7 +315,7 @@ def test_auto_retrieval_suppresses_preflight_and_schemas_for_simple_task(tmp_pat
     assert tool_names.isdisjoint(RETRIEVAL_TOOL_NAMES)
     assert gate["data"]["activated"] is False
     assert gate["data"]["score"] == 1
-    assert gate["data"]["suppressed_retrieval_schema_count"] == 5
+    assert gate["data"]["suppressed_retrieval_schema_count"] == len(RETRIEVAL_TOOL_NAMES.intersection(registry.names()))
     assert any(event["event"] == "agent_retrieval_preflight_skipped" for event in events)
 
 
@@ -348,10 +348,10 @@ def test_auto_retrieval_activates_preflight_and_schemas_for_multi_file_task(tmp_
         for line in trace.path.read_text(encoding="utf-8").splitlines()
     ]
     gate = next(event for event in events if event["event"] == "agent_retrieval_gate")
-    assert RETRIEVAL_TOOL_NAMES.issubset(tool_names)
+    assert RETRIEVAL_TOOL_NAMES.intersection(registry.names()).issubset(tool_names)
     assert gate["data"]["activated"] is True
     assert gate["data"]["score"] >= gate["data"]["threshold"]
-    assert gate["data"]["exposed_retrieval_schema_count"] == 5
+    assert gate["data"]["exposed_retrieval_schema_count"] == len(RETRIEVAL_TOOL_NAMES.intersection(registry.names()))
     assert any(event["event"] == "agent_retrieval_preflight" for event in events)
 
 

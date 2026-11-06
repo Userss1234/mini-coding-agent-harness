@@ -91,11 +91,60 @@ jobs:
           python main.py docker-smoke --output artifacts/DOCKER_SANDBOX_SMOKE.md
           grep -F "Status: **pass**" artifacts/DOCKER_SANDBOX_SMOKE.md
 
+      - name: Build completion-verification image
+        run: docker build --file docker/verification/Dockerfile --tag mini-coding-agent-harness-verification:latest .
+
+      - name: Verify actual diagnostic-repair boundary
+        env:
+          HARNESS_LIVE_DOCKER: "1"
+          HARNESS_VERIFICATION_REPORT: artifacts/RELIABILITY_SMOKE.json
+        run: python -m pytest tests/test_verification_controller.py -k actual_docker -q
+
       - name: Upload validation artifacts
         uses: actions/upload-artifact@v6
         with:
           name: validation-artifacts
           path: artifacts/
+
+  code-intelligence:
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install optional pinned language server
+        run: python -m pip install -r requirements-dev.lock -r requirements-codeintel.lock
+      - name: Verify actual language-server navigation
+        run: python -m pytest tests/test_code_intelligence.py -q
+
+  qdrant-integration:
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.16.3
+        env:
+          QDRANT__SERVICE__API_KEY: ci-local-integration-only
+          QDRANT__TELEMETRY_DISABLED: "true"
+        ports:
+          - 127.0.0.1:6333:6333
+    env:
+      HARNESS_QDRANT_TEST_URL: http://127.0.0.1:6333
+      HARNESS_QDRANT_API_KEY: ci-local-integration-only
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install locked development dependencies
+        run: python -m pip install -r requirements-dev.lock
+      - name: Test actual Qdrant and MCP integration
+        run: python -m pytest tests/test_qdrant_retrieval.py -q
 
   cross-feature:
     if: github.event_name == 'workflow_dispatch'

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "driver": "actual Python LSP Server/Jedi, no model API",
+  "fixture": "public reservation_atomicity source",
+  "definition": {
+    "operation": "definition",
+    "provider": "python-lsp-server / Jedi",
+    "matches": [
+      {
+        "path": "catalog.py",
+        "line": 1,
+        "column_utf16": 5,
+        "range": {
+          "start": {
+            "line": 0,
+            "character": 4
+          },
+          "end": {
+            "line": 0,
+            "character": 18
+          }
+        },
+        "indexed_source_sha256": "c1679b6e8ee4c2bb8a12ae2278ac1d561d270294ba76fc493588e2349998bc57"
+      }
+    ],
+    "truncated": false,
+    "analysis": "Language-server static analysis; not runtime dispatch proof"
+  },
+  "references": {
+    "operation": "references",
+    "provider": "python-lsp-server / Jedi",
+    "matches": [
+      {
+        "path": "catalog.py",
+        "line": 1,
+        "column_utf16": 5,
+        "range": {
+          "start": {
+            "line": 0,
+            "character": 4
+          },
+          "end": {
+            "line": 0,
+            "character": 18
+          }
+        },
+        "indexed_source_sha256": "c1679b6e8ee4c2bb8a12ae2278ac1d561d270294ba76fc493588e2349998bc57"
+      },
+      {
+        "path": "service.py",
+        "line": 1,
+        "column_utf16": 21,
+        "range": {
+          "start": {
+            "line": 0,
+            "character": 20
+          },
+          "end": {
+            "line": 0,
+            "character": 34
+          }
+        },
+        "indexed_source_sha256": "3e2df8162a1596e0378cdd15a9c6b30c43eb4fd57ffc73f76cf02817eb33569c"
+      },
+      {
+        "path": "service.py",
+        "line": 6,
+        "column_utf16": 16,
+        "range": {
+          "start": {
+            "line": 5,
+            "character": 15
+          },
+          "end": {
+            "line": 5,
+            "character": 29
+          }
+        },
+        "indexed_source_sha256": "3e2df8162a1596e0378cdd15a9c6b30c43eb4fd57ffc73f76cf02817eb33569c"
+      }
+    ],
+    "truncated": false,
+    "analysis": "Language-server static analysis; not runtime dispatch proof"
+  },
+  "diagnostics": {
+    "operation": "diagnostics",
+    "provider": "python-lsp-server / Jedi",
+    "matches": [],
+    "truncated": false,
+    "analysis": "Language-server static analysis; not runtime dispatch proof"
+  },
+  "repository_map": {
+    "files": [
+      {
+        "path": "catalog.py",
+        "symbols": [
+          {
+            "name": "valid_quantity",
+            "kind": "function",
+            "line": 1,
+            "signature": "valid_quantity(value)"
+          }
+        ],
+        "imports": [],
+        "indexed_source_sha256": "c1679b6e8ee4c2bb8a12ae2278ac1d561d270294ba76fc493588e2349998bc57",
+        "query_overlap": 2
+      },
+      {
+        "path": "service.py",
+        "symbols": [
+          {
+            "name": "reserve",
+            "kind": "function",
+            "line": 4,
+            "signature": "reserve(stock, items)"
+          }
+        ],
+        "imports": [
+          "from catalog import valid_quantity"
+        ],
+        "indexed_source_sha256": "3e2df8162a1596e0378cdd15a9c6b30c43eb4fd57ffc73f76cf02817eb33569c",
+        "query_overlap": 0
+      }
+    ],
+    "files_available": 2,
+    "parse_skipped": 0,
+    "truncated": false,
+    "budget_chars": 6000,
+    "analysis": "Budgeted Python AST map; imports are syntax hints, not resolved dependencies"
+  },
+  "source_unchanged": true,
+  "local_elapsed_seconds": 15.148
+}

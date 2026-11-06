@@ -54,5 +54,5 @@ def run_retrieval_study(judgments: Path, *, include_hybrid: bool = False,
     return {"schema_version": 1, "chunk_strategy": chunk_strategy, "warm_repeats": repeats,
             "execution_orders": orders, "unavailable_backends": missing, "rows": rows,
             "counterbalanced_complete": include_hybrid and not missing,
-            "measurement_scope": "Full retrieval calls; cold=empty document embedding cache, not OS/model cold. Lexical rebuilds its index on every call. Quality pass preloads the model before timing; cache paths are fresh per case/order. Filesystem caches remain uncontrolled.",
+            "measurement_scope": "Full retrieval calls; cold=empty document embedding cache, not OS/model/chunk-cache cold. Lexical rereads sources and rebuilds query scoring, but content-identical chunks may be reused. Quality pass preloads model and in-process chunks; embedding cache paths are fresh per case/order. Filesystem caches and machine load remain uncontrolled.",
             "claim_boundary": "Small public offline fixture; timings are local observations, not agent gains or an SLA."}

@@ -27,13 +27,26 @@ Current local verification uses Windows and Python 3.12.2 with the development e
 | Check | Result |
 |---|---|
 | Ruff | pass, 0 findings |
-| mypy | pass, 33 source files |
-| pytest | pass, 319 tests; 1 optional symlink skip |
-| Branch coverage | 83.01% (75% required) |
+| mypy | pass, 39 source files |
+| pytest | pass, 391 tests including actual Docker/Qdrant/LSP; 1 optional symlink skip |
+| Branch coverage | 83.77% (75% required) |
 | Scripted benchmark | 40/40 pass |
 | Python compilation | pass |
 
 The generated coverage database and benchmark workspaces remain local and are ignored by Git.
+
+Current local P0-P3 evidence: [reliable maintenance](RELIABLE_MAINTENANCE_20261103.md), including
+trusted completion verification, language-server cleanup and durable budget controls. These local
+changes are not yet committed/pushed and the new remote jobs have not run.
+
+The 2026-11-02 [Qdrant extension](QDRANT_RETRIEVAL_20261102.md) adds optional persistent
+vector retrieval, actual restart reuse and real MiniLM/MCP stdio validation. No paid model API
+was called. The new Qdrant CI job is defined locally but has not run remotely.
+
+Current core-stack verification also treats unhandled thread exceptions as test failures.
+See [CORE_AGENT_STACK_20261029.md](CORE_AGENT_STACK_20261029.md) for actual external MCP
+stdio/HTTP sessions, conservative parallel reads, incremental code evidence and a bounded real
+DeepSeek tool-use smoke. This batch remains uncommitted at the user's request; no new remote CI.
 
 The 2026-10-29 [requirement/budget guidance experiment](VERIFICATION_GUIDANCE_20261029.md)
 adds optional plan metadata and an off-by-default advisory mode. Its actual agent acceptance

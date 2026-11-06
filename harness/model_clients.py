@@ -149,7 +149,7 @@ def _convert_assistant_blocks(blocks: list[Any]) -> dict[str, Any]:
                 "type": "function",
                 "function": {
                     "name": get("name", ""),
-                    "arguments": json.dumps(get("input", {}) or {}),
+                    "arguments": json.dumps(get("input", {})),
                 },
             })
     message: dict[str, Any] = {
@@ -183,11 +183,11 @@ def _parse_openai_response(data: dict[str, Any]) -> Any:
         content_blocks.append(SimpleNamespace(type="text", text=text))
     for tool_call in message.get("tool_calls") or []:
         function = tool_call.get("function") or {}
-        raw_arguments = function.get("arguments") or "{}"
+        raw_arguments = function.get("arguments", "{}")
         try:
             arguments = json.loads(raw_arguments)
-        except json.JSONDecodeError:
-            arguments = {}
+        except (json.JSONDecodeError, TypeError):
+            arguments = raw_arguments
         content_blocks.append(SimpleNamespace(
             type="tool_use",
             id=tool_call.get("id", ""),
@@ -195,11 +195,11 @@ def _parse_openai_response(data: dict[str, Any]) -> Any:
             input=arguments,
         ))
     usage = data.get("usage") or {}
+    complete_usage = all(type(usage.get(key)) is int and usage[key] >= 0
+                         for key in ("prompt_tokens", "completion_tokens"))
     return SimpleNamespace(
         stop_reason="tool_use" if message.get("tool_calls") else "end_turn",
         content=content_blocks,
-        usage=SimpleNamespace(
-            input_tokens=int(usage.get("prompt_tokens", 0) or 0),
-            output_tokens=int(usage.get("completion_tokens", 0) or 0),
-        ),
+        usage=(SimpleNamespace(input_tokens=usage["prompt_tokens"],
+                               output_tokens=usage["completion_tokens"]) if complete_usage else None),
     )

@@ -1,0 +1,18 @@
+# Optional code-intelligence overlay. Existing base pins remain unchanged.
+# Versions below match the locally verified Python 3.12 environment; remote Python 3.10/3.11
+# compatibility has a defined CI job but has not yet been verified remotely.
+-r requirements.lock
+black==26.10.1
+docstring-to-markdown==0.17
+importlib-metadata==10.1.0
+jedi==0.20.1
+mypy-extensions==1.1.0
+parso==0.8.7
+pathspec==1.1.1
+platformdirs==4.14.3
+pyflakes==3.4.0
+pytokens==0.4.1
+python-lsp-jsonrpc==1.1.2
+python-lsp-server==1.15.0
+ujson==6.0.0
+zipp==4.1.2

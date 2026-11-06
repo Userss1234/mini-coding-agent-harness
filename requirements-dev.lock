@@ -43,6 +43,7 @@ httpcore2==2.12.0
     # via httpx2
 httpx2==2.12.0
     # via
+    #   mini-coding-agent-harness (pyproject.toml)
     #   anthropic
     #   mcp
 idna==3.19
@@ -54,7 +55,9 @@ iniconfig==2.3.0
 jiter==0.17.0
     # via anthropic
 jsonschema==4.26.0
-    # via mcp
+    # via
+    #   mcp
+    #   mini-coding-agent-harness (pyproject.toml)
 jsonschema-specifications==2025.9.1
     # via jsonschema
 librt==0.15.0

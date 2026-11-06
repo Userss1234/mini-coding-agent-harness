@@ -34,7 +34,7 @@ def test_mcp_initialize_and_list_tools(tmp_path: Path) -> None:
     assert tools["context_pack"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_explain"]["inputSchema"]["required"] == ["query"]
     assert tools["rag_search"]["inputSchema"]["required"] == ["query"]
-    assert tools["rag_search"]["inputSchema"]["properties"]["backend"]["enum"] == ["lexical", "hybrid"]
+    assert tools["rag_search"]["inputSchema"]["properties"]["backend"]["enum"] == ["lexical", "hybrid", "qdrant"]
     assert tools["retrieve_then_read"]["inputSchema"]["required"] == ["query"]
     assert tools["read_file"]["annotations"]["readOnlyHint"] is True
     assert tools["write_file"]["annotations"]["destructiveHint"] is True

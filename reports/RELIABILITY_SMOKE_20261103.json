@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "driver": "injected deterministic client",
+  "execution": "actual restricted read-only Docker checks",
+  "source_unchanged": true,
+  "observed_checks": [
+    {
+      "status": "failed",
+      "changed_files": [
+        "mathlib.py"
+      ],
+      "checks": [
+        {
+          "tool": "syntax",
+          "status": "passed",
+          "exit_status": 0,
+          "timed_out": false,
+          "diagnostics": []
+        },
+        {
+          "tool": "ruff",
+          "status": "passed",
+          "exit_status": 0,
+          "timed_out": false,
+          "diagnostics": []
+        },
+        {
+          "tool": "pytest",
+          "status": "failed",
+          "exit_status": 1,
+          "timed_out": false,
+          "diagnostics": [
+            {
+              "tool": "pytest",
+              "severity": "error",
+              "code": "failed",
+              "message": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_add ___________________________________\n\n>   def test_add(): assert add(2, 3) == 5\n                    ^^^^^^^^^^^^^^^^^^^^^\nE   assert 6 == 5\nE    +  where 6 = add(2, 3)\n\ntests/test_mathlib.py:2: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_mathlib.py::test_add - assert 6 == 5\n1 failed in 0.08s"
+            }
+          ]
+        }
+      ],
+      "source_stable": true,
+      "scope": "Operator-selected checks only; not external task acceptance",
+      "source_digest": "6764a3f30c992c678f780f4e9dc26e9f9ac8afc6539422ce717c36c180c5e5b9"
+    },
+    {
+      "status": "passed",
+      "changed_files": [
+        "mathlib.py"
+      ],
+      "checks": [
+        {
+          "tool": "syntax",
+          "status": "passed",
+          "exit_status": 0,
+          "timed_out": false,
+          "diagnostics": []
+        },
+        {
+          "tool": "ruff",
+          "status": "passed",
+          "exit_status": 0,
+          "timed_out": false,
+          "diagnostics": []
+        },
+        {
+          "tool": "pytest",
+          "status": "passed",
+          "exit_status": 0,
+          "timed_out": false,
+          "diagnostics": []
+        }
+      ],
+      "source_stable": true,
+      "scope": "Operator-selected checks only; not external task acceptance",
+      "source_digest": "0bbfe889f2ef469ca27d1a44f8ac4b57975e00a104565eeaae3a5d2e64f60b7c"
+    }
+  ],
+  "run_status": "completed",
+  "control_state": {
+    "elapsed": 5.797000000020489,
+    "tools": 2,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "unknown_usage": true,
+    "pending_model": false,
+    "signature": "50c95cb576c5ea761bcffe32c0fe80269917f73f345cb663cab00aeebc38ebbe",
+    "repeats": 1
+  }
+}

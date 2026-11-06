@@ -200,6 +200,7 @@ def search_workspace_hybrid(
             "start_line": chunk.start_line,
             "end_line": chunk.end_line,
             "snippet": snippet,
+            "indexed_source_sha256": chunk.source_sha256,
         })
 
     scored.sort(
